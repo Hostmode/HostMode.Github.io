@@ -4,3 +4,4 @@ agent-screens/
 agent-test-inventory.csv
 backup/
 .agent-*
+__pycache__/
