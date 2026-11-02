@@ -871,6 +871,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#aaa;vertical-align:middle}.dot.on{background:#2f9e44;box-shadow:0 0 0 3px color-mix(in srgb,#2f9e44 25%,transparent)}
 .vpbig{font-size:2.2rem;font-weight:800;line-height:1.1;color:var(--hd)}.vpherebtn{font-size:1.2rem;padding:16px 22px;align-self:stretch}.vpmine{border-left:4px solid var(--gold,#c08a00);padding-left:8px}
 .tkdraft{padding:8px 0}
+.sttabs{gap:6px;margin-bottom:4px}.rsdoc h4{margin:12px 0 4px}.rsdoc ul{padding-left:20px}.rstable{overflow-x:auto}.rstable table{border-collapse:collapse;font-size:13px}.rstable td,.rstable th{border:1px solid var(--line);padding:4px 8px;text-align:left}
 .cd-event{background:#e0338f}.cd-pay{background:#e8a20c}.cd-date{background:#3f74d6}.cd-task{background:#2f9e44}
 .landed{animation:landed 1.4s ease-out}@keyframes landed{0%{box-shadow:0 0 0 3px var(--btn1)}100%{box-shadow:0 0 0 3px transparent}}
 .shhero{text-align:center;align-items:center}.shlogo{max-height:84px;max-width:220px;border-radius:14px}
@@ -1424,7 +1425,7 @@ document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest
 
 function headerView(){
  const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
- const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Support":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
+ const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Staff area":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
  const showAa=VIEW==="guest"||VIEW==="album"||VIEW==="keepsake";
  return `<div class="brand"><h1>${esc(title)}</h1>${sub?`<p>${esc(sub)}</p>`:""}</div>${showAa?`<button class="btn sm aa" data-act="settings" aria-label="${t("Settings")}">Aa</button>`:""}${VIEW==="moderator"&&L.modOK?`<span class="row"><span class="pill ${D.meta&&D.meta.practice?"warn":"live"}">${D.meta&&D.meta.practice?"Practice run":L.isAdmin?"Administrator":"Moderator"} · ${esc(EV)}</span><span class="small muted">${esc(L.isAdmin?"":L.modName||"")}</span>${modBackLinks()}<button class="btn xs" data-act="modSignOut">Sign out</button></span>`:""}`}
 /* back buttons from an event console to the admin console and the planner portal */
@@ -1813,8 +1814,8 @@ function hostView(){
  if(!L.loaded)return loadingView();
  if(!L.hostOK)return `<section class="card stack narrow"><div class="eyebrow">Administrator</div><h2>Enter the host PIN</h2><p class="small muted m0">The host PIN is the administrator PIN. It opens every event.</p><input type="password" inputmode="numeric" id="hpin" data-draft="hpin" value="${esc(dv("hpin",""))}"><button class="btn primary" data-act="hostPin">Open</button></section>`;
  const tab=(k,l)=>`<button data-act="hostTab" data-k="${k}" aria-pressed="${(L.hostTab||"events")===k}">${l}</button>`;
- const body={support:supportBody,events:hEvents,invites:hInvites,planners:hPlanners,leads:hLeads,archives:hArchives,themes:hThemes,library:hLibrary,settings:hSettings}[L.hostTab||"events"]();
- return `<div class="console"><nav class="side">${tab("events","Events")}${tab("support","Support"+(tkNewCount()?` <span class="pill warn">${tkNewCount()}</span>`:""))}${tab("invites","Invite codes")}${tab("planners","Planners")}${tab("leads","Contacts"+(Object.keys(D.leads||{}).length?` <span class="pill gold">${Object.keys(D.leads).length}</span>`:""))}${tab("archives","Archives")}${tab("themes","Themes")}${tab("library","Game inventory")}${tab("settings","Host settings")}</nav><div class="stack mw0">${body}</div></div>`}
+ const body={support:supportBody,sales:salesBody,resources:resourcesBody,marketing:marketingBody,events:hEvents,invites:hInvites,planners:hPlanners,leads:hLeads,archives:hArchives,themes:hThemes,library:hLibrary,settings:hSettings}[L.hostTab||"events"]();
+ return `<div class="console"><nav class="side">${tab("events","Events")}${tab("support","Support"+(tkNewCount()?` <span class="pill warn">${tkNewCount()}</span>`:""))}${tab("sales","Sales"+(slDue()?` <span class="pill warn">${slDue()}</span>`:""))}${tab("resources","Resources")}${tab("marketing","Marketing")}${tab("invites","Invite codes")}${tab("planners","Planners")}${tab("leads","Contacts"+(Object.keys(D.leads||{}).length?` <span class="pill gold">${Object.keys(D.leads).length}</span>`:""))}${tab("archives","Archives")}${tab("themes","Themes")}${tab("library","Game inventory")}${tab("settings","Host settings")}</nav><div class="stack mw0">${body}</div></div>`}
 function hEvents(){const ev=D.events||{},def=D.admin.defaultEvent;const keys=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0));const th=D.themes||{};
  return `<section class="card stack"><h2>Your events</h2>${keys.length?keys.map(k=>`<div class="gamerow evrow"><span class="gnum">${def===k?"★":""}</span><div class="mw0"><b>${esc(ev[k].name||k)}</b> ${ev[k].practice?'<span class="pill warn">practice</span>':""}<div class="small muted">Code ${esc(k)}${def===k?" · opens from the main link":""}</div></div>
  <div class="row">${L.confirm==="del:"+k?`<span class="small">Delete everything?</span><button class="btn sm gold" data-act="delEvent" data-k="${k}">Delete</button><button class="btn sm" data-act="cancelConfirm">Keep</button>`:`<button class="btn sm primary" data-act="openMod" data-k="${k}">Console</button><a class="btn sm" href="${esc(eventURL(k))}" target="_blank" rel="noopener">Guest view</a><a class="btn sm" href="${esc(eventURL(k,"screen"))}" target="_blank" rel="noopener">Big screen</a>${def===k?"":`<button class="btn sm" data-act="setMain" data-k="${k}">Make main</button>`}<button class="btn sm" data-act="askDel" data-k="${k}">Delete</button>`}</div></div>`).join(""):'<p class="small muted m0">No events yet.</p>'}</section>
@@ -5751,7 +5752,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=11;
+const PDEMO_V=12;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -5876,6 +5877,10 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   tk4:{msg:"¿Cómo cambio mi nombre en el juego?",who:"guest",name:"Luis",ev:"WHELAN",page:"games.html?e=WHELAN",device:dev,lang:"es",status:"solved",seen:{roy:ago(30)},by:{uid:"roy",name:"Roy",t:ago(30)},solved:{uid:"roy",name:"Roy",t:ago(29)},t:ago(31),last:ago(29),lastFrom:"staff"}};
  pg.ticketReplies={tk2:{r1:{from:"staff",name:"Icee",text:"Hi Claire, thanks for letting us know! Could you tell me the names of the two vendors that are missing?",t:ago(3)},r2:{from:"reporter",name:"Claire Moran",text:"Bloom & Vine Florals and DJ Marcus.",t:ago(1)}},
   tk4:{r1:{from:"staff",name:"Roy",text:"¡Hola Luis! Toca tu nombre arriba de la pantalla y escribe el nuevo.",t:ago(29.5)}}};
+ pg.sales={s1:{biz:"Queen City Events",name:"Dana Brooks",kind:"planner",city:"Charlotte",email:"dana@queencity.example",phone:"704-555-0190",src:"Wedding expo",stage:"talking",next:day(0),nextWhat:"Send the demo link",owner:{uid:"icee",name:"Icee"},notes:"Does about 30 weddings a year. Uses three apps and a rentals spreadsheet.",t:ago(80),last:ago(20)},
+  s2:{biz:"The Mill at Rock Hill",name:"Marcus Hale",kind:"venue",city:"Rock Hill",web:"themill.example",src:"Instagram",stage:"idea",next:day(2),nextWhat:"First call",owner:{uid:"icee",name:"Icee"},notes:"Two event rooms and a garden. Books by phone and a paper calendar.",t:ago(30),last:ago(30)},
+  s3:{biz:"Bloom & Vine Florals",name:"Tara Nguyen",kind:"decor",city:"Charlotte",email:"tara@bloomvine.example",src:"Referral from Claire",stage:"trial",next:day(5),nextWhat:"Check in on the inventory import",owner:{uid:"roy",name:"Roy"},t:ago(200),last:ago(48)}};
+ pg.salesLog={s1:{l1:{text:"Met at the Charlotte wedding expo. Loved the big screen games.",name:"Icee",t:ago(80)},l2:{text:"Called. She wants to see the planner portal.",name:"Icee",t:ago(20)}},s3:{l1:{text:"Moved to Trying it",name:"Roy",t:ago(48)}}};
  pg.agents={paused:false};pg.backupStatus={t:ago(4),mb:3.1,ok:true};
  pg.agentRuns={r1:{t:ago(6),done:ago(5.6),usage:{in:182000,out:9100,usd:0.45},
   tester:{passed:13,failed:1,aiProblems:1,filed:2,problems:["Inventory import is broken","Venue calendar: \"Back to today\" is hard to find on a phone"],ai:{role:"venue",size:"phone",lang:"English",steps:27,summary:"Booking a room and blocking days was easy. Finding today again after moving months took a while."}},
@@ -6640,7 +6645,8 @@ function supSubs(){if(supSubbed||!db)return;supSubbed=true;
  RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
  if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
  RT("plist").once("value").then(s=>{D.plist=Object.assign({},D.plist||{},s.val()||{});renderSoon()}).catch(()=>{});
- RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});RT("agentRuns").on("value",s=>{D.agentRuns=s.val()||{};renderSoon()},()=>{});RT("backupStatus").on("value",s=>{D.backupStatus=s.val();renderSoon()},()=>{});
+ RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});
+ RT("sales").on("value",s=>{D.sales=s.val()||{};renderSoon()},()=>{});RT("salesLog").on("value",s=>{D.salesLog=s.val()||{};renderSoon()},()=>{});RT("resources").on("value",s=>{D.resources=s.val()||{};renderSoon()},()=>{});RT("agentRuns").on("value",s=>{D.agentRuns=s.val()||{};renderSoon()},()=>{});RT("backupStatus").on("value",s=>{D.backupStatus=s.val();renderSoon()},()=>{});
  RT("index").once("value").then(s=>{D.supIdx=s.val()||{};renderSoon()}).catch(()=>{});
  const beat=()=>{const m=supMe();if(m&&(VIEW==="support"||(VIEW==="host"&&L.hostTab==="support")))RT("staff/"+m.uid+"/active").set(Date.now()).catch(()=>{})};
  if(!supBeat){beat();supBeat=setInterval(beat,60000)}}
@@ -6747,13 +6753,13 @@ function supConnect(){if(supDemo()){L.authReady=true;L.supLoaded=true;supSubs();
   const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid;D.owner=ow?ow.val():D.owner;
   const sf=(await RT("staff/"+u.uid).once("value").catch(()=>null)),sv=sf&&sf.val();if(sv)D.staff=Object.assign({},D.staff,{[u.uid]:sv});
   if(own||sv)supSubs();renderSoon()})}
-function supportView(){if(supDemo())return supportBody();
+function supportView(){if(supDemo())return staffTabs()+staffBody();
  if(!L.authReady)return loadingView();
  const card=(h,b)=>`<section class="card stack narrow"><div class="eyebrow">Host Mode support</div><h2>${h}</h2>${b}<a class="btn xs as" href="index.html">Home</a></section>`;
  if(!L.user)return card(L.acMode==="join"?"Create your support login":"Sign in",L.acMode==="join"?`<p class="small muted m0">Use the one-time support code Roy gave you.</p><label class="stack tight"><span class="small">Support code</span><input type="text" data-draft="sj_code" value="${esc(dv("sj_code",""))}" autocapitalize="characters" autocomplete="off"></label><label class="stack tight"><span class="small">Your name</span><input type="text" data-draft="sj_name" value="${esc(dv("sj_name",""))}" autocomplete="name"></label><label class="stack tight"><span class="small">Email</span><input type="email" data-draft="ac_email" value="${esc(dv("ac_email",""))}" autocomplete="email"></label><label class="stack tight"><span class="small">Choose a password (8+ characters)</span><input type="password" data-draft="ac_pw" autocomplete="new-password"></label><button class="btn primary" data-act="supJoin">Create my support login</button><button class="btn xs as" data-act="acMode" data-k="signin">I already have a login</button>`
   :`<p class="small muted m0">For the Host Mode support team.</p>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="join">I have a support code</button>`);
  const me=supMe();if(!me)return card("No support access",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, which doesn't have a support login. If Roy gave you a support code, sign out and tap "I have a support code."</p><button class="btn" data-act="acOut">Sign out</button>`);
- return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+supportBody()}
+ return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+staffTabs()+staffBody()}
 
 /* ================= VENDOR PAGES =================
    Each vendor gets a private link (games.html?vendor=TOKEN&p=PLANNER), no account needed.
@@ -6837,6 +6843,212 @@ Object.assign(ACT,{
  vpHere:async el=>{const tok=QS.get("vendor")||"";try{await RT(PSP+"vcheck/"+tok+"/here").set(el.dataset.k==="undo"?null:Date.now());toast(el.dataset.k==="undo"?"Check-in removed":"Checked in. Thanks!")}catch(e){toast("Couldn't send it. Check your connection.")}},
  vpIssue:async()=>{const tok=QS.get("vendor")||"",text=String(dv("vp_issue","")).trim().slice(0,300);if(!text)return toast("Say what's wrong first");
   try{await RT(PSP+"vcheck/"+tok+"/issues").push().set({text,t:Date.now()});delete L.drafts.vp_issue;toast("Sent to the planner");render(true)}catch(e){toast("Couldn't send it. Check your connection.")}}
+});
+
+/* ================= STAFF AREA: SALES AND RESOURCES =================
+   Roy and support staff (Icee) see these in the staff area (games.html#support) and the admin console.
+   partygames/sales/{k}       = a planner, venue or business Host Mode is pitching:
+                                {name, biz, kind, city, phone, email, web, stage, next, nextWhat, owner:{uid,name}, src, notes, t, last}
+   partygames/salesLog/{k}/{n} = {text, name, t}   every call, email or visit, newest last
+   partygames/resources/{k}   = a staff document: {title, kind, body, url, t, by, edited, prev}
+                                prev keeps the version before the last edit, so a mistake can be put back
+   Staff can add and edit; only Roy deletes. Competitor names are fine here (staff only), never in public pages. */
+D.sales={};D.salesLog={};D.resources={};
+const SL_ST=[["idea","To contact",""],["contacted","Contacted",""],["talking","Talking","gold"],["demo","Demo booked","gold"],["trial","Trying it","warn"],["customer","Customer","ok"],["notnow","Not now",""]];
+const slSt=k=>SL_ST.find(x=>x[0]===k)||SL_ST[0];
+const SL_KIND=[["planner","Event planner"],["venue","Venue"],["decor","Decorator or rentals"],["vendor","Vendor (DJ, caterer, photographer)"],["host","Single-event host"],["other","Other"]];
+const slList=()=>Object.keys(D.sales||{}).map(k=>Object.assign({k},D.sales[k])).sort((a,b)=>String(a.next||"9999").localeCompare(String(b.next||"9999"))||(b.last||b.t||0)-(a.last||a.t||0));
+const slLog=k=>Object.keys((D.salesLog||{})[k]||{}).map(n=>Object.assign({n},D.salesLog[k][n])).sort((a,b)=>(a.t||0)-(b.t||0));
+const slDue=()=>slList().filter(x=>x.next&&x.next<=mateToday()&&!["customer","notnow"].includes(x.stage)).length;
+/* a first pitch email in Host Mode's voice; the pitch-email Skill writes better ones with Claude */
+function slPitch(x){const kind=x.kind||"planner",first=String(x.name||"").split(" ")[0]||"there";
+ const hook={planner:"Most planners we talk to pay for three or four apps: one for clients and invoices, one for timelines, one for floor plans, and nothing for the party itself.",
+  venue:"Venues tell us they juggle a booking calendar, a rentals spreadsheet and a separate app for every event.",
+  decor:"Decorators and rental businesses tell us their linens, centerpieces and chairs live in a spreadsheet nobody trusts.",
+  vendor:"Vendors tell us they get the day's schedule five different ways from five different planners.",
+  host:"Most party apps stop at the invitation.",other:"Most event software goes quiet on the big day."}[kind]||"";
+ const body=`Hi ${first},\n\n${hook} Host Mode puts it all in one place: clients, planning, ${kind==="venue"?"venue bookings, blocked days, ":""}inventory and the event itself, with games, a big screen and guest check-in on the night.\n\nYou can bring everything over in one upload, and if anything ever goes wrong there's a real person to help, right inside the app.\n\nWould you have 15 minutes this week for a quick look?\n\n${(supMe()||{}).name||"Host Mode"}\nHost Mode · Charlotte, NC`;
+ return {subject:"Plan it, run it, remember it, in one place",body}}
+function salesBody(){const me=supMe(),all=slList(),f=L.slF||"open",q=String(dv("sl_q","")).toLowerCase().trim(),today=mateToday();
+ const cnt=k=>all.filter(x=>(x.stage||"idea")===k).length,due=all.filter(x=>x.next&&x.next<=today&&!["customer","notnow"].includes(x.stage));
+ const shown=all.filter(x=>{const s=x.stage||"idea";if(f==="open"&&["customer","notnow"].includes(s))return false;if(f==="due"&&!due.includes(x))return false;if(f==="mine"&&!(x.owner&&me&&x.owner.uid===me.uid))return false;if(SL_ST.some(z=>z[0]===f)&&s!==f)return false;
+  return !q||[x.name,x.biz,x.city,x.email,x.notes].join(" ").toLowerCase().includes(q)});
+ const open=L.slOpen,edit=L.slEdit;
+ return `<section class="card stack"><div class="row between"><h2 class="m0">Sales</h2><button class="btn sm primary" data-act="slNew">Add someone to pitch</button></div>
+ <p class="small muted m0">The planners, venues and businesses you're talking to about Host Mode, where each one stands, and what to do next.</p>
+ <div class="stats"><button class="stat ${due.length?"hot":""}" data-act="slFilter" data-k="due"><b>${due.length}</b><span>Follow up today</span></button><button class="stat" data-act="slFilter" data-k="talking"><b>${cnt("talking")+cnt("demo")}</b><span>Talking or demo booked</span></button><button class="stat" data-act="slFilter" data-k="trial"><b>${cnt("trial")}</b><span>Trying it</span></button><button class="stat" data-act="slFilter" data-k="customer"><b>${cnt("customer")}</b><span>Customers</span></button></div>
+ ${edit?slForm(edit==="new"?null:Object.assign({k:edit},(D.sales||{})[edit]||{})):""}</section>
+ <section class="card stack"><div class="row small">${[["open","Open"],["due","Follow up today"],["mine","Mine"]].concat(SL_ST.map(x=>[x[0],x[1]])).map(([k,l])=>`<button class="btn xs ${f===k?"primary":""}" data-act="slFilter" data-k="${k}">${l}</button>`).join("")}</div>
+ <div class="row"><input type="search" class="grow" data-draft="sl_q" value="${esc(dv("sl_q",""))}" placeholder="Search by name, business or city" aria-label="Search sales"><button class="btn xs" data-act="tkFind">Search</button>${all.length?`<button class="btn xs" data-act="slCsv">Download</button>`:""}</div>
+ ${shown.length?`<div class="stack tight">${shown.map(x=>{const st=slSt(x.stage),late=x.next&&x.next<=today&&!["customer","notnow"].includes(x.stage),lg=slLog(x.k);
+  return `<div class="mrow2 tkrow ${open===x.k?"open":""}"><button class="tkhead" data-act="slOpen" data-k="${esc(x.k)}" aria-expanded="${open===x.k}"><span class="row between small"><span class="mw0"><span class="pill ${st[2]}">${st[1]}</span> <b>${esc(x.biz||x.name||"Someone")}</b>${x.biz&&x.name?" · "+esc(x.name):""}${x.city?` <span class="muted">· ${esc(x.city)}</span>`:""}</span><span class="muted">${esc((SL_KIND.find(z=>z[0]===x.kind)||SL_KIND[5])[1])}</span></span>
+  <span class="db small ${late?"bad":"muted"}">${x.next?(late?(x.next===today?"Follow up today":"Follow up was due "+esc(clFmtDate(x.next))):"Next: "+esc(clFmtDate(x.next)))+(x.nextWhat?" · "+esc(x.nextWhat):""):"No next step set"}${x.owner?" · "+esc(x.owner.name):""}</span></button>
+  ${open===x.k?`<div class="tkdetail stack tight small">${[x.phone?`<a href="tel:${esc(String(x.phone).replace(/[^+\d]/g,""))}">${esc(x.phone)}</a>`:"",x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:"",x.web?`<a href="${esc(/^https?:/.test(x.web)?x.web:"https://"+x.web)}" target="_blank" rel="noopener">${esc(x.web)}</a>`:"",x.src?"Found through "+esc(x.src):""].filter(Boolean).join(" · ")}
+   ${x.notes?`<div style="white-space:pre-wrap">${esc(x.notes)}</div>`:""}
+   <div class="row"><select data-act="slStage" data-k="${esc(x.k)}" aria-label="Where they stand">${SL_ST.map(z=>`<option value="${z[0]}" ${(x.stage||"idea")===z[0]?"selected":""}>${z[1]}</option>`).join("")}</select>${x.email?`<a class="btn xs" href="mailto:${esc(x.email)}?subject=${encodeURIComponent(slPitch(x).subject)}&body=${encodeURIComponent(slPitch(x).body)}">Email a pitch</a>`:""}<button class="btn xs" data-act="slCopyPitch" data-k="${esc(x.k)}">Copy a pitch</button><button class="btn xs" data-act="slEdit" data-k="${esc(x.k)}">Edit</button>${supIsOwner()?`<button class="btn xs" data-act="slDel" data-k="${esc(x.k)}">${L.confirm==="slx"+x.k?"Tap again to delete":"Delete"}</button>`:""}</div>
+   ${x.stage==="trial"?`<span class="muted">Ready for an account? Roy makes planner invite codes in the admin console.</span>`:""}
+   <b>What's happened</b>${lg.length?`<div class="stack tight tkthread">${lg.map(l=>`<div>${esc(l.text)} <span class="muted">· ${esc(l.name||"")} · ${esc(supTime(l.t))}</span></div>`).join("")}</div>`:'<span class="muted">Nothing logged yet.</span>'}
+   <div class="row"><input type="text" class="grow" data-draft="sll_${esc(x.k)}" maxlength="500" value="${esc(dv("sll_"+x.k,""))}" placeholder="Called, left a voicemail" aria-label="Log what happened"><button class="btn xs" data-act="slLogAdd" data-k="${esc(x.k)}">Log it</button></div>
+   <div class="row"><span>Next step</span><input type="date" data-draft="sln_${esc(x.k)}" value="${esc(dv("sln_"+x.k,x.next||""))}" aria-label="Next step date"><input type="text" class="grow" data-draft="slw_${esc(x.k)}" maxlength="80" value="${esc(dv("slw_"+x.k,x.nextWhat||""))}" placeholder="Send the demo link" aria-label="Next step"><button class="btn xs" data-act="slNext" data-k="${esc(x.k)}">Save</button></div></div>`:""}</div>`}).join("")}</div>`
+  :`<p class="small muted m0">${all.length?"Nothing here.":"No one yet. Add the first planner or venue you want to pitch."}</p>`}</section>`}
+function slForm(x){const g=(f,d)=>esc(dv("slf_"+f,x?(x[f]==null?"":x[f]):(d||"")));
+ return `<div class="card stack tight"><div class="row between"><b>${x?"Edit "+esc(x.biz||x.name):"Someone to pitch"}</b><button class="btn xs" data-act="slClose">Close</button></div><div class="grid2 g8">
+ <label class="stack tight"><span class="small">Business</span><input type="text" data-draft="slf_biz" maxlength="80" value="${g("biz")}" placeholder="Queen City Events"></label>
+ <label class="stack tight"><span class="small">Contact name</span><input type="text" data-draft="slf_name" maxlength="60" value="${g("name")}" placeholder="Dana Brooks"></label>
+ <label class="stack tight"><span class="small">What they are</span><select data-draft="slf_kind">${SL_KIND.map(([k,l])=>`<option value="${k}" ${dv("slf_kind",x?x.kind:"planner")===k?"selected":""}>${l}</option>`).join("")}</select></label>
+ <label class="stack tight"><span class="small">City</span><input type="text" data-draft="slf_city" maxlength="60" value="${g("city","Charlotte")}"></label>
+ <label class="stack tight"><span class="small">Phone</span><input type="tel" data-draft="slf_phone" maxlength="30" value="${g("phone")}"></label>
+ <label class="stack tight"><span class="small">Email</span><input type="email" data-draft="slf_email" maxlength="120" value="${g("email")}"></label>
+ <label class="stack tight"><span class="small">Website or Instagram</span><input type="text" data-draft="slf_web" maxlength="120" value="${g("web")}"></label>
+ <label class="stack tight"><span class="small">How you found them</span><input type="text" data-draft="slf_src" maxlength="80" value="${g("src")}" placeholder="Wedding expo, referral, Instagram"></label>
+ <label class="stack tight"><span class="small">Next step date</span><input type="date" data-draft="slf_next" value="${g("next")}"></label>
+ <label class="stack tight"><span class="small">Next step</span><input type="text" data-draft="slf_nextWhat" maxlength="80" value="${g("nextWhat")}" placeholder="First call"></label>
+ <label class="stack tight" style="grid-column:1/-1"><span class="small">Notes</span><textarea rows="3" data-draft="slf_notes" maxlength="2000" placeholder="Does 30 weddings a year, uses spreadsheets for rentals">${g("notes")}</textarea></label></div>
+ <button class="btn primary as" data-act="slSave" data-k="${x?esc(x.k):""}">${x?"Save":"Add"}</button></div>`}
+const slClear=()=>Object.keys(L.drafts).filter(k=>/^slf_/.test(k)).forEach(k=>delete L.drafts[k]);
+/* ---- Resources: the team's shared documents ---- */
+const RS_KIND={playbook:["📣","Sales and marketing"],process:["🧭","How we sell"],competitors:["🔍","Competitors (staff only)"],brand:["🎨","Brand kit"],link:["🔗","Link"],doc:["📄","Document"]};
+/* starter documents, shown until the team saves its own copy. No competitor names here: this code is public. */
+const RS_STARTERS={
+ playbook:{title:"Sales and Marketing Playbook",kind:"playbook",body:`In anything the public sees, never name a competitor. Say "other apps" or "other event software" instead.
+
+## Our main message
+Plan it. Run it. Remember it. All in one place.
+
+## Taglines
+- "Other software goes quiet on the big day. Host Mode is just getting started."
+- "Stop paying for three apps. Host Mode does it all."
+- "Bring everything over in one upload."
+- "Real help from real people, right inside the app."
+- "Floor plans that know what's in your storage room." (coming soon)
+- "The floor plan that actually knows your business." (use once floor plans are live)
+- "Other apps are for a backyard party. Host Mode is for your business."
+
+## Our strengths vs. what other apps miss
+- They stop helping once the contract is signed → Host Mode runs the party itself: games, big screen, check-in, drinks, photos
+- Planners pay for several apps at once → clients, planning, inventory, venue bookings and the event, in one app
+- Switching apps is painful → upload your old spreadsheets once and everything lands where it belongs
+- Support by email only, during business hours → report a problem from any screen and get a real reply in the app
+- Floor plan software is expensive and hard to learn → simple floor plans tied to your inventory (coming soon)
+- Nothing left after the event → photo album and a keepsake guests love to share
+- Casual party apps have no business tools → client portals, packages, invoices, teammates and reports
+- Vendors get the schedule five different ways → every vendor gets one page with their arrival time and the live schedule
+
+## Who we're talking to
+- Professional planners who juggle several apps
+- Venues that need bookings, blocked days and inventory in one place
+- Decorators and rental businesses tracking linens, centerpieces, chairs and lights
+- Single-event hosts who want their party to feel professional
+
+## Rules for public materials
+- Never name a competitor or use their logos.
+- Only promise features that are live. Mark anything else "coming soon."
+- Pricing claims wait until subscriptions launch.
+- Use the Host Mode name and colors (navy, orange and green) consistently.`},
+ process:{title:"How We Sell (Icee's playbook)",kind:"process",body:`Write down what you do as you do it. It doesn't have to be neat: tell your Claude what happened and ask it to tidy this up. Later, this becomes the sales agent's guide.
+
+## Where I find leads
+-
+
+## What I say on the first call or message
+-
+
+## What I show in a demo
+- Start at games.html?pdemo=1#planner (the planner demo), then the vendor page and the big screen.
+
+## When I follow up
+-
+
+## What people ask, and what I answer
+-
+
+## What's working / what isn't
+- `},
+ brand:{title:"Brand Kit",kind:"brand",body:`## Name
+Host Mode (one space, both words capitalized)
+
+## Colors
+- Navy #0c2147 (main)
+- Orange #f7941d (highlights and buttons)
+- Green #3dae2b (success, "done")
+- Gold #f2b134 (accents)
+- Paper #fffaf3 (backgrounds)
+
+## Logo
+The app icon is img/icon.svg in the code. The new "two doors" crest logo is still being chosen; use the app icon until then.
+
+## Screenshots for flyers and posts
+img/shot-plan.jpg, img/shot-guest.jpg, img/shot-host.jpg, img/shot-tv.jpg, img/shot-moment.jpg
+
+## Voice
+Warm, plain and confident. Short sentences. No tech words. Talk about the party, not the software.`},
+ competitors:{title:"Competitor Notes",kind:"competitors",body:`Staff only. Roy: paste the Host Mode Competitor Report here (it names the other companies, so it lives in the app, not in the public code).
+
+## Pricing tracker
+| Company | Plan | Price | Last checked |
+|---|---|---|---|
+| | | | |`}};
+const rsList=()=>Object.keys(D.resources||{}).map(k=>Object.assign({k},D.resources[k])).sort((a,b)=>Object.keys(RS_KIND).indexOf(a.kind)-Object.keys(RS_KIND).indexOf(b.kind)||String(a.title).localeCompare(String(b.title)));
+/* light formatting for documents: ## headings, - bullets, | tables, links */
+function rsRender(body){const lines=String(body||"").split("\n"),out=[];let list=null,table=null;
+ const inline=t=>esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+ const flush=()=>{if(list){out.push(`<ul class="m0">${list.join("")}</ul>`);list=null}if(table){out.push(`<div class="rstable"><table>${table.map((r,i)=>`<tr>${r.map(c=>i?`<td>${inline(c)}</td>`:`<th>${inline(c)}</th>`).join("")}</tr>`).join("")}</table></div>`);table=null}};
+ lines.forEach(l=>{const t=l.trim();if(/^\|.*\|$/.test(t)){if(/^\|[\s|:-]+\|$/.test(t))return;if(list)flush();(table=table||[]).push(t.slice(1,-1).split("|").map(c=>c.trim()));return}
+  if(/^[-*] /.test(t)){if(table)flush();(list=list||[]).push(`<li>${inline(t.slice(2))}</li>`);return}flush();
+  if(/^#{1,3} /.test(t))out.push(`<h4>${inline(t.replace(/^#+ /,""))}</h4>`);else if(t)out.push(`<p class="m0">${inline(t)}</p>`)});
+ flush();return out.join("")}
+function resourcesBody(){const docs=rsList(),have=new Set(docs.map(d=>d.kind)),starters=Object.keys(RS_STARTERS).filter(k=>!have.has(k)),open=L.rsOpen,edit=L.rsEdit;
+ const docCard=(d,starter)=>{const K=RS_KIND[d.kind]||RS_KIND.doc,isOpen=open===(starter?"s:"+d.kind:d.k),isEdit=!starter&&edit===d.k;
+  return `<div class="mrow2 tkrow ${isOpen?"open":""}"><button class="tkhead" data-act="rsOpen" data-k="${esc(starter?"s:"+d.kind:d.k)}" aria-expanded="${isOpen}"><span class="row between small"><span class="mw0">${K[0]} <b>${esc(d.title)}</b>${starter?' <span class="pill">Starter</span>':""}</span><span class="muted">${starter?"not saved yet":d.edited?"edited "+esc(supAgo(d.edited))+(d.by?" by "+esc(d.by):""):""}</span></span></button>
+  ${isOpen?`<div class="tkdetail stack tight">${d.kind==="link"&&d.url?`<a class="btn sm as" href="${esc(/^https?:/.test(d.url)?d.url:"https://"+d.url)}" target="_blank" rel="noopener">Open the link</a>`:""}
+   ${isEdit?`<input type="text" data-draft="rse_t_${esc(d.k)}" maxlength="80" value="${esc(dv("rse_t_"+d.k,d.title))}" aria-label="Title"><textarea rows="16" data-draft="rse_b_${esc(d.k)}" maxlength="40000" aria-label="Document">${esc(dv("rse_b_"+d.k,d.body||""))}</textarea>${d.kind==="link"?`<input type="url" data-draft="rse_u_${esc(d.k)}" value="${esc(dv("rse_u_"+d.k,d.url||""))}" placeholder="https://…">`:""}
+    <span class="small muted">Tip: start a line with ## for a heading or - for a bullet.</span><div class="row"><button class="btn sm primary" data-act="rsSave" data-k="${esc(d.k)}">Save</button><button class="btn sm" data-act="rsEditClose">Cancel</button></div>`
+   :`<div class="rsdoc small">${rsRender(d.body)}</div><div class="row">${starter?`<button class="btn sm primary" data-act="rsAdopt" data-k="${esc(d.kind)}">Save it so the team can edit it</button>`:`<button class="btn sm" data-act="rsEdit" data-k="${esc(d.k)}">Edit</button><button class="btn sm" data-act="rsCopy" data-k="${esc(d.k)}">Copy the text</button>${d.prev?`<button class="btn sm" data-act="rsUndo" data-k="${esc(d.k)}">Undo the last edit</button>`:""}${supIsOwner()?`<button class="btn sm" data-act="rsDel" data-k="${esc(d.k)}">${L.confirm==="rsx"+d.k?"Tap again to delete":"Delete"}</button>`:""}`}</div>`}</div>`:""}</div>`};
+ return `<section class="card stack"><div class="row between"><h2 class="m0">Resources</h2><button class="btn sm primary" data-act="rsNew">Add a document or link</button></div>
+ <p class="small muted m0">The team's shared playbook, brand kit, sales notes and links. Only Roy and staff can see this page, so competitor names are fine here. Never put them in anything public.</p>
+ ${L.rsNew?`<div class="card stack tight"><div class="grid2 g8"><label class="stack tight"><span class="small">Title</span><input type="text" data-draft="rsn_t" maxlength="80" value="${esc(dv("rsn_t",""))}" placeholder="Wedding expo flyer"></label><label class="stack tight"><span class="small">Kind</span><select data-draft="rsn_k">${Object.keys(RS_KIND).map(k=>`<option value="${k}" ${dv("rsn_k","doc")===k?"selected":""}>${RS_KIND[k][1]}</option>`).join("")}</select></label>
+  <label class="stack tight" style="grid-column:1/-1"><span class="small">Link (optional): a promo video, a flyer in Google Drive or Canva</span><input type="url" data-draft="rsn_u" value="${esc(dv("rsn_u",""))}" placeholder="https://…"></label>
+  <label class="stack tight" style="grid-column:1/-1"><span class="small">Text (optional)</span><textarea rows="5" data-draft="rsn_b" maxlength="40000">${esc(dv("rsn_b",""))}</textarea></label></div><div class="row"><button class="btn primary" data-act="rsAdd">Add</button><button class="btn" data-act="rsNewClose">Cancel</button></div></div>`:""}
+ <div class="stack tight">${docs.map(d=>docCard(d,false)).join("")}${starters.map(k=>docCard(Object.assign({k:"s:"+k},RS_STARTERS[k]),true)).join("")}</div></section>`}
+/* the staff area's tabs */
+const ST_TABS=[["support","Support"],["sales","Sales"],["resources","Resources"]];
+function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
+ return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}</button>`).join("")}</div>`}
+const staffBody=()=>({sales:salesBody,resources:resourcesBody}[L.stTab]||supportBody)();
+function marketingBody(){return `<section class="card stack"><h2>Marketing</h2><p class="m0">This is where the marketing department will live: campaigns, social posts, promo videos and which channels bring in sign-ups.</p><p class="small muted m0">It's empty until someone is put in charge of marketing. The playbook, taglines and brand kit are under Resources.</p></section>`}
+Object.assign(ACT,{
+ stTab:el=>{L.stTab=el.dataset.k;L.confirm=null;render(true);scrollTo(0,0)},
+ slFilter:el=>{L.slF=el.dataset.k;render(true)},
+ slNew:()=>{slClear();L.slEdit="new";render(true)},
+ slEdit:el=>{slClear();L.slEdit=el.dataset.k;render(true);scrollTo(0,0)},
+ slClose:()=>{slClear();L.slEdit=null;render(true)},
+ slOpen:el=>{L.slOpen=L.slOpen===el.dataset.k?null:el.dataset.k;L.confirm=null;render(true)},
+ slSave:async el=>{const k=el.dataset.k,old=k?(D.sales||{})[k]||{}:{},me=supMe(),g=f=>String(dv("slf_"+f,old[f]==null?(f==="city"&&!k?"Charlotte":f==="kind"&&!k?"planner":""):old[f])).trim();
+  const biz=g("biz").slice(0,80),name=g("name").slice(0,60);if(!biz&&!name)return toast("Add a business or a contact name");const em=g("email").toLowerCase();if(em&&!imOkEmail(em))return toast("That email doesn't look right");
+  const rec=Object.assign({},old,{biz,name,kind:SL_KIND.some(z=>z[0]===g("kind"))?g("kind"):"other",city:g("city").slice(0,60),phone:g("phone").slice(0,30),email:em.slice(0,120),web:g("web").slice(0,120),src:g("src").slice(0,80),next:g("next"),nextWhat:g("nextWhat").slice(0,80),notes:g("notes").slice(0,2000),stage:old.stage||"idea",t:old.t||Date.now(),last:Date.now()});
+  if(!old.owner&&me)rec.owner={uid:me.uid,name:me.name};delete rec.k;
+  if(k)await RT("sales/"+k).set(rec);else{const r=RT("sales").push();await r.set(rec);L.slOpen=r.key}slClear();L.slEdit=null;toast(k?"Saved":"Added");render(true)},
+ slStage:async el=>{const k=el.dataset.k,me=supMe(),st=slSt(el.value);await RT("sales/"+k).update({stage:el.value,last:Date.now()});await RT("salesLog/"+k).push().set({text:"Moved to "+st[1],name:me?me.name:"",t:Date.now()});toast("Moved to "+st[1])},
+ slLogAdd:async el=>{const k=el.dataset.k,me=supMe(),text=String(dv("sll_"+k,"")).trim().slice(0,500);if(!text)return toast("Write what happened first");
+  await RT("salesLog/"+k).push().set({text,name:me?me.name:"",t:Date.now()});await RT("sales/"+k+"/last").set(Date.now());delete L.drafts["sll_"+k];render(true)},
+ slNext:async el=>{const k=el.dataset.k,x=(D.sales||{})[k]||{};await RT("sales/"+k).update({next:dv("sln_"+k,x.next||""),nextWhat:String(dv("slw_"+k,x.nextWhat||"")).trim().slice(0,80),last:Date.now()});delete L.drafts["sln_"+k];delete L.drafts["slw_"+k];toast("Next step saved")},
+ slCopyPitch:async el=>{const x=Object.assign({k:el.dataset.k},(D.sales||{})[el.dataset.k]||{}),p=slPitch(x);try{await navigator.clipboard.writeText("Subject: "+p.subject+"\n\n"+p.body);toast("Pitch copied. Change anything you like before sending.")}catch(e){prompt("Copy this pitch",p.body)}},
+ slDel:async el=>{const k=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="slx"+k){L.confirm="slx"+k;return render(true)}L.confirm=null;await RT("salesLog/"+k).remove();await RT("sales/"+k).remove();L.slOpen=null;toast("Deleted")},
+ slCsv:()=>{const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`,rows=[["Business","Contact","What they are","City","Phone","Email","Website","Found through","Stage","Next step","Next step date","Owner","Notes"]].concat(slList().map(x=>[x.biz,x.name,(SL_KIND.find(z=>z[0]===x.kind)||SL_KIND[5])[1],x.city,x.phone,x.email,x.web,x.src,slSt(x.stage)[1],x.nextWhat,x.next,x.owner?x.owner.name:"",x.notes]));
+  download("Host Mode sales.csv",new Blob([rows.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv"}))},
+ rsOpen:el=>{L.rsOpen=L.rsOpen===el.dataset.k?null:el.dataset.k;L.rsEdit=null;L.confirm=null;render(true)},
+ rsAdopt:async el=>{const s=RS_STARTERS[el.dataset.k];if(!s)return;const me=supMe(),r=RT("resources").push();await r.set({title:s.title,kind:s.kind,body:s.body,t:Date.now(),edited:Date.now(),by:me?me.name:""});L.rsOpen=r.key;toast("Saved. Anyone on the team can edit it now.");render(true)},
+ rsEdit:el=>{L.rsEdit=el.dataset.k;render(true)},
+ rsEditClose:()=>{const k=L.rsEdit;["rse_t_","rse_b_","rse_u_"].forEach(p=>delete L.drafts[p+k]);L.rsEdit=null;render(true)},
+ rsSave:async el=>{const k=el.dataset.k,d=(D.resources||{})[k];if(!d)return;const me=supMe(),title=String(dv("rse_t_"+k,d.title)).trim().slice(0,80)||d.title,body=String(dv("rse_b_"+k,d.body||"")).slice(0,40000),url=String(dv("rse_u_"+k,d.url||"")).trim().slice(0,500);
+  await RT("resources/"+k).update({title,body,url,edited:Date.now(),by:me?me.name:"",prev:{title:d.title||"",body:d.body||"",url:d.url||"",edited:d.edited||d.t||0,by:d.by||""}});["rse_t_","rse_b_","rse_u_"].forEach(p=>delete L.drafts[p+k]);L.rsEdit=null;toast("Saved");render(true)},
+ rsUndo:async el=>{const k=el.dataset.k,d=(D.resources||{})[k];if(!d||!d.prev)return;await RT("resources/"+k).update({title:d.prev.title,body:d.prev.body,url:d.prev.url||"",edited:d.prev.edited||Date.now(),by:d.prev.by||"",prev:null});toast("Put back the earlier version")},
+ rsCopy:async el=>{const d=(D.resources||{})[el.dataset.k];if(!d)return;try{await navigator.clipboard.writeText(d.body||"");toast("Copied")}catch(e){prompt("Copy this",d.body||"")}},
+ rsNew:()=>{L.rsNew=true;render(true)},
+ rsNewClose:()=>{L.rsNew=false;["rsn_t","rsn_k","rsn_u","rsn_b"].forEach(k=>delete L.drafts[k]);render(true)},
+ rsAdd:async()=>{const title=String(dv("rsn_t","")).trim().slice(0,80),url=String(dv("rsn_u","")).trim().slice(0,500),body=String(dv("rsn_b","")).slice(0,40000),me=supMe();if(!title)return toast("Give it a title");if(!url&&!body.trim())return toast("Add a link or some text");
+  const kind=RS_KIND[dv("rsn_k","doc")]?dv("rsn_k","doc"):"doc",r=RT("resources").push();await r.set({title,kind:url&&!body.trim()?"link":kind,body,url,t:Date.now(),edited:Date.now(),by:me?me.name:""});L.rsNew=false;["rsn_t","rsn_k","rsn_u","rsn_b"].forEach(k=>delete L.drafts[k]);L.rsOpen=r.key;toast("Added");render(true)},
+ rsDel:async el=>{const k=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="rsx"+k){L.confirm="rsx"+k;return render(true)}L.confirm=null;await RT("resources/"+k).remove();L.rsOpen=null;toast("Deleted")}
 });
 
 /* ================= LEADS, SHOWCASE, REPORTS =================

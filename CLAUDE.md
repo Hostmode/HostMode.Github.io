@@ -21,7 +21,8 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Support: the admin console's Support tab, and games.html#support for support staff. Tickets live at partygames/tickets, with ticketReplies (what the reporter sees), ticketNotes (staff-only history and agent drafts), staff, sinvites (support codes), agents (pause switch), agentRuns (overnight reports) and backupStatus.
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). .github/workflows: nightly agents and nightly backup. ops/BACKUPS.md: how backups work and how to restore one.
-- Icee's Resources tab (staff area, sales) isn't built yet. Add it to this map when it is.
+- Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in games.html, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
+- Skills in .claude/skills: test-as-customer and answer-support-ticket (used by the nightly agents) and pitch-email (sales outreach).
 
 ## Where things go
 

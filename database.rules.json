@@ -355,6 +355,28 @@
       "backupStatus": {
         ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+      },
+      "sales": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$k": {
+          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
+        }
+      },
+      "salesLog": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$k": {
+          ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+          "$n": {
+            ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && !data.exists() && newData.exists()))"
+          }
+        }
+      },
+      "resources": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$k": {
+          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))",
+          ".validate": "newData.hasChildren(['title','kind']) && newData.child('title').isString() && newData.child('title').val().length <= 80 && (!newData.child('body').exists() || newData.child('body').val().length <= 40000)"
+        }
       }
     },
     "menu": {
