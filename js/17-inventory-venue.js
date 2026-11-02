@@ -1,11 +1,13 @@
 /* ================= INVENTORY AND VENUE BOOKINGS =================
    planners/{uid}/gear/{k}    = {name, cat, qty, rep (in repair), color, spot, cost, low, note, t}    a thing the business owns
    planners/{uid}/gearRes/{k} = {label, ref ("c:<client>" | "b:<booking>" | ""), from, to, items:{gearKey:qty},
-                                 status: held|out|back, back:{gearKey:{lost,dmg}}, note, t}        a pull list for one event
+                                 status: held|out|back, back:{gearKey:{lost,dmg}}, note, t,
+                                 pics:{p:{stage: out|back, th (small preview), t}}}             a pull list for one event
+   planners/{uid}/gresImg/{k}/{p} = the full photo, loaded only when someone opens it (proof for damage claims)
    planners/{uid}/venue       = {on}                                                              venue bookings turned on
-   planners/{uid}/spaces/{k}  = {name, cap, rate, note, t}                                        rooms or areas of the venue
+   planners/{uid}/spaces/{k}  = {name, cap, rate, minSpend, note, t}   rooms or areas of the venue (minSpend: least a booking spends on fee plus food and drink)
    planners/{uid}/bookings/{k}= {space ("" = whole venue), date, start, end, name, ref, kind, guests, status: hold|confirmed|cancelled,
-                                 holdUntil, price, deposit, depPaid, phone, email, note, t}
+                                 holdUntil, price, spend (food and drink), deposit, depPaid, phone, email, note, t}
    planners/{uid}/blocks/{k}  = {from, to, space ("" = whole venue), reason, t}                   days the venue can't be booked
    Everything here is private to the planner. */
 D.gear={};D.gres={};D.vset=null;D.spaces={};D.bks={};D.vblk={};
@@ -65,8 +67,15 @@ function gresForm(r){const items=gearList(),from=dv("gr_from",r?r.from:""),to=dv
  ${items.length?`<div class="stack tight">${items.map(it=>{const fr=f?gearFree(it,f,to||f,r&&r.k):gearAvail(it),q=dv("grq_"+it.k,r&&r.items&&r.items[it.k]?r.items[it.k]:"");
   return `<div class="row between small clrow"><span class="mw0"><b>${esc(it.name)}</b><span class="db ${fr<=0?"bad":"muted"}">${esc(it.cat||"")}${it.color?" · "+esc(it.color):""} · ${fr<0?"over by "+(-fr):fr+" free"}</span></span><input type="number" min="0" inputmode="numeric" style="width:5.5em" data-draft="grq_${esc(it.k)}" value="${esc(q)}" placeholder="0" aria-label="How many ${esc(it.name)}"></div>`}).join("")}</div>`:'<span class="small muted">Add items to your inventory first.</span>'}
  <button class="btn primary as" data-act="gresSave" data-k="${r?esc(r.k):""}">${r?"Save pull list":"Reserve these"}</button></div>`}
+/* photos when it goes out and when it comes back, for damage claims */
+const GR_MAX_PH=12;
+const gresPics=r=>Object.keys(r.pics||{}).map(p=>Object.assign({p},r.pics[p])).sort((a,b)=>(a.t||0)-(b.t||0));
+function gresPicRow(r,stage){const l=gresPics(r),n=l.length;
+ return `${n?`<div class="row">${l.map(x=>`<span class="shthumb"><button class="gpic" data-act="gresPicView" data-k="${esc(r.k)}" data-n="${esc(x.p)}" aria-label="Open the ${x.stage==="back"?"check-in":"going-out"} photo from ${esc(new Date(x.t||0).toLocaleDateString())}"><img src="${esc(x.th||"")}" alt=""></button><span class="gpst">${x.stage==="back"?"Back":"Out"}</span><button class="btn xs" data-act="gresPicDel" data-k="${esc(r.k)}" data-n="${esc(x.p)}" aria-label="Remove photo">${L.confirm==="gp"+x.p?"Sure?":"×"}</button></span>`).join("")}</div>`:""}
+ ${n<GR_MAX_PH?`<label class="btn xs upl as">${stage==="back"?"Add photos of damage":"Add photos before it goes out"}<input type="file" accept="image/*" multiple data-act="gresPic" data-k="${esc(r.k)}" data-s="${stage}"></label>`:""}`}
 function gresBackForm(r){return `<div class="card stack tight"><b>Check in: ${esc(r.label)}</b><span class="small muted">Count what came back. Missing pieces come off your totals; damaged ones go under repair until you fix them.</span>
  ${Object.keys(r.items||{}).filter(gk=>(D.gear||{})[gk]&&+r.items[gk]>0).map(gk=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.gear[gk].name)}</b><span class="db muted">${+r.items[gk]} went out</span></span><span class="row" style="gap:6px"><label class="stack tight"><span class="small">Missing</span><input type="number" min="0" style="width:4.5em" data-draft="gb_lost_${esc(gk)}" value="${esc(dv("gb_lost_"+gk,""))}" placeholder="0"></label><label class="stack tight"><span class="small">Damaged</span><input type="number" min="0" style="width:4.5em" data-draft="gb_dmg_${esc(gk)}" value="${esc(dv("gb_dmg_"+gk,""))}" placeholder="0"></label></span></div>`).join("")}
+ <span class="small muted">Photos are dated, so you have proof if you need to charge for damage.</span>${gresPicRow(r,"back")}
  <div class="row"><button class="btn primary" data-act="gresBackSave" data-k="${esc(r.k)}">Everything else came back</button><button class="btn" data-act="gresBackClose">Not yet</button></div></div>`}
 function gresRow(r){const st=r.status||"held",sh=gresShort(r),late=gresLate(r),what=gresWhat(r),cf=L.confirm==="gd"+r.k;
  if(L.gresBack===r.k)return gresBackForm(r);
@@ -74,6 +83,7 @@ function gresRow(r){const st=r.status||"held",sh=gresShort(r),late=gresLate(r),w
  ${what.length?`<div class="muted">${what.map(esc).join(" · ")}</div>`:""}${r.note?`<div class="muted">${esc(r.note)}</div>`:""}
  ${sh.length?`<div class="bad">Not enough: ${sh.map(x=>`${esc(x.name)} (short ${x.short})`).join(", ")}</div>`:""}${late?`<div class="bad">Was due back ${esc(clFmtDate(gresTo(r)))}</div>`:""}
  ${r.status==="back"&&r.back?`<div class="muted">${Object.keys(r.back).filter(gk=>(D.gear||{})[gk]).map(gk=>{const b=r.back[gk];return [b.lost?`${b.lost} ${D.gear[gk].name} missing`:"",b.dmg?`${b.dmg} damaged`:""].filter(Boolean).join(", ")}).filter(Boolean).map(esc).join(" · ")||"All back in good shape"}</div>`:""}
+ ${st!=="back"||gresPics(r).length?gresPicRow(r,st==="back"?"back":"out"):""}
  <div class="row">${st==="held"?`<button class="btn xs" data-act="gresOut" data-k="${esc(r.k)}">Packed and out</button>`:""}${st==="out"?`<button class="btn xs" data-act="gresBack" data-k="${esc(r.k)}">Check it back in</button>`:""}
  <button class="btn xs" data-act="gresPrint" data-k="${esc(r.k)}">Print pull list</button>${st!=="back"?`<button class="btn xs" data-act="gresEdit" data-k="${esc(r.k)}">Edit</button>`:""}<button class="btn xs" data-act="gresDel" data-k="${esc(r.k)}">${cf?"Tap again to delete":"Delete"}</button></div></div>`}
 function plGearTab(){const items=gearList(),today=mateToday(),q=String(dv("gear_q","")).toLowerCase().trim(),cat=L.gearCat||"",res=gresList();
@@ -148,7 +158,17 @@ Object.assign(ACT,{
    if(lost||dmg){back[gk]={lost,dmg};const qty=Math.max(0,(+it.qty||0)-lost);u[`gear/${gk}/qty`]=qty;u[`gear/${gk}/rep`]=Math.min(qty,(+it.rep||0)+dmg)}});
   if(bad)return toast(bad);u[`gearRes/${k}/status`]="back";u[`gearRes/${k}/back`]=back;u[`gearRes/${k}/backAt`]=Date.now();
   await RT(PSP.replace(/\/$/,"")).update(u);Object.keys(L.drafts).filter(x=>/^gb_/.test(x)).forEach(x=>delete L.drafts[x]);L.gresBack=null;toast("Checked in");render(true)},
- gresDel:async el=>{const k=el.dataset.k;if(L.confirm!=="gd"+k){L.confirm="gd"+k;return render(true)}L.confirm=null;await RT(PSP+"gearRes/"+k).remove();toast("Pull list deleted")},
+ gresDel:async el=>{const k=el.dataset.k;if(L.confirm!=="gd"+k){L.confirm="gd"+k;return render(true)}L.confirm=null;await RT(PSP+"gearRes/"+k).remove();await RT(PSP+"gresImg/"+k).remove();toast("Pull list deleted")},
+ gresPic:async el=>{const k=el.dataset.k,stage=el.dataset.s==="back"?"back":"out",fs=[...(el.files||[])].filter(f=>/^image\//.test(f.type));el.value="";const r=(D.gres||{})[k];if(!r)return;if(!fs.length)return toast("Pick a photo");
+  const room=GR_MAX_PH-gresPics(r).length;if(room<=0)return toast(`Up to ${GR_MAX_PH} photos per pull list`);toast(fs.length>1?`Adding ${Math.min(fs.length,room)} photos…`:"Adding the photo…");let n=0;
+  for(const f of fs.slice(0,room)){try{let big=await clShrink(f,1400,.78);if(big.data.length>420000)big=await clShrink(f,1000,.7);const th=(await clShrink(f,160,.65)).data,p="p"+Date.now().toString(36)+n;
+   await RT(PSP+`gresImg/${k}/${p}`).set(big.data);await RT(PSP+`gearRes/${k}/pics/${p}`).set({stage,th,t:Date.now()});n++}catch(e){}}
+  toast(n?(n===1?"Photo added":n+" photos added"):"Couldn't add that photo")},
+ gresPicView:async el=>{const k=el.dataset.k,p=el.dataset.n,r=(D.gres||{})[k]||{},x=(r.pics||{})[p]||{},w=window.open("","_blank");
+  let src=x.th||"";try{src=(await RT(PSP+`gresImg/${k}/${p}`).once("value")).val()||src}catch(e){}
+  const html=`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(r.label||"Pull list")} photo</title><body style="margin:0;background:#111;color:#eee;font:14px system-ui;text-align:center"><img src="${esc(src)}" alt="" style="max-width:100%;max-height:90vh"><p>${esc(r.label||"Pull list")} · ${x.stage==="back"?"when it came back":"before it went out"} · ${esc(new Date(x.t||0).toLocaleString())}</p></body>`;
+  if(w){w.document.open();w.document.write(html);w.document.close()}else download("pull-list-photo.html",new Blob([html],{type:"text/html"}))},
+ gresPicDel:async el=>{const k=el.dataset.k,p=el.dataset.n;if(L.confirm!=="gp"+p){L.confirm="gp"+p;return render(true)}L.confirm=null;await RT(PSP+`gearRes/${k}/pics/${p}`).remove();await RT(PSP+`gresImg/${k}/${p}`).remove();toast("Photo removed")},
  gresPrint:el=>{const r=(D.gres||{})[el.dataset.k];if(!r)return;const html=gresHTML(r),w=window.open("","_blank");if(w){w.document.open();w.document.write(html);w.document.close()}else download("pull-list.html",new Blob([html],{type:"text/html"}))}
 });
 
@@ -176,7 +196,7 @@ function busySync(){if(!PSP||VIEW!=="planner"||L.viewOnly||!D.show)return;const 
 const holdsDue=()=>bkList().filter(b=>b.status==="hold"&&b.date>=mateToday()&&b.holdUntil&&b.holdUntil<=dayAdd(mateToday(),2));
 
 /* ---- planner: Venue tab ---- */
-const BK_F=["bk_space","bk_date","bk_start","bk_end","bk_name","bk_ref","bk_kind","bk_guests","bk_status","bk_hold","bk_price","bk_dep","bk_depPaid","bk_phone","bk_email","bk_note"];
+const BK_F=["bk_space","bk_date","bk_start","bk_end","bk_name","bk_ref","bk_kind","bk_guests","bk_status","bk_hold","bk_price","bk_spend","bk_dep","bk_depPaid","bk_phone","bk_email","bk_note"];
 const VB_F=["vb_from","vb_to","vb_space","vb_reason"];
 function bkForm(b){const sp=spaceList(),g=(f,k,d)=>dv(f,b?(b[k]==null?"":b[k]):(d==null?"":d)),fld=(f,k,l,tp,ph,mx,d)=>`<label class="stack tight"><span class="small">${l}</span><input type="${tp}" data-draft="${f}" ${mx?`maxlength="${mx}"`:""} ${tp==="number"?'min="0" inputmode="numeric"':""} value="${esc(g(f,k,d))}" placeholder="${esc(ph||"")}"></label>`;
  const st=g("bk_status","status","hold"),ann=L.bkWarn?`<div class="small bad">${L.bkWarn.map(esc).join("<br>")}</div>`:"";
@@ -188,7 +208,8 @@ function bkForm(b){const sp=spaceList(),g=(f,k,d)=>dv(f,b?(b[k]==null?"":b[k]):(
  ${fld("bk_start","start","Starts (include setup)","time","")}${fld("bk_end","end","Ends (include cleanup)","time","")}
  <label class="stack tight"><span class="small">Status</span><select data-draft="bk_status"><option value="hold" ${st==="hold"?"selected":""}>On hold (penciled in)</option><option value="confirmed" ${st==="confirmed"?"selected":""}>Confirmed</option></select></label>
  ${fld("bk_hold","holdUntil","Hold until","date","","",dayAdd(mateToday(),7))}
- ${fld("bk_price","price","Rental fee ($)","text","3500",12)}${fld("bk_dep","deposit","Deposit ($)","text","1000",12)}
+ ${fld("bk_price","price","Rental fee ($)","text","3500",12)}${fld("bk_spend","spend","Food and drink ($)","text","6000",12)}${fld("bk_dep","deposit","Deposit ($)","text","1000",12)}
+ ${(()=>{const s=(D.spaces||{})[g("bk_space","space")];return s&&+s.minSpend?`<span class="small muted" style="grid-column:1/-1">${esc(s.name)} has a ${clMoney(s.minSpend)} minimum spend (rental fee plus food and drink).</span>`:""})()}
  <label class="row small" style="grid-column:1/-1"><input type="checkbox" data-draft="bk_depPaid" ${g("bk_depPaid","depPaid","")===true||g("bk_depPaid","depPaid","")==="1"?"checked":""}> Deposit paid</label>
  ${fld("bk_phone","phone","Contact phone","tel","704-555-0100",30)}${fld("bk_email","email","Contact email","email","name@example.com",120)}
  <label class="stack tight" style="grid-column:1/-1"><span class="small">Link to a client (optional)</span><select data-draft="bk_ref"><option value="">No client</option>${Object.keys(D.clients||{}).map(id=>`<option value="c:${esc(id)}" ${g("bk_ref","ref")==="c:"+id?"selected":""}>${esc(D.clients[id].name||"Client")}</option>`).join("")}</select></label>
@@ -205,13 +226,15 @@ function spaceForm(s){const g=(f,k)=>esc(dv(f,s?(s[k]==null?"":s[k]):""));
  return `<div class="card stack tight"><div class="grid2 g8"><label class="stack tight" style="grid-column:1/-1"><span class="small">Name</span><input type="text" data-draft="sp_name" maxlength="60" value="${g("sp_name","name")}" placeholder="Grand Ballroom"></label>
  <label class="stack tight"><span class="small">Holds up to (guests)</span><input type="number" min="0" inputmode="numeric" data-draft="sp_cap" value="${g("sp_cap","cap")}" placeholder="250"></label>
  <label class="stack tight"><span class="small">Usual fee ($)</span><input type="text" inputmode="decimal" data-draft="sp_rate" value="${g("sp_rate","rate")}" placeholder="3500"></label>
+ <label class="stack tight" style="grid-column:1/-1"><span class="small">Minimum spend ($, optional)</span><input type="text" inputmode="decimal" data-draft="sp_min" value="${g("sp_min","minSpend")}" placeholder="12000"><span class="small muted">The least a booking must spend on the rental fee plus food and drink. Bookings under it are flagged.</span></label>
  <label class="stack tight" style="grid-column:1/-1"><span class="small">Notes</span><input type="text" data-draft="sp_note" maxlength="200" value="${g("sp_note","note")}" placeholder="Dance floor, stage, bridal suite"></label></div>
  <div class="row"><button class="btn primary" data-act="spSave" data-k="${s?esc(s.k):""}">${s?"Save space":"Add space"}</button><button class="btn" data-act="spClose">Close</button></div></div>`}
+const bkShort=b=>{const sp=(D.spaces||{})[b.space],m=sp&&b.kind!=="Tour or tasting"?+sp.minSpend||0:0;return m?{m,have:(+b.price||0)+(+b.spend||0),short:Math.max(0,Math.round((m-(+b.price||0)-(+b.spend||0))*100)/100),sp}:null};
 function bkRow(b){const st=b.status||"hold",cf=L.confirm==="bx"+b.k,cl=st!=="cancelled"?bkClashes(b,b.k):[],blk=st!=="cancelled"?blocksOn(b.date,b.space||""):[],sp=(D.spaces||{})[b.space],over=sp&&+sp.cap&&+b.guests>+sp.cap,today=mateToday();
  const holdLate=st==="hold"&&b.holdUntil&&b.holdUntil<today,gr=gresList().filter(r=>r.ref==="b:"+b.k);
  return `<div class="mrow2 small"><div class="row between"><span class="mw0"><b>${esc(b.name||"Booking")}</b> <span class="pill ${BK_ST[st][1]}">${BK_ST[st][0]}</span><span class="db muted">${esc(clFmtDate(b.date))} · ${esc(bkTimes(b))} · ${esc(spaceName(b.space))}</span></span>${+b.price?`<span class="a">${clMoney(b.price)}</span>`:""}</div>
- <div class="muted">${[b.kind,+b.guests?b.guests+" guests":"",+b.deposit?clMoney(b.deposit)+" deposit "+(b.depPaid?"paid":"not paid yet"):"",st==="hold"&&b.holdUntil?"held until "+clFmtDate(b.holdUntil):"",b.phone,b.email].filter(Boolean).map(esc).join(" · ")}</div>${b.note?`<div class="muted">${esc(b.note)}</div>`:""}
- ${cl.length?`<div class="bad">Overlaps ${cl.map(o=>esc(o.name||"another booking")+" ("+esc(bkTimes(o))+")").join(", ")}</div>`:""}${blk.length?`<div class="bad">That day is blocked: ${blk.map(x=>esc(x.reason||"blocked")).join(", ")}</div>`:""}${over?`<div class="bad">${+b.guests} guests is more than ${esc(sp.name)} holds (${+sp.cap})</div>`:""}${holdLate?`<div class="bad">The hold ran out ${esc(clFmtDate(b.holdUntil))}</div>`:""}
+ <div class="muted">${[b.kind,+b.guests?b.guests+" guests":"",+b.spend?clMoney(b.spend)+" food and drink":"",+b.deposit?clMoney(b.deposit)+" deposit "+(b.depPaid?"paid":"not paid yet"):"",st==="hold"&&b.holdUntil?"held until "+clFmtDate(b.holdUntil):"",b.phone,b.email].filter(Boolean).map(esc).join(" · ")}</div>${b.note?`<div class="muted">${esc(b.note)}</div>`:""}
+ ${cl.length?`<div class="bad">Overlaps ${cl.map(o=>esc(o.name||"another booking")+" ("+esc(bkTimes(o))+")").join(", ")}</div>`:""}${blk.length?`<div class="bad">That day is blocked: ${blk.map(x=>esc(x.reason||"blocked")).join(", ")}</div>`:""}${over?`<div class="bad">${+b.guests} guests is more than ${esc(sp.name)} holds (${+sp.cap})</div>`:""}${holdLate?`<div class="bad">The hold ran out ${esc(clFmtDate(b.holdUntil))}</div>`:""}${(()=>{const ms=st!=="cancelled"&&bkShort(b);return ms?ms.short?`<div class="${st==="confirmed"?"bad":"muted"}">${clMoney(ms.short)} under the ${clMoney(ms.m)} minimum spend (${clMoney(ms.have)} so far)</div>`:`<div class="muted">Meets the ${clMoney(ms.m)} minimum spend</div>`:""})()}
  ${gr.length?`<div class="muted">Rentals: ${gr.map(r=>esc(r.label)+" ("+GR_ST[r.status||"held"][0].toLowerCase()+")").join(", ")}</div>`:""}
  <div class="row">${st==="hold"?`<button class="btn xs" data-act="bkSet" data-k="${esc(b.k)}" data-s="confirmed">Confirm</button>`:""}${st!=="cancelled"?`<button class="btn xs" data-act="bkEdit" data-k="${esc(b.k)}">Edit</button><button class="btn xs" data-act="gresNew" data-m="b:${esc(b.k)}">Reserve rentals</button>${+b.deposit&&!b.depPaid?`<button class="btn xs" data-act="bkDep" data-k="${esc(b.k)}">Deposit paid</button>`:""}<button class="btn xs" data-act="bkSet" data-k="${esc(b.k)}" data-s="cancelled">Cancel</button>`:`<button class="btn xs" data-act="bkSet" data-k="${esc(b.k)}" data-s="hold">Restore as a hold</button>`}
  <button class="btn xs" data-act="bkDel" data-k="${esc(b.k)}">${cf?"Tap again to delete":"Delete"}</button></div></div>`}
@@ -246,10 +269,10 @@ function plVenueTab(){
  ${blks.length?`<div class="stack tight">${blks.map(x=>`<div class="row between small clrow"><span class="mw0"><b>${esc(clFmtDate(x.from))}${blkTo(x)>x.from?" through "+esc(clFmtDate(blkTo(x))):""}</b><span class="db muted">${esc(spaceName(x.space))}${x.reason?" · "+esc(x.reason):""}</span></span><button class="btn xs" data-act="vbDel" data-k="${esc(x.k)}">${L.confirm==="vbx"+x.k?"Tap again to unblock":"Unblock"}</button></div>`).join("")}</div>`:'<p class="small muted m0">No days blocked off.</p>'}</section>
  <section class="card stack"><div class="row between"><h3>Spaces</h3>${L.spEdit?"":`<button class="btn xs" data-act="spNew">Add a space</button>`}</div><p class="small muted m0">The rooms or areas you book separately, like a ballroom, a garden and a terrace. Booking the whole venue takes all of them.</p>
  ${L.spEdit?spaceForm(editS):""}
- ${sp.length?`<div class="stack tight">${sp.map(s=>`<div class="row between small clrow"><span class="mw0"><b>${esc(s.name)}</b><span class="db muted">${[s.cap?"up to "+(+s.cap)+" guests":"",+s.rate?clMoney(s.rate):"",s.note].filter(Boolean).map(esc).join(" · ")}</span></span><span class="row"><button class="btn xs" data-act="spEdit" data-k="${esc(s.k)}">Edit</button><button class="btn xs" data-act="spDel" data-k="${esc(s.k)}">${L.confirm==="spx"+s.k?"Tap again to delete":"Delete"}</button></span></div>`).join("")}</div>`:'<p class="small muted m0">No spaces yet, so every booking is for the whole venue.</p>'}</section>
+ ${sp.length?`<div class="stack tight">${sp.map(s=>`<div class="row between small clrow"><span class="mw0"><b>${esc(s.name)}</b><span class="db muted">${[s.cap?"up to "+(+s.cap)+" guests":"",+s.rate?clMoney(s.rate):"",+s.minSpend?clMoney(s.minSpend)+" minimum spend":"",s.note].filter(Boolean).map(esc).join(" · ")}</span></span><span class="row"><button class="btn xs" data-act="spEdit" data-k="${esc(s.k)}">Edit</button><button class="btn xs" data-act="spDel" data-k="${esc(s.k)}">${L.confirm==="spx"+s.k?"Tap again to delete":"Delete"}</button></span></div>`).join("")}</div>`:'<p class="small muted m0">No spaces yet, so every booking is for the whole venue.</p>'}</section>
  <section class="card stack"><label class="row small"><input type="checkbox" data-act="vShowBusy" ${D.vset&&D.vset.showBusy===false?"":"checked"}> Show which dates are taken on your inquiry form</label><span class="small muted">People see only "booked" or "open" for each date, never who booked it, so they can pick a day that works.</span></section>
  <p class="small muted center"><button class="btn xs" data-act="vOff">${L.confirm==="voff"?"Tap again to hide venue bookings":"Turn off venue bookings"}</button> Your bookings are kept if you turn it back on.</p>`}
-const bkClear=()=>BK_F.concat(VB_F,["sp_name","sp_cap","sp_rate","sp_note"]).forEach(k=>delete L.drafts[k]);
+const bkClear=()=>BK_F.concat(VB_F,["sp_name","sp_cap","sp_rate","sp_min","sp_note"]).forEach(k=>delete L.drafts[k]);
 Object.assign(ACT,{
  vShowBusy:async el=>{await RT(PSP+"venue/showBusy").set(!!el.checked);toast(el.checked?"Your inquiry form shows taken dates":"Your inquiry form no longer shows taken dates");busySyncSoon()},
  vOn:async()=>{await RT(PSP+"venue/on").set(true);toast("Venue bookings are on")},
@@ -261,16 +284,17 @@ Object.assign(ACT,{
  bkEdit:el=>{bkClear();L.bkWarn=null;L.bkEdit=el.dataset.k;L.vbOpen=false;render(true);plLand(document.getElementById("bkForm"),true)},
  bkClose:()=>{L.bkEdit=null;L.bkWarn=null;bkClear();render(true)},
  bkSave:async el=>{const k=el.dataset.k,old=k?(D.bks||{})[k]||{}:{},g=(f,key,d)=>dv(f,old[key]==null?(d==null?"":d):old[key]);
-  const name=String(g("bk_name","name")).trim().slice(0,80),date=g("bk_date","date",L.vSel||""),guests=numIn("bk_guests",old.guests==null?"":old.guests),priceS=String(g("bk_price","price")).trim(),depS=String(g("bk_dep","deposit")).trim();
+  const name=String(g("bk_name","name")).trim().slice(0,80),date=g("bk_date","date",L.vSel||""),guests=numIn("bk_guests",old.guests==null?"":old.guests),priceS=String(g("bk_price","price")).trim(),depS=String(g("bk_dep","deposit")).trim(),spS=String(g("bk_spend","spend")).trim(),spend=spS?invParse(spS):0;
   const price=priceS?invParse(priceS):0,dep=depS?invParse(depS):0,status=g("bk_status","status","hold"),space=g("bk_space","space","");
-  if(!name)return toast("Add the event or client name");if(!date)return toast("Pick the date");if(isNaN(guests))return toast("Type the guest count as a number");if(price==null||price<0)return toast("Type the fee as a number, like 3500");if(dep==null||dep<0)return toast("Type the deposit as a number, like 1000");
+  if(!name)return toast("Add the event or client name");if(!date)return toast("Pick the date");if(isNaN(guests))return toast("Type the guest count as a number");if(price==null||price<0)return toast("Type the fee as a number, like 3500");if(dep==null||dep<0)return toast("Type the deposit as a number, like 1000");if(spend==null||spend<0)return toast("Type food and drink as a number, like 6000");
   const dp=g("bk_depPaid","depPaid","");
   const rec={name,date,space:space&&(D.spaces||{})[space]?space:"",start:g("bk_start","start"),end:g("bk_end","end"),kind:g("bk_kind","kind","Wedding"),guests:guests||0,status:status==="confirmed"?"confirmed":"hold",holdUntil:status==="confirmed"?"":g("bk_hold","holdUntil",dayAdd(mateToday(),7)),
-   price:price||0,deposit:dep||0,depPaid:dp===true||dp==="1",phone:String(g("bk_phone","phone")).trim().slice(0,30),email:String(g("bk_email","email")).trim().slice(0,120),ref:g("bk_ref","ref"),note:String(g("bk_note","note")).trim().slice(0,400),t:old.t||Date.now()};
+   price:price||0,spend:spend||0,deposit:dep||0,depPaid:dp===true||dp==="1",phone:String(g("bk_phone","phone")).trim().slice(0,30),email:String(g("bk_email","email")).trim().slice(0,120),ref:g("bk_ref","ref"),note:String(g("bk_note","note")).trim().slice(0,400),t:old.t||Date.now()};
   if(old.status==="cancelled")rec.status="cancelled";
   const warn=[],cl=bkClashes(rec,k),bl=blocksOn(date,rec.space),sp=(D.spaces||{})[rec.space];
   cl.forEach(o=>warn.push(`Overlaps ${o.name||"another booking"} in ${spaceName(o.space)} (${bkTimes(o)}).`));bl.forEach(x=>warn.push(`${spaceName(x.space)} is blocked that day${x.reason?": "+x.reason:""}.`));
   if(sp&&+sp.cap&&rec.guests>+sp.cap)warn.push(`${rec.guests} guests is more than ${sp.name} holds (${+sp.cap}).`);
+  const ms=rec.status==="confirmed"&&bkShort(rec);if(ms&&ms.short)warn.push(`This is ${clMoney(ms.short)} under ${sp.name}'s ${clMoney(ms.m)} minimum spend.`);
   const sig=JSON.stringify(Object.assign({},rec,{t:0}));if(warn.length&&L.bkWarnSig!==sig){L.bkWarn=warn;L.bkWarnSig=sig;return render(true)}
   await (k?RT(PSP+"bookings/"+k).set(rec):RT(PSP+"bookings").push().set(rec));L.bkEdit=null;L.bkWarn=null;L.bkWarnSig=null;L.vSel=date;L.vYM=date.slice(0,7);bkClear();toast(k?"Booking saved":rec.status==="hold"?"Hold saved":"Booking saved");render(true)},
  bkSet:async el=>{const k=el.dataset.k,s=el.dataset.s,u={status:s};if(s==="confirmed")u.holdUntil="";await RT(PSP+"bookings/"+k).update(u);toast(s==="confirmed"?"Confirmed":s==="cancelled"?"Cancelled":"Restored as a hold")},
@@ -283,13 +307,13 @@ Object.assign(ACT,{
   await RT(PSP+"blocks").push().set({from,to,space:space&&(D.spaces||{})[space]?space:"",reason:String(dv("vb_reason","")).trim().slice(0,80),t:Date.now()});
   L.vbOpen=false;bkClear();toast(hit.length?`Blocked. Heads up: ${hit.length} booking${hit.length===1?" is":"s are"} already on those days.`:"Days blocked off");render(true)},
  vbDel:async el=>{const k=el.dataset.k;if(L.confirm!=="vbx"+k){L.confirm="vbx"+k;return render(true)}L.confirm=null;await RT(PSP+"blocks/"+k).remove();toast("Unblocked")},
- spNew:()=>{["sp_name","sp_cap","sp_rate","sp_note"].forEach(k=>delete L.drafts[k]);L.spEdit="new";render(true)},
- spEdit:el=>{["sp_name","sp_cap","sp_rate","sp_note"].forEach(k=>delete L.drafts[k]);L.spEdit=el.dataset.k;render(true)},
+ spNew:()=>{["sp_name","sp_cap","sp_rate","sp_min","sp_note"].forEach(k=>delete L.drafts[k]);L.spEdit="new";render(true)},
+ spEdit:el=>{["sp_name","sp_cap","sp_rate","sp_min","sp_note"].forEach(k=>delete L.drafts[k]);L.spEdit=el.dataset.k;render(true)},
  spClose:()=>{L.spEdit=null;render(true)},
- spSave:async el=>{const k=el.dataset.k,old=k?(D.spaces||{})[k]||{}:{},name=String(dv("sp_name",old.name||"")).trim().slice(0,60),cap=numIn("sp_cap",old.cap==null?"":old.cap),rs=String(dv("sp_rate",old.rate==null?"":old.rate)).trim(),rate=rs?invParse(rs):0;
-  if(!name)return toast("Name the space");if(isNaN(cap))return toast("Type how many guests it holds as a number");if(rate==null||rate<0)return toast("Type the fee as a number");
-  const rec={name,cap:cap||0,rate:rate||0,note:String(dv("sp_note",old.note||"")).trim().slice(0,200),t:old.t||Date.now()};
-  await (k?RT(PSP+"spaces/"+k).set(rec):RT(PSP+"spaces").push().set(rec));L.spEdit=null;["sp_name","sp_cap","sp_rate","sp_note"].forEach(x=>delete L.drafts[x]);toast("Space saved");render(true)},
+ spSave:async el=>{const k=el.dataset.k,old=k?(D.spaces||{})[k]||{}:{},name=String(dv("sp_name",old.name||"")).trim().slice(0,60),cap=numIn("sp_cap",old.cap==null?"":old.cap),rs=String(dv("sp_rate",old.rate==null?"":old.rate)).trim(),rate=rs?invParse(rs):0,ms=String(dv("sp_min",old.minSpend==null?"":old.minSpend)).trim(),minSpend=ms?invParse(ms):0;
+  if(!name)return toast("Name the space");if(isNaN(cap))return toast("Type how many guests it holds as a number");if(rate==null||rate<0)return toast("Type the fee as a number");if(minSpend==null||minSpend<0)return toast("Type the minimum spend as a number, like 12000");
+  const rec={name,cap:cap||0,rate:rate||0,minSpend:minSpend||0,note:String(dv("sp_note",old.note||"")).trim().slice(0,200),t:old.t||Date.now()};
+  await (k?RT(PSP+"spaces/"+k).set(rec):RT(PSP+"spaces").push().set(rec));L.spEdit=null;["sp_name","sp_cap","sp_rate","sp_min","sp_note"].forEach(x=>delete L.drafts[x]);toast("Space saved");render(true)},
  spDel:async el=>{const k=el.dataset.k;if(L.confirm!=="spx"+k){L.confirm="spx"+k;return render(true)}L.confirm=null;const n=bkList().filter(b=>b.space===k&&b.status!=="cancelled"&&b.date>=mateToday()).length;
   if(n){return toast(`${n} upcoming booking${n===1?" uses":"s use"} this space. Move or cancel ${n===1?"it":"them"} first.`)}await RT(PSP+"spaces/"+k).remove();toast("Space deleted")}
 });

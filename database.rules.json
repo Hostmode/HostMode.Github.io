@@ -129,6 +129,11 @@
               ".write": "root.child('partygames/planners/' + $uid + '/mates/' + $id).exists()"
             }
           },
+          "mateShifts": {
+            "$id": {
+              ".read": true
+            }
+          },
           "feedback": {
             "$key": {
               "$id": {
@@ -220,6 +225,10 @@
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
       },
       "mateTasks": {
+        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+      },
+      "mateShifts": {
         ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
       },

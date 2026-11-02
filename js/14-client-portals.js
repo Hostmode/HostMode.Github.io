@@ -193,7 +193,7 @@ function imTime(v){v=String(v||"").trim().toLowerCase();if(!v)return "";let m;
  if(v==="noon")return "12:00";return null}
 function imNum(v){const s=String(v||"").replace(/[$£€,\s]/g,"").replace(/usd$/i,"");if(!s)return "";const m=s.match(/^(-?\d*\.?\d+)(k)?$/i);return m?parseFloat(m[1])*(m[2]?1000:1):null}
 const imOkEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-const IM2=["gear","spaces","bookings","blocks","packages","payments"];
+const IM2=["gear","spaces","bookings","blocks","packages","payments","shifts"];
 function imBuild(){const I=L.im,off=I.off||{};return imBuild0().map(r=>{if(!r.skip&&off[r.line]){r.skip="you chose to skip it";r.mine=true}return r})}
 function imBuild0(){const I=L.im,m=I.map,g=(r,k)=>m[k]!=null&&m[k]!==""?String(r[+m[k]]==null?"":r[+m[k]]).replace(/\s+/g," ").trim():"";
  const used=new Set(Object.values(m).filter(v=>v!==""&&v!=null).map(Number));
@@ -287,7 +287,7 @@ function imCard(){imSubLog();const I=L.im,type=(I&&I.type)||L.imType||"auto",T=I
  const head=`<div class="row between"><h2>Import from another app</h2>${T?`<button class="btn sm" data-act="imTemplate">Download a ${T.one} template</button>`:""}</div>`;
  if(!I)return `<section class="card stack">${head}
   <span class="small"><b>What's in the file?</b></span><div class="row"><button class="btn sm ${type==="auto"?"primary":""}" data-act="imType" data-k="auto">Figure it out for me</button>${Object.keys(IM_T).map(k=>`<button class="btn sm ${type===k?"primary":""}" data-act="imType" data-k="${k}">${IM_T[k].l}</button>`).join("")}</div>
-  <p class="small muted m0">${T?T.about:"Upload one spreadsheet or a whole workbook. Host Mode looks at each tab and sends clients, vendors, guests, inventory, venue spaces, bookings, blocked days, packages and payments where they belong."} Export from the app you use now, upload the file here, and Host Mode sorts each column into the right place. You check everything before it saves, matches you fix are remembered for next time, and any import can be undone for 24 hours.</p>
+  <p class="small muted m0">${T?T.about:"Upload one spreadsheet or a whole workbook. Host Mode looks at each tab and sends clients, vendors, guests, inventory, venue spaces, bookings, blocked days, packages, payments and teammate shifts where they belong."} Export from the app you use now, upload the file here, and Host Mode sorts each column into the right place. You check everything before it saves, matches you fix are remembered for next time, and any import can be undone for 24 hours.</p>
   <div class="row"><label class="btn primary upl">Upload a file<input type="file" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-act="imFile"></label><span class="small muted">CSV, Excel or PDF</span></div>
   <div class="row"><input type="url" class="grow" data-draft="im_url" value="${esc(dv("im_url",""))}" placeholder="Or paste a Google Sheets link"><button class="btn sm" data-act="imSheet">Open sheet</button></div>
   ${undoBox}</section>`;
@@ -307,7 +307,7 @@ function imCard(){imSubLog();const I=L.im,type=(I&&I.type)||L.imType||"auto",T=I
    const dupWhy=type==="clients"?"Clients already in Host Mode (same email, or same name and date)":type==="vendors"?"Vendors this client already has":type==="guests"?"Guests already on this event's list":`${T.l} already in Host Mode`;
    body=`<div class="row">${imPill(go,"ready to import","ok")}${imPill(wn,"with something to check","warn")}${imPill(dup,"already there","gold")}${imPill(sk,"will be skipped","")}</div>
    ${dup?`<label class="stack tight"><span class="small">${dupWhy}</span><select data-act="imDup"><option value="skip" ${I.dup==="skip"?"selected":""}>Skip them</option>${T.upd?`<option value="update" ${I.dup==="update"?"selected":""}>Update them with the new details</option>`:""}<option value="add" ${I.dup==="add"?"selected":""}>Add them anyway</option></select></label>`:""}
-   ${nsp.length?`<span class="small">New spaces will be added for: <b>${nsp.map(esc).join(", ")}</b></span>`:""}
+   ${nsp.length?`<span class="small">New spaces will be added for: <b>${nsp.map(esc).join(", ")}</b></span>`:""}${type==="shifts"&&Object.keys(I.newMates||{}).length?`<span class="small">New teammates will be added for: <b>${Object.values(I.newMates).map(esc).join(", ")}</b></span>`:""}
    ${sk||wn?`<div class="row"><span class="small muted">Rows with a problem can be skipped one by one below, or downloaded, fixed and uploaded again.</span><button class="btn xs" data-act="imProblems">Download the problem rows</button></div>`:""}
    ${type==="clients"?`<label class="stack tight"><span class="small">Give each new client a checklist (optional)</span><select data-draft="im_tpl">${clTplSelect(dv("im_tpl",""))}</select></label>`:""}
    <div class="stack tight">${show.map(imRow).join("")}</div>${recs.length>show.length?`<span class="small muted">and ${recs.length-show.length} more rows that look fine</span>`:""}
@@ -405,7 +405,8 @@ Object.assign(IM_FIELDS,{
  inote:{l:"Notes",re:/note|comment|memo|detail/},
  sname:{l:"Space name",re:/space|room|hall|area|name/},
  scap:{l:"Holds up to (guests)",re:/capac|max|seat|guest|holds|occupan/},
- srate:{l:"Usual fee",re:/rate|fee|price|cost|rent/},
+ srate:{l:"Usual fee",re:/rate|fee|price|cost|rent/,not:/min/},
+ smin:{l:"Minimum spend",re:/minimum|min\.? ?spend|spend/},
  snote:{l:"Notes",re:/note|feature|detail|descr|amenit/},
  bname:{l:"Event or client name",re:/event|client|name|booked by|customer|party|couple|title/},
  bdate:{l:"Date",re:/date|day|when/,not:/creat|book(ed|ing) on|added|paid|due|hold/},
@@ -415,7 +416,8 @@ Object.assign(IM_FIELDS,{
  bkind:{l:"Type of event",re:/type|kind|occasion|category/},
  bguests:{l:"Guests",re:/guest|head ?count|attend|pax|people/},
  bstatus:{l:"Status",re:/status|stage|confirm|hold/},
- bprice:{l:"Rental fee",re:/fee|price|rent|total|amount|cost/,not:/deposit/},
+ bprice:{l:"Rental fee",re:/fee|price|rent|total|amount|cost/,not:/deposit|food|drink|beverage|cater|\bbar\b|f ?& ?b/},
+ bspend:{l:"Food and drink spend",re:/food|drink|beverage|cater|\bbar\b|f ?& ?b|spend/},
  bdep:{l:"Deposit",re:/deposit|retainer/},
  bdepPaid:{l:"Deposit paid",re:/deposit.*(paid|rec)|paid/},
  bphone:{l:"Phone",re:/phone|mobile|cell|\btel/},
@@ -428,7 +430,16 @@ Object.assign(IM_FIELDS,{
  pname:{l:"Package name",re:/package|tier|plan|service|name|title/},
  pprice:{l:"Price",re:/price|cost|fee|rate|total|amount/,not:/deposit/},
  pdep:{l:"Deposit",re:/deposit|retainer|down/},
+ pper:{l:"Per guest",re:/per ?(guest|person|head|plate)|priced per/},
+ pmin:{l:"Minimum guests",re:/min(imum)?\b|min(imum)? ?(guest|people|head)/},
  pitems:{l:"What's included",re:/includ|item|feature|descr|detail|what/},
+ shwho:{l:"Teammate",re:/teammate|staff|employee|worker|name|who|person/},
+ shdate:{l:"Date",re:/date|day|when/},
+ shstart:{l:"Starts",re:/start|from|begin|clock.?in|in\b/},
+ shend:{l:"Ends",re:/end|until|finish|clock.?out|out\b/},
+ shrole:{l:"Role",re:/role|position|job|duty|task/},
+ shpay:{l:"Hourly pay",re:/pay|rate|wage|hourly|\$/},
+ shnote:{l:"Notes",re:/note|comment|detail|event/},
  payclient:{l:"Client",re:/client|customer|couple|name|event/},
  paytitle:{l:"What it's for",re:/for|descr|title|item|memo|invoice|payment/,not:/date|due|paid|amount/},
  payamt:{l:"Amount",re:/amount|total|price|sum|\$|value/},
@@ -441,25 +452,29 @@ Object.assign(IM_T,{
   about:"Tablecloths, centerpieces, chairs, tables, lights and anything else you own, added to Inventory.",
   tpl:[["Item","Category","How many","Color or size","Where it's stored","In repair","Cost each","Reorder below","Notes"],["Ivory 120\" round tablecloth","Linens","40","Ivory","Shelf A","2","22","30","Steam before use"]]},
  spaces:{l:"Venue spaces",one:"space",many:"spaces",nm:/space|room|hall|area/,sig:[/capac|max guest|occupan|seat/,/room|space|hall/,/rate|rent/],
-  guess:["scap","srate","snote","sname"],show:["sname","scap","srate","snote"],need:["sname"],upd:true,
+  guess:["smin","scap","srate","snote","sname"],show:["sname","scap","srate","smin","snote"],need:["sname"],upd:true,
   about:"The rooms and areas of your venue, with how many guests each holds.",
-  tpl:[["Space","Capacity","Fee","Notes"],["Grand Ballroom","250","4500","Dance floor and stage"]]},
+  tpl:[["Space","Capacity","Fee","Minimum spend","Notes"],["Grand Ballroom","250","4500","12000","Dance floor and stage"]]},
  bookings:{l:"Venue bookings",one:"booking",many:"bookings",nm:/book|reserv|calendar|schedule|venue/,sig:[/room|space|hall/,/start|begin/,/end|until|finish/,/deposit/,/hold|confirm/],
-  guess:["bemail","bphone","bdepPaid","bdep","bprice","bguests","bstatus","bstart","bend","bspace","bkind","bdate","bnote","bname"],show:["bname","bdate","bstart","bend","bspace","bkind","bguests","bstatus","bprice","bdep","bdepPaid","bphone","bemail","bnote"],need:["bname"],upd:true,
+  guess:["bemail","bphone","bdepPaid","bdep","bspend","bprice","bguests","bstatus","bstart","bend","bspace","bkind","bdate","bnote","bname"],show:["bname","bdate","bstart","bend","bspace","bkind","bguests","bstatus","bprice","bspend","bdep","bdepPaid","bphone","bemail","bnote"],need:["bname"],upd:true,
   about:"Holds and confirmed bookings for your venue, added to the Venue calendar.",
-  tpl:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Deposit","Deposit paid","Phone","Email","Notes"],["Patel wedding","2027-05-22","2:00 PM","11:00 PM","Grand Ballroom","Wedding","200","Confirmed","9500","3000","Yes","704-555-0177","anika@example.com",""]]},
+  tpl:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Food and drink","Deposit","Deposit paid","Phone","Email","Notes"],["Patel wedding","2027-05-22","2:00 PM","11:00 PM","Grand Ballroom","Wedding","200","Confirmed","9500","6000","3000","Yes","704-555-0177","anika@example.com",""]]},
  blocks:{l:"Blocked days",one:"blocked period",many:"blocked periods",nm:/block|closed|blackout|unavail|holiday/,sig:[/block|closed|blackout|unavail/,/reason|why/,/from|through|thru|until/],
   guess:["kreason","kspace","kto","kfrom"],show:["kfrom","kto","kspace","kreason"],need:["kfrom"],
   about:"Days your venue, or one space in it, can't be booked.",
   tpl:[["From","Through","Space","Reason"],["2027-12-24","2027-12-26","","Closed for the holiday"]]},
  packages:{l:"Packages",one:"package",many:"packages",nm:/package|pricing|service|offer|menu/,sig:[/package|tier|plan/,/includ/,/deposit|retainer/],
-  guess:["pdep","pitems","pprice","pname"],show:["pname","pprice","pdep","pitems"],need:["pname"],upd:true,
+  guess:["pmin","pper","pdep","pitems","pprice","pname"],show:["pname","pprice","pper","pmin","pdep","pitems"],need:["pname"],upd:true,
   about:"Your standard offers and prices, added to Packages.",
-  tpl:[["Package","Price","Deposit","What's included"],["Wedding Signature","3800","1200","Partial planning; Vendor booking; Day-of coordination"]]},
+  tpl:[["Package","Price","Per guest","Minimum guests","Deposit","What's included"],["Wedding Signature","3800","","","1200","Partial planning; Vendor booking; Day-of coordination"],["Plated Dinner","85","Yes","40","1000","Three courses; Staff and service"]]},
  payments:{l:"Payments",one:"payment",many:"payments",nm:/pay|invoice|billing|money|ledger|transact/,sig:[/paid|payment|received/,/due/,/amount/,/client|customer/],
   guess:["paypaid","paydue","payamt","paytitle","payclient"],show:["payclient","paytitle","payamt","paydue","paypaid"],need:["payamt"],upd:true,
   about:"Payment history and what clients still owe, added to each client's Money tab.",
-  tpl:[["Client","What it's for","Amount","Due date","Paid"],["Maya and Jordan","Deposit","1500","2027-01-15","Yes"]]}
+  tpl:[["Client","What it's for","Amount","Due date","Paid"],["Maya and Jordan","Deposit","1500","2027-01-15","Yes"]]},
+ shifts:{l:"Teammate shifts",one:"shift",many:"shifts",nm:/shift|staff|schedul|roster|rota|crew/,sig:[/teammate|staff|employee|crew/,/start|clock.?in/,/end|clock.?out/,/role|position/,/pay|wage|hourly/],
+  guess:["shpay","shrole","shstart","shend","shdate","shnote","shwho"],show:["shwho","shdate","shstart","shend","shrole","shpay","shnote"],need:["shwho"],upd:true,
+  about:"Who works each event day, added to Teammates. New names become new teammates.",
+  tpl:[["Teammate","Date","Starts","Ends","Role","Hourly pay","Notes"],["Liam","2027-05-22","2:00 PM","11:00 PM","Coordinator","25","Patel wedding"]]}
 });
 IM_T.clients.upd=true;IM_T.vendors.upd=true;
 IM_T.clients.nm=/client|customer|lead|contact|couple|crm/;IM_T.clients.sig=[/client|customer|couple|lead/,/e-?mail/,/budget/,/event date|wedding date/];
@@ -491,7 +506,7 @@ function imBuild2(I,g,extras){const seen={},type=I.type;
    const dk=normName(o.name)+"|"+normName(o.color),ex=match(normName(o.name),o.color);if(ex){o.dup=true;o.ex=ex}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
  if(type==="spaces"){const have={};spaceList().forEach(s=>have[normName(s.name)]=s.k);
   return I.rows.map((r,i)=>{const name=g(r,"sname"),o={line:I.start+i+2,name:name.slice(0,60),warn:[],skip:""};if(!name){o.skip="no space name";return o}
-   count(o,g(r,"scap"),"cap","capacity");money(o,g(r,"srate"),"rate","fee");const nt=note(r,"snote");if(nt)o.note=nt.slice(0,200);
+   count(o,g(r,"scap"),"cap","capacity");money(o,g(r,"srate"),"rate","fee");money(o,g(r,"smin"),"minSpend","minimum spend");const nt=note(r,"snote");if(nt)o.note=nt.slice(0,200);
    const dk=normName(o.name);if(have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
  if(type==="bookings"){const sp={};spaceList().forEach(s=>sp[normName(s.name)]=s.k);const have={};bkList().forEach(b=>have[b.date+"|"+(b.space||"")+"|"+normName(b.name)]=b.k);I.newSpaces={};
   return I.rows.map((r,i)=>{const name=g(r,"bname"),o={line:I.start+i+2,name:name.slice(0,80),warn:[],skip:""};if(!name){o.skip="no event or client name";return o}
@@ -499,7 +514,7 @@ function imBuild2(I,g,extras){const seen={},type=I.type;
    [["bstart","start"],["bend","end"]].forEach(([k,f])=>{const raw=g(r,k),t=imTime(raw);if(t)o[f]=t;else if(t===null)o.warn.push(`couldn't read the time "${raw.slice(0,20)}"`)});
    const sn=g(r,"bspace");o.space="";if(sn&&!/^(whole|all|entire|full)\b/i.test(sn)){const k=sp[normName(sn)];if(k)o.space=k;else{o.spaceNew=sn.slice(0,60);I.newSpaces[normName(sn)]=sn.slice(0,60)}}o.sname=sn&&!o.space&&!o.spaceNew?"Whole venue":(o.spaceNew||spaceName(o.space));
    const kd=g(r,"bkind");o.kind=BK_KINDS.find(x=>normName(x)===normName(kd))||BK_KINDS.find(x=>kd&&normName(kd).includes(normName(x).split(" ")[0]))||(kd?"Other":"Other");
-   count(o,g(r,"bguests"),"guests","guest count");money(o,g(r,"bprice"),"price","fee");money(o,g(r,"bdep"),"deposit","deposit");
+   count(o,g(r,"bguests"),"guests","guest count");money(o,g(r,"bprice"),"price","fee");money(o,g(r,"bspend"),"spend","food and drink spend");money(o,g(r,"bdep"),"deposit","deposit");
    const st=g(r,"bstatus");o.status=/cancel/i.test(st)?"cancelled":/hold|tentat|pencil|pending|inquir/i.test(st)?"hold":"confirmed";
    if(I.map.bdepPaid!=null&&I.map.bdepPaid!=="")o.depPaid=imYes(g(r,"bdepPaid"));
    const ph=g(r,"bphone");if(ph)o.phone=ph.slice(0,30);const em=g(r,"bemail").toLowerCase();if(em){if(imOkEmail(em))o.email=em.slice(0,120);else o.warn.push("email doesn't look right")}
@@ -515,7 +530,7 @@ function imBuild2(I,g,extras){const seen={},type=I.type;
    const dk=o.from+"|"+o.to+"|"+o.space;if(have[dk]||seen[dk])o.dup=true;seen[dk]=1;return o})}
  if(type==="packages"){const have={};pkList().forEach(p=>have[normName(p.name)]=p.k);
   return I.rows.map((r,i)=>{const name=g(r,"pname"),o={line:I.start+i+2,name:name.slice(0,60),warn:[],skip:""};if(!name){o.skip="no package name";return o}
-   money(o,g(r,"pprice"),"price","price");if(o.price==null){o.skip="no price";return o}money(o,g(r,"pdep"),"deposit","deposit");if(o.deposit>o.price){o.warn.push("deposit was more than the price, set to 0");o.deposit=0}
+   money(o,g(r,"pprice"),"price","price");if(o.price==null){o.skip="no price";return o}money(o,g(r,"pdep"),"deposit","deposit");o.per=/^(y|yes|true|x|1|per)/i.test(g(r,"pper").trim());if(o.per){const mn=parseInt(g(r,"pmin"));o.minG=mn>0?Math.min(mn,5000):0}if(!o.per&&o.deposit>o.price){o.warn.push("deposit was more than the price, set to 0");o.deposit=0}
    const it=note(r,"pitems","\n");if(it)o.items=it.split(/\n|;|•|\|/).map(x=>x.trim()).filter(Boolean).join("\n").slice(0,1500);
    const dk=normName(o.name);if(have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
  if(type==="payments"){const cs=D.clients||{},cBy={};Object.keys(cs).forEach(id=>{cBy[normName(cs[id].name)]=id;if(cs[id].evName)cBy[normName(cs[id].evName)]=cBy[normName(cs[id].evName)]||id});const have={};
@@ -527,15 +542,24 @@ function imBuild2(I,g,extras){const seen={},type=I.type;
    const pv=g(r,"paypaid"),pd=imDate(pv);o.paid=!!pv&&(imYes(pv)||!!pd);if(pd)o.paidOn=pd;
    if(!have[cid]){have[cid]={};clPays(cid).forEach(p=>have[cid][normName(p.title)+"|"+(+p.amount||0)+"|"+(p.due||"")]=p.k)}
    const dk=normName(o.title)+"|"+o.amount+"|"+(o.due||"");if(have[cid][dk]){o.dup=true;o.ex=have[cid][dk]}else if(seen[cid+dk])o.dup=true;seen[cid+dk]=1;return o})}
+ if(type==="shifts"){const by={};Object.keys(D.mates||{}).forEach(id=>by[normName(D.mates[id].name)]=id);const have={};shAll().forEach(x=>have[x.mid+"|"+x.date+"|"+(x.start||"")]=x.k);I.newMates={};
+  return I.rows.map((r,i)=>{const who=g(r,"shwho"),o={line:I.start+i+2,name:who.slice(0,40),warn:[],skip:""};if(!who){o.skip="no teammate name";return o}
+   const dr=g(r,"shdate"),d=imDate(dr);if(!d){o.skip=d===null?`couldn't read the date "${dr.slice(0,20)}"`:"no date";return o}o.date=d;
+   [["shstart","start"],["shend","end"]].forEach(([k,f])=>{const raw=g(r,k),t=imTime(raw);if(t)o[f]=t;else if(t===null)o.warn.push(`couldn't read the time "${raw.slice(0,20)}"`)});
+   const rl=g(r,"shrole");o.role=SH_ROLES.find(x=>normName(x)===normName(rl))||(rl?rl.slice(0,40):"Other");money(o,g(r,"shpay"),"pay","hourly pay");
+   const nt=note(r,"shnote");if(nt)o.note=nt.slice(0,160);
+   o.mid=by[normName(who)]||"";if(!o.mid)I.newMates[normName(who)]=who.slice(0,40);
+   const dk=(o.mid||"new:"+normName(who))+"|"+o.date+"|"+(o.start||"");if(o.mid&&have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
  return []}
 /* what one row looks like in the preview, for the new kinds */
 function imDet2(r,I){const fd=d=>d?clFmtDate(d):"";
  if(I.type==="gear")return [r.cat,r.qty!=null?r.qty+" owned":"",r.color,r.spot?"stored: "+r.spot:"",r.rep?r.rep+" in repair":"",r.cost?clMoney(r.cost)+" each":""];
- if(I.type==="spaces")return [r.cap?"up to "+r.cap:"",r.rate?clMoney(r.rate):"",r.note];
- if(I.type==="bookings")return [fd(r.date),r.start||r.end?bkTimes(r):"",r.sname+(r.spaceNew?" (new space)":""),r.kind,r.guests?r.guests+" guests":"",BK_ST[r.status][0],r.price?clMoney(r.price):"",r.deposit?clMoney(r.deposit)+" deposit"+(r.depPaid?" paid":""):""];
+ if(I.type==="spaces")return [r.cap?"up to "+r.cap:"",r.rate?clMoney(r.rate):"",r.minSpend?clMoney(r.minSpend)+" minimum":"",r.note];
+ if(I.type==="bookings")return [fd(r.date),r.start||r.end?bkTimes(r):"",r.sname+(r.spaceNew?" (new space)":""),r.kind,r.guests?r.guests+" guests":"",BK_ST[r.status][0],r.price?clMoney(r.price):"",r.spend?clMoney(r.spend)+" food and drink":"",r.deposit?clMoney(r.deposit)+" deposit"+(r.depPaid?" paid":""):""];
  if(I.type==="blocks")return [r.space?spaceName(r.space):"Whole venue",r.reason];
- if(I.type==="packages")return [r.price!=null?clMoney(r.price):"",r.deposit?clMoney(r.deposit)+" deposit":"",r.items?r.items.split("\n").length+" things included":""];
+ if(I.type==="packages")return [r.price!=null?clMoney(r.price)+(r.per?" per guest"+(r.minG?` (${r.minG} min)`:""):""):"",r.deposit?clMoney(r.deposit)+" deposit":"",r.items?r.items.split("\n").length+" things included":""];
  if(I.type==="payments")return [r.amount!=null?clMoney(r.amount):"",r.due?"due "+fd(r.due):"",r.paid?"paid"+(r.paidOn?" "+fd(r.paidOn):""):"not paid yet",I.target==="col"&&r.cname?"for "+r.cname:""];
+ if(I.type==="shifts")return [fd(r.date),r.start||r.end?shTimes(r):"",r.role,r.pay?clMoney(r.pay)+"/hour":"",r.mid?"":"new teammate"];
  return []}
 /* saves the new kinds. Returns {n, paths, prev, where}. Updates keep the old record in prev so Undo can restore it. */
 async function imSave2(I,recs,batch,tm){const out={n:0,paths:{},prev:{},where:""},u={},upd=I.dup==="update";
@@ -543,17 +567,20 @@ async function imSave2(I,recs,batch,tm){const out={n:0,paths:{},prev:{},where:""
  const change=(path,old,obj)=>{u[path]=obj;out.prev[imPath(path)]=old==null?null:old};
  if(I.type==="gear")recs.forEach((r,j)=>{const o={name:r.name,cat:r.cat||"Other",qty:r.qty||0,rep:r.rep||0,cost:r.cost||0,low:r.low!=null?r.low:"",color:r.color||"",spot:r.spot||"",note:r.note||"",t:tm+j,imp:batch};
   if(r.dup&&upd&&r.ex){const old=(D.gear||{})[r.ex]||{},n={};Object.keys(o).forEach(f=>{if(f!=="t"&&f!=="imp"&&(r[f]!=null&&r[f]!==""||f==="name"||f==="cat"))n[f]=o[f]});change("gear/"+r.ex,old,Object.assign({},old,n))}else put("gear/"+RT(PSP+"gear").push().key,o)});
- if(I.type==="spaces")recs.forEach((r,j)=>{const o={name:r.name,cap:r.cap||0,rate:r.rate||0,note:r.note||"",t:tm+j,imp:batch};
-  if(r.dup&&upd&&r.ex){const old=(D.spaces||{})[r.ex]||{};change("spaces/"+r.ex,old,Object.assign({},old,{name:r.name},r.cap!=null?{cap:r.cap}:{},r.rate!=null?{rate:r.rate}:{},r.note?{note:r.note}:{}))}else put("spaces/"+RT(PSP+"spaces").push().key,o)});
+ if(I.type==="spaces")recs.forEach((r,j)=>{const o={name:r.name,cap:r.cap||0,rate:r.rate||0,minSpend:r.minSpend||0,note:r.note||"",t:tm+j,imp:batch};
+  if(r.dup&&upd&&r.ex){const old=(D.spaces||{})[r.ex]||{};change("spaces/"+r.ex,old,Object.assign({},old,{name:r.name},r.cap!=null?{cap:r.cap}:{},r.rate!=null?{rate:r.rate}:{},r.minSpend!=null?{minSpend:r.minSpend}:{},r.note?{note:r.note}:{}))}else put("spaces/"+RT(PSP+"spaces").push().key,o)});
  if(I.type==="bookings"){const made={};Object.keys(I.newSpaces||{}).forEach((nk,j)=>{if(!recs.some(r=>r.spaceNew&&normName(r.spaceNew)===nk))return;const k=RT(PSP+"spaces").push().key;made[nk]=k;put("spaces/"+k,{name:I.newSpaces[nk],cap:0,rate:0,note:"Added by an import",t:tm+j,imp:batch})});
-  recs.forEach((r,j)=>{const o={name:r.name,date:r.date,space:r.spaceNew?made[normName(r.spaceNew)]||"":r.space||"",start:r.start||"",end:r.end||"",kind:r.kind||"Other",guests:r.guests||0,status:r.status,holdUntil:r.status==="hold"?dayAdd(mateToday(),7):"",price:r.price||0,deposit:r.deposit||0,depPaid:!!r.depPaid,phone:r.phone||"",email:r.email||"",ref:"",note:r.note||"",t:tm+j,imp:batch};
+  recs.forEach((r,j)=>{const o={name:r.name,date:r.date,space:r.spaceNew?made[normName(r.spaceNew)]||"":r.space||"",start:r.start||"",end:r.end||"",kind:r.kind||"Other",guests:r.guests||0,status:r.status,holdUntil:r.status==="hold"?dayAdd(mateToday(),7):"",price:r.price||0,spend:r.spend||0,deposit:r.deposit||0,depPaid:!!r.depPaid,phone:r.phone||"",email:r.email||"",ref:"",note:r.note||"",t:tm+j,imp:batch};
    if(r.dup&&upd&&r.ex){const old=(D.bks||{})[r.ex]||{},n={};Object.keys(o).forEach(f=>{if(!["t","imp","ref","holdUntil"].includes(f)&&(r[f]!=null&&r[f]!==""))n[f]=o[f]});change("bookings/"+r.ex,old,Object.assign({},old,n))}else put("bookings/"+RT(PSP+"bookings").push().key,o)})}
  if(I.type==="blocks")recs.forEach((r,j)=>put("blocks/"+RT(PSP+"blocks").push().key,{from:r.from,to:r.to,space:r.space||"",reason:r.reason||"",t:tm+j,imp:batch}));
- if(I.type==="packages")recs.forEach((r,j)=>{const o={name:r.name,price:r.price,deposit:r.deposit||0,items:r.items||"",t:tm+j,imp:batch};
-  if(r.dup&&upd&&r.ex){const old=(D.pkgs||{})[r.ex]||{};change("packages/"+r.ex,old,Object.assign({},old,{price:r.price},r.deposit!=null?{deposit:r.deposit}:{},r.items?{items:r.items}:{}))}else put("packages/"+RT(PSP+"packages").push().key,o)});
+ if(I.type==="packages")recs.forEach((r,j)=>{const o={name:r.name,price:r.price,deposit:r.deposit||0,items:r.items||"",per:!!r.per,minG:r.minG||0,t:tm+j,imp:batch};
+  if(r.dup&&upd&&r.ex){const old=(D.pkgs||{})[r.ex]||{};change("packages/"+r.ex,old,Object.assign({},old,{price:r.price,per:!!r.per,minG:r.minG||0},r.deposit!=null?{deposit:r.deposit}:{},r.items?{items:r.items}:{}))}else put("packages/"+RT(PSP+"packages").push().key,o)});
  if(I.type==="payments"){const ids={};recs.forEach((r,j)=>{ids[r.cid]=1;const o={title:r.title,amount:r.amount,due:r.due||"",paid:!!r.paid,t:tm+j,imp:batch};if(r.paid)o.paidAt=r.paidOn?Date.parse(r.paidOn+"T12:00:00"):tm;
    if(r.dup&&upd&&r.ex){const old=((D.cpay||{})[r.cid]||{})[r.ex]||{};change(`clientPayments/${r.cid}/${r.ex}`,old,Object.assign({},old,{amount:r.amount,paid:!!r.paid},r.due?{due:r.due}:{},r.paid?{paidAt:o.paidAt}:{}))}else put(`clientPayments/${r.cid}/${RT(PSP+"clientPayments/"+r.cid).push().key}`,o)});
   const k=Object.keys(ids);out.where=k.length===1?((D.clients||{})[k[0]]||{}).name||"":k.length+" clients"}
+ if(I.type==="shifts"){const made={};Object.keys(I.newMates||{}).forEach((nk,j)=>{if(!recs.some(r=>!r.mid&&normName(r.name)===nk))return;const k=RT(PSP+"mates").push().key;made[nk]=k;put("mates/"+k,{name:I.newMates[nk],t:tm+j,imp:batch})});
+  recs.forEach((r,j)=>{const mid=r.mid||made[normName(r.name)];if(!mid)return;const o={date:r.date,start:r.start||"",end:r.end||"",role:r.role||"Other",pay:r.pay||0,ev:"",evName:"",note:r.note||"",t:tm+j,imp:batch};
+   if(r.dup&&upd&&r.ex){const old=((D.mshifts||{})[mid]||{})[r.ex]||{};change(`mateShifts/${mid}/${r.ex}`,old,Object.assign({},old,{end:o.end||old.end||"",role:o.role,pay:o.pay},o.note?{note:o.note}:{}))}else put(`mateShifts/${mid}/${RT(PSP+"mateShifts/"+mid).push().key}`,o)})}
  if(["spaces","bookings","blocks"].includes(I.type)&&!venueOn())u["venue/on"]=true;
  const ks=Object.keys(u);for(let i=0;i<ks.length;i+=400){const part={};ks.slice(i,i+400).forEach(k=>part[k]=u[k]);await RT(PSP.replace(/\/$/,"")).update(part)}
  out.n=recs.length;return out}
@@ -579,10 +606,11 @@ function exAllSheets(){const cs=D.clients||{},cn=id=>(cs[id]||{}).name||"",sh=[]
  const ven=[["Vendor name","Role","Phone","Email","Arrival time","What they bring","Notes","Client","Pickup time","Notes for the vendor","Details by vendor type","Vendor page"]];Object.keys(cs).forEach(id=>clVendors(id).forEach(v=>ven.push([v.name,v.role||"",v.phone||"",v.email||"",v.arrive?clFmtTime(v.arrive):"",v.delivers||"",v.note||"",cn(id),v.pickup?clFmtTime(v.pickup):"",v.vnote||"",v.extra||"",v.tok?vpLink(v.tok):""])));sh.push({name:"Vendors",rows:ven});
  sh.push({name:"Inventory",rows:[["Item","Category","How many","Color or size","Where it's stored","In repair","Cost each","Reorder below","Notes"]].concat(gearList().map(it=>[it.name,it.cat||"",+it.qty||0,it.color||"",it.spot||"",+it.rep||0,+it.cost||0,it.low===""||it.low==null?"":+it.low,it.note||""]))});
  sh.push({name:"Pull lists",rows:[["Pull list","Goes out","Comes back","Status","Items","Notes"]].concat(gresList().map(r=>[r.label||"",r.from||"",gresTo(r)||"",GR_ST[r.status||"held"][0],gresWhat(r).join("; "),r.note||""]))});
- sh.push({name:"Venue spaces",rows:[["Space","Capacity","Fee","Notes"]].concat(spaceList().map(s=>[s.name,+s.cap||0,+s.rate||0,s.note||""]))});
- sh.push({name:"Venue bookings",rows:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Deposit","Deposit paid","Phone","Email","Notes"]].concat(bkList().map(b=>[b.name||"",b.date||"",b.start?clFmtTime(b.start):"",b.end?clFmtTime(b.end):"",spaceName(b.space),b.kind||"",+b.guests||0,BK_ST[b.status||"hold"][0],+b.price||0,+b.deposit||0,b.depPaid?"Yes":"No",b.phone||"",b.email||"",b.note||""]))});
+ sh.push({name:"Venue spaces",rows:[["Space","Capacity","Fee","Minimum spend","Notes"]].concat(spaceList().map(s=>[s.name,+s.cap||0,+s.rate||0,+s.minSpend||0,s.note||""]))});
+ sh.push({name:"Venue bookings",rows:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Food and drink","Deposit","Deposit paid","Phone","Email","Notes"]].concat(bkList().map(b=>[b.name||"",b.date||"",b.start?clFmtTime(b.start):"",b.end?clFmtTime(b.end):"",spaceName(b.space),b.kind||"",+b.guests||0,BK_ST[b.status||"hold"][0],+b.price||0,+b.spend||0,+b.deposit||0,b.depPaid?"Yes":"No",b.phone||"",b.email||"",b.note||""]))});
+ sh.push({name:"Teammate shifts",rows:[["Teammate","Date","Starts","Ends","Role","Hourly pay","Notes"]].concat(shAll().map(x=>[((D.mates||{})[x.mid]||{}).name||"",x.date||"",x.start?clFmtTime(x.start):"",x.end?clFmtTime(x.end):"",x.role||"",+x.pay||0,[x.evName,x.note].filter(Boolean).join("; ")]))});
  sh.push({name:"Blocked days",rows:[["From","Through","Space","Reason"]].concat(blkList().map(x=>[x.from,blkTo(x),x.space?spaceName(x.space):"Whole venue",x.reason||""]))});
- sh.push({name:"Packages",rows:[["Package","Price","Deposit","What's included"]].concat(pkList().map(p=>[p.name,+p.price||0,+p.deposit||0,pkLines(p).join("; ")]))});
+ sh.push({name:"Packages",rows:[["Package","Price","Per guest","Minimum guests","Deposit","What's included"]].concat(pkList().map(p=>[p.name,+p.price||0,p.per?"Yes":"",p.per&&+p.minG?+p.minG:"",+p.deposit||0,pkLines(p).join("; ")]))});
  const pay=[["Client","What it's for","Amount","Due date","Paid"]];Object.keys(cs).forEach(id=>clPays(id).forEach(p=>pay.push([cn(id),p.title||"",+p.amount||0,p.due||"",p.paid?"Yes":"No"])));sh.push({name:"Payments",rows:pay});
  const inv=[["Invoice","Client","Total","Due","Status"]];Object.keys(cs).forEach(id=>invList(id).forEach(x=>inv.push([x.no||"",cn(id),+x.total||0,x.due||"",invStatus(id,x)])));sh.push({name:"Invoices",rows:inv});
  const ld=[["Name","Email","Phone","Event type","Event date","Guests","Budget","Status","Message"]].concat(inqList().map(x=>[x.name||"",x.email||"",x.phone||"",x.type||"",x.date||"",x.guests||"",x.budget||"",(LEAD_ST[x.status||"new"]||["New"])[0],x.msg||""]));sh.push({name:"Leads",rows:ld});
@@ -635,18 +663,22 @@ ${c.evName||c.evTitle?`<p style="margin:0 0 6px"><b>For:</b> ${esc(c.evName||c.e
 <table><thead><tr><th>Description</th><th class="a">Amount</th></tr></thead><tbody>${(x.lines||[]).map(l=>`<tr><td>${esc(l.d)}</td><td class="a">${clMoney(l.amt)}</td></tr>`).join("")}<tr class="tot"><td>Total</td><td class="a">${clMoney(x.total)}</td></tr></tbody></table>
 ${x.pay?`<div class="box"><b>How to pay</b>\n${esc(x.pay)}</div>`:""}${x.note?`<div class="box">${esc(x.note)}</div>`:""}
 <div class="foot">Thank you for your business · Sent with Host Mode</div></div></body></html>`}
+const pkPer=p=>!!(p&&p.per&&+p.rate);
+const pkPriceTxt=p=>p.per?`${clMoney(p.price)} per guest${+p.minG?` (${+p.minG} minimum)`:""}`:clMoney(p.price);
 function pkCard(){const l=pkList(),open=L.pkNew;
  return `<section class="card stack"><div class="row between"><h3>Packages</h3><button class="btn sm" data-act="pkToggle">${open?"Close":"New package"}</button></div>
  <p class="small muted m0">Your standard offers, like a Gold Wedding or a Birthday Basic. Add one to a client and their deposit and balance are set up for you.</p>
- ${l.length?`<div class="stack tight">${l.map(p=>`<div class="mrow2 small"><div class="row between"><span><b>${esc(p.name)}</b> · ${clMoney(p.price)}${+p.deposit?` <span class="muted">(${clMoney(p.deposit)} deposit)</span>`:""}</span><button class="btn xs" data-act="pkDel" data-k="${esc(p.k)}">${L.confirm==="pd"+p.k?"Tap again to delete":"Delete"}</button></div>${pkLines(p).length?`<div class="muted">${pkLines(p).map(esc).join(" · ")}</div>`:""}</div>`).join("")}</div>`:(open?"":'<p class="small muted m0">No packages yet.</p>')}
+ ${l.length?`<div class="stack tight">${l.map(p=>`<div class="mrow2 small"><div class="row between"><span><b>${esc(p.name)}</b> · ${pkPriceTxt(p)}${+p.deposit?` <span class="muted">(${clMoney(p.deposit)} deposit)</span>`:""}</span><button class="btn xs" data-act="pkDel" data-k="${esc(p.k)}">${L.confirm==="pd"+p.k?"Tap again to delete":"Delete"}</button></div>${pkLines(p).length?`<div class="muted">${pkLines(p).map(esc).join(" · ")}</div>`:""}</div>`).join("")}</div>`:(open?"":'<p class="small muted m0">No packages yet.</p>')}
  ${open?`<div class="grid2 g8"><label class="stack tight" style="grid-column:1/-1"><span class="small">Package name</span><input type="text" data-draft="pk_name" maxlength="60" value="${esc(dv("pk_name",""))}" placeholder="Gold Wedding"></label>
-  <label class="stack tight"><span class="small">Price ($)</span><input type="text" inputmode="decimal" data-draft="pk_price" value="${esc(dv("pk_price",""))}" placeholder="5000"></label>
+  <label class="row small" style="grid-column:1/-1"><input type="checkbox" data-act="pkPerT" ${dv("pk_per","")==="1"?"checked":""}> Priced per guest (like catering or a venue dinner)</label>
+  <label class="stack tight"><span class="small">${dv("pk_per","")==="1"?"Price per guest ($)":"Price ($)"}</span><input type="text" inputmode="decimal" data-draft="pk_price" value="${esc(dv("pk_price",""))}" placeholder="${dv("pk_per","")==="1"?"85":"5000"}"></label>
+  ${dv("pk_per","")==="1"?`<label class="stack tight"><span class="small">Minimum guests (optional)</span><input type="text" inputmode="numeric" data-draft="pk_min" value="${esc(dv("pk_min",""))}" placeholder="40"></label>`:""}
   <label class="stack tight"><span class="small">Deposit ($, optional)</span><input type="text" inputmode="decimal" data-draft="pk_dep" value="${esc(dv("pk_dep",""))}" placeholder="1500"></label>
   <label class="stack tight" style="grid-column:1/-1"><span class="small">What's included (one per line)</span><textarea rows="4" data-draft="pk_items" maxlength="1500" placeholder="Full planning&#10;Day-of coordination&#10;Vendor booking">${esc(dv("pk_items",""))}</textarea></label></div>
   <button class="btn primary as" data-act="pkSave">Save package</button>`:""}</section>`}
 function pkPlanBox(id){const c=(D.clients||{})[id]||{},l=pkList(),p=c.pkg;
- return `<div class="card stack tight"><b>Package</b>${p?`<div class="small"><b>${esc(p.name)}</b> · ${clMoney(p.price)}${pkLines(p).length?`<div class="muted">${pkLines(p).map(esc).join(" · ")}</div>`:""}</div>`:""}
- ${l.length?`<div class="row"><select data-draft="pk_pick_${id}" aria-label="Package">${l.map(x=>`<option value="${esc(x.k)}" ${dv("pk_pick_"+id,(p&&p.k)||"")===x.k?"selected":""}>${esc(x.name)} · ${clMoney(x.price)}</option>`).join("")}</select><button class="btn sm" data-act="pkApply" data-m="${id}">${p?"Change package":"Add package"}</button></div><span class="small muted">Adds the deposit and the balance to their payments${c.date?", with the balance due two weeks before the event":""}.</span>`:'<span class="small muted">Make your packages in the Packages tab, then add one here.</span>'}</div>`}
+ return `<div class="card stack tight"><b>Package</b>${p?`<div class="small"><b>${esc(p.name)}</b> · ${clMoney(p.price)}${pkPer(p)?` <span class="muted">(${+p.guests} guests at ${clMoney(p.rate)})</span>`:""}${pkLines(p).length?`<div class="muted">${pkLines(p).map(esc).join(" · ")}</div>`:""}</div>`:""}
+ ${l.length?`<div class="row"><select data-draft="pk_pick_${id}" aria-label="Package">${l.map(x=>`<option value="${esc(x.k)}" ${dv("pk_pick_"+id,(p&&p.k)||"")===x.k?"selected":""}>${esc(x.name)} · ${pkPriceTxt(x)}</option>`).join("")}</select><button class="btn sm" data-act="pkApply" data-m="${id}">${p?"Change package":"Add package"}</button></div><span class="small muted">Adds the deposit and the balance to their payments${l.some(x=>x.per)?`. Per-guest packages use their guest count${c.guests?` (${+c.guests})`:" (add it to their details first)"}`:""}${c.date?", with the balance due two weeks before the event":""}.</span>`:'<span class="small muted">Make your packages in the Packages tab, then add one here.</span>'}</div>`}
 function invPlanBox(id){const c=(D.clients||{})[id]||{},l=invList(id),f=L.inv&&L.inv.cid===id?L.inv:null,unpaid=clPays(id).filter(x=>!x.paid&&!x.inv);
  const rows=l.map(x=>{const st=invStatus(id,x);return `<div class="mrow2 small"><div class="row between"><span><b>${esc(x.no)}</b> · ${clMoney(x.total)} <span class="pill ${st==="Paid"?"ok":st==="Overdue"?"warn":""}">${st}</span></span><span class="muted">${x.due?"due "+esc(mateDue(x.due)):""}</span></div>
   <div class="row"><button class="btn xs" data-act="invPaid" data-m="${id}" data-k="${esc(x.k)}">${st==="Paid"?"Mark unpaid":"Mark paid"}</button><button class="btn xs" data-act="invView" data-m="${id}" data-k="${esc(x.k)}">Print or PDF</button>${c.email?`<a class="btn xs" href="${esc(invMailto(id,x))}">Email it</a>`:""}<button class="btn xs" data-act="invDel" data-m="${id}" data-k="${esc(x.k)}">${L.confirm==="vd"+x.k?"Tap again to delete":"Delete"}</button></div></div>`}).join("");
@@ -665,18 +697,20 @@ function invClientCard(id){const me=D.cliMe||{},p=me.pkg,l=invList(id);
 
 Object.assign(ACT,{
  pkToggle:()=>{L.pkNew=!L.pkNew;render(true)},
+ pkPerT:el=>{L.drafts.pk_per=el.checked?"1":"0";render(true)},
  pkSave:async()=>{const name=dv("pk_name","").trim().slice(0,60),price=invParse(dv("pk_price","")),dep=invParse(dv("pk_dep",""));
-  if(!name)return toast("Give the package a name");if(price==null||price<0)return toast("Type a price, like 5000");if(dv("pk_dep","").trim()&&(dep==null||dep<0))return toast("Type the deposit as a number, like 1500");if(dep>price)return toast("The deposit can't be more than the price");
-  await RT(PSP+"packages").push().set({name,price,deposit:dep||0,items:dv("pk_items","").split("\n").map(x=>x.trim()).filter(Boolean).join("\n").slice(0,1500),t:Date.now()});
-  ["pk_name","pk_price","pk_dep","pk_items"].forEach(k=>delete L.drafts[k]);L.pkNew=false;toast("Package saved");render(true)},
+  if(!name)return toast("Give the package a name");if(price==null||price<0)return toast("Type a price, like 5000");if(dv("pk_dep","").trim()&&(dep==null||dep<0))return toast("Type the deposit as a number, like 1500");const per=dv("pk_per","")==="1",minG=per?Math.max(0,Math.min(5000,parseInt(dv("pk_min",""))||0)):0;if(!per&&dep>price)return toast("The deposit can't be more than the price");
+  await RT(PSP+"packages").push().set({name,price,deposit:dep||0,per,minG,items:dv("pk_items","").split("\n").map(x=>x.trim()).filter(Boolean).join("\n").slice(0,1500),t:Date.now()});
+  ["pk_name","pk_price","pk_dep","pk_items","pk_per","pk_min"].forEach(k=>delete L.drafts[k]);L.pkNew=false;toast("Package saved");render(true)},
  pkDel:async el=>{const k=el.dataset.k;if(L.confirm!=="pd"+k){L.confirm="pd"+k;return render(true)}L.confirm=null;await RT(PSP+"packages/"+k).remove();toast("Package deleted")},
  pkApply:async el=>{const id=el.dataset.m,c=(D.clients||{})[id]||{},l=pkList(),k=dv("pk_pick_"+id,(c.pkg&&c.pkg.k)||(l[0]&&l[0].k)||""),p=(D.pkgs||{})[k];if(!p)return toast("Pick a package");
   await Promise.all(clPays(id).filter(x=>x.pkg&&!x.paid&&!x.inv).map(x=>RT(PSP+`clientPayments/${id}/${x.k}`).remove()));
-  const price=+p.price||0,dep=Math.min(+p.deposit||0,price),bal=Math.round((price-dep)*100)/100,tm=Date.now(),u={};
+  const g=Math.max(+c.guests||0,+p.minG||0);if(p.per&&!g)return toast(`Add ${c.name||"the client"}'s guest count first`);
+  const price=p.per?Math.round((+p.price||0)*g*100)/100:+p.price||0,dep=Math.min(+p.deposit||0,price),bal=Math.round((price-dep)*100)/100,tm=Date.now(),u={};
   if(dep>0)u[RT(PSP+"clientPayments/"+id).push().key]={title:"Deposit: "+p.name,amount:dep,due:mateToday(),paid:false,pkg:true,t:tm};
   if(bal>0)u[RT(PSP+"clientPayments/"+id).push().key]={title:(dep>0?"Balance: ":"")+p.name,amount:bal,due:clDueFrom(c.date,14)||"",paid:false,pkg:true,t:tm+1};
   if(Object.keys(u).length)await RT(PSP+"clientPayments/"+id).update(u);
-  await RT(PSP+`clients/${id}/pkg`).set({k,name:p.name,price,deposit:dep,items:p.items||""});delete L.drafts["pk_pick_"+id];
+  await RT(PSP+`clients/${id}/pkg`).set(Object.assign({k,name:p.name,price,deposit:dep,items:p.items||""},p.per?{per:true,rate:+p.price||0,guests:g}:{}));delete L.drafts["pk_pick_"+id];
   toast(`${p.name} added to ${c.name}`);render(true)},
  invNew:el=>{const id=el.dataset.m;L.inv=L.inv&&L.inv.cid===id?null:{cid:id,lines:[{d:"",amt:""}],payKeys:null};render(true)},
  invFill:el=>{const id=el.dataset.m,f=L.inv,c=(D.clients||{})[id]||{};if(!f)return;
