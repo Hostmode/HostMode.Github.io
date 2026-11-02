@@ -404,3 +404,28 @@ Object.assign(ACT,{
  plPop:el=>plPopOut(el.dataset.k),
  plPopClose:()=>{try{window.close()}catch(e){}setTimeout(()=>toast("Close this window from your browser"),300)}
 });
+
+/* ---- privacy requests: find everything a planner holds about one person, and delete it on request ----
+   Looks in clients, inquiries, vendors and the guest lists of the planner's events. The log keeps only
+   when it happened and how many records went, never who, so the request itself leaves nothing behind. */
+D.pvHits=null;
+async function pvSearch(q){q=normName(q);if(q.length<3)return toast("Type at least 3 letters of a name, an email or a phone number");const hit=s=>normName(s).includes(q),out=[];
+ Object.keys(D.clients||{}).forEach(id=>{const c=D.clients[id];if([c.name,c.email,c.phone].some(hit))out.push({kind:"client",id,label:c.name,detail:"Client"+(c.evName?" · "+c.evName:"")})});
+ inqList().forEach(x=>{if([x.name,x.email,x.phone].some(hit))out.push({kind:"inquiry",id:x.k,label:x.name,detail:"Inquiry from your form · "+(x.email||"")})});
+ Object.keys(D.cven||{}).forEach(cid=>Object.keys(D.cven[cid]||{}).forEach(vk=>{const v=D.cven[cid][vk];if(v&&[v.name,v.email,v.phone].some(hit))out.push({kind:"vendor",id:cid+"|"+vk,label:v.name,detail:"Vendor for "+((D.clients||{})[cid]||{}).name})}));
+ for(const ev of Object.keys(D.events||{})){try{const g=(await ER("guests",ev).once("value")).val()||{};Object.keys(g).forEach(k=>{if(g[k]&&hit(g[k].name))out.push({kind:"guest",id:ev+"|"+k,label:g[k].name,detail:"Guest at "+(D.events[ev].name||ev)})})}catch(e){}}
+ D.pvHits=out;render(true)}
+function privacyCard(){const hits=D.pvHits;
+ return `<section class="card stack"><h3>Privacy requests</h3><p class="small muted m0">If someone asks you to delete their information, search for them here. You'll see everything you hold about them: client records, inquiries, vendor entries and guest lists.</p>
+ <div class="row"><input type="search" class="grow" data-draft="pv_q" value="${esc(dv("pv_q",""))}" placeholder="Name, email or phone" aria-label="Who asked"><button class="btn sm" data-act="pvFind">Search</button></div>
+ ${hits?hits.length?`<div class="stack tight">${hits.map((h,i)=>`<div class="row between small clrow"><span class="mw0"><b>${esc(h.label||"")}</b><span class="db muted">${esc(h.detail)}</span></span><button class="btn xs" data-act="pvDel" data-i="${i}">${L.confirm==="pv"+i?"Tap again to delete for good":"Delete"}</button></div>`).join("")}</div>
+  <span class="small muted">Deleting a client also removes their checklist, messages, files, payments and portal link.</span>`:'<p class="small muted m0">Nothing found.</p>':""}</section>`}
+Object.assign(ACT,{
+ pvFind:()=>pvSearch(dv("pv_q","")),
+ pvDel:async el=>{const i=+el.dataset.i,h=(D.pvHits||[])[i];if(!h)return;if(L.confirm!=="pv"+i){L.confirm="pv"+i;return render(true)}L.confirm=null;
+  if(h.kind==="client")await Promise.all(IM_CL_PATHS.map(p=>RT(PSP+p+"/"+h.id).remove()));
+  else if(h.kind==="inquiry")await RT(PSP+"inquiries/"+h.id).remove();
+  else if(h.kind==="vendor"){const [cid,vk]=h.id.split("|"),v=((D.cven||{})[cid]||{})[vk]||{};await RT(PSP+`clientVendors/${cid}/${vk}`).remove();if(v.tok)await RT(PSP+"vcheck/"+v.tok).remove().catch(()=>{})}
+  else if(h.kind==="guest"){const [ev,k]=h.id.split("|");await ER("guests/"+k,ev).remove()}
+  await RT(PSP+"privacyLog").push().set({t:Date.now(),kind:h.kind});D.pvHits.splice(i,1);toast("Deleted");render(true)}
+});

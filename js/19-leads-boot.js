@@ -267,6 +267,25 @@ addEventListener("online",()=>{try{db&&db.goOnline()}catch(e){}});
 /* the code now runs after the page has loaded, so register the offline copy right away when "load" has already happened */
 if("serviceWorker" in navigator&&location.protocol==="https:"){const regSW=()=>navigator.serviceWorker.register("sw.js").catch(()=>{});if(document.readyState==="complete")regSW();else addEventListener("load",regSW)}
 
-render();connect();if(VIEW==="guest")loadDict();
+render();connect();if(VIEW==="guest")loadDict();setTimeout(()=>track("view_"+VIEW),3000);
 if(VIEW==="screen")setInterval(()=>{if(!db)return;ER("reactions").orderByChild("t").endAt(now()-60000).once("value").then(s=>{const v=s.val()||{};Object.keys(v).forEach(k=>ER("reactions/"+k).remove())})},30000);
 
+
+/* ================= USAGE COUNTS =================
+   partygames/usage/{YYYY-MM}/{key} = how many sessions used that part of the app that month (no names, no details).
+   One count per key per browser session; demos aren't counted. Roy sees them in the admin console's Usage tab. */
+function track(k){try{if(window.__HMPDEMO||window.__HMDEMO||!db)return;k=String(k).replace(/[^a-z0-9_-]/gi,"_").slice(0,40);const sk="hmu_"+k;
+ if(sessionStorage.getItem(sk))return;sessionStorage.setItem(sk,"1");RT("usage/"+new Date().toISOString().slice(0,7)+"/"+k).transaction(v=>(+v||0)+1).catch(()=>{})}catch(e){}}
+[["plTab",el=>"tab_"+el.dataset.k],["stTab",el=>"staff_"+el.dataset.k],["imGo",()=>"import"],["beoView",()=>"event_sheet"],["rosShift",()=>"running_late"],["qaSend",()=>"questionnaire"],
+ ["vpSave",()=>"vendor_page"],["bkSave",()=>"venue_booking"],["gresSave",()=>"pull_list"],["supSend",()=>"report_problem"],["exAll",()=>"download_everything"],["inqSend",()=>"inquiry_sent"],["clAdd",()=>"client_added"]]
+ .forEach(([a,f])=>{const o=ACT[a];if(o)ACT[a]=function(el){try{track(f(el||{dataset:{}}))}catch(e){}return o.apply(this,arguments)}});
+const USAGE_LBL=k=>{const m=/^(view|tab|staff)_(.*)$/.exec(k),pl=Object.fromEntries((typeof PL_TABS!=="undefined"?PL_TABS:[]).map(x=>[x[0],x[1]]));
+ if(m&&m[1]==="view")return ({guest:"Guests opened an event",moderator:"Event consoles opened",screen:"Big screens opened",planner:"Planner portals opened",client:"Client portals opened",mate:"Teammate pages opened",vendor:"Vendor pages opened",support:"Staff area opened",show:"Showcase pages and inquiry forms opened",new:"Create-event page opened",signin:"Sign-in page opened",host:"Admin console opened"})[m[2]]||"Opened: "+m[2];
+ if(m&&m[1]==="tab")return "Planner tab: "+(pl[m[2]]||m[2]);if(m&&m[1]==="staff")return "Staff tab: "+m[2];
+ return ({import:"Imports run",event_sheet:"Event sheets printed",running_late:"Running-late moves",questionnaire:"Questionnaires sent",vendor_page:"Vendor pages saved",venue_booking:"Venue bookings saved",pull_list:"Pull lists saved",report_problem:"Problem reports sent",download_everything:"Download everything",inquiry_sent:"Inquiries sent",client_added:"Clients added"})[k]||k};
+function usageBody(){if(!L.usageLoaded){L.usageLoaded=true;RT("usage").once("value").then(s=>{D.usage=s.val()||{};renderSoon()}).catch(()=>{D.usage={};renderSoon()})}
+ const u=D.usage;if(!u)return loadingView();const months=Object.keys(u).sort().reverse().slice(0,3);
+ if(!months.length)return `<section class="card stack"><h2>Usage</h2><p class="small muted m0">Nothing counted yet. Counts start the first time someone uses the app after this update. Demos aren't counted.</p></section>`;
+ const keys=[...new Set(months.flatMap(m=>Object.keys(u[m]||{})))].sort((a,b)=>(+(u[months[0]]||{})[b]||0)-(+(u[months[0]]||{})[a]||0));
+ return `<section class="card stack"><h2>Usage</h2><p class="small muted m0">How many times each part of Host Mode was used, counting each visit once. No names or details are kept. Use it to see what to improve and what to show off.</p>
+ <div class="rstable"><table><tr><th>What</th>${months.map(m=>`<th>${esc(new Date(m+"-15").toLocaleDateString(undefined,{month:"short",year:"numeric"}))}</th>`).join("")}</tr>${keys.map(k=>`<tr><td>${esc(USAGE_LBL(k))}</td>${months.map(m=>`<td>${+((u[m]||{})[k])||""}</td>`).join("")}</tr>`).join("")}</table></div></section>`}

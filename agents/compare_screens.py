@@ -5,7 +5,7 @@
 3. Make the change.
 4. python agents/compare_screens.py after         (saves after.json and lists any screen that changed or shows an error)
 
-Set TEST_CHROME to a local Chrome if Playwright's own browser isn't installed. Times like "3 min ago" are ignored.
+Set TEST_CHROME to a local Chrome if Playwright's own browser isn't installed. Times like "3 min ago" and the greeting ("Good evening") are ignored.
 """
 import json, os, re, sys
 from playwright.sync_api import sync_playwright
@@ -48,7 +48,7 @@ def main():
         print(f"Recorded {len(data)} screens. Make the change, then run: python agents/compare_screens.py after")
         return 0
     before = json.load(open(os.path.join(ROOT, "agent-screens", "before.json")))
-    norm = lambda t: re.sub(r"\d{1,2}:\d{2}\s?[AP]M|\d+ (min|sec|hr)s? ago|just now", "T", t)
+    norm = lambda t: re.sub(r"\d{1,2}:\d{2}\s?[AP]M|\d+ (min|sec|hr)s? ago|just now|Good (morning|afternoon|evening)", "T", t)
     bad = 0
     for u in URLS:
         a, b = before.get(u, {}), data[u]

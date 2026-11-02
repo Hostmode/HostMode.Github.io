@@ -287,7 +287,7 @@ function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  ${v.vnote?`<section class="card stack"><h3>Notes from ${esc(v.plan&&v.plan.name||"your planner")}</h3><div class="small" style="white-space:pre-wrap">${esc(v.vnote)}</div></section>`:""}
  <section class="card stack"><h3>Something wrong?</h3><p class="small muted m0">Stuck in traffic, missing a delivery, can't find the loading door? Tell ${esc(v.plan&&v.plan.name||"your planner")} here.</p>
  ${iss.length?`<div class="stack tight">${iss.map(i=>`<div class="small clrow">🚩 ${esc(i.text)} <span class="muted">· ${esc(supAgo(i.t))}${i.ok?" · seen and handled":""}</span></div>`).join("")}</div>`:""}
- <textarea rows="2" data-draft="vp_issue" maxlength="300" placeholder="Running 15 minutes late">${esc(dv("vp_issue",""))}</textarea><button class="btn sm as" data-act="vpIssue">Send to the planner</button></section>`}
+ <textarea rows="2" data-draft="vp_issue" maxlength="300" aria-label="What's wrong" placeholder="Running 15 minutes late">${esc(dv("vp_issue",""))}</textarea><button class="btn sm as" data-act="vpIssue">Send to the planner</button></section>`}
 Object.assign(ACT,{
  vpNotify:async()=>{try{const p=await Notification.requestPermission();toast(p==="granted"?"You'll get a buzz 5 minutes before your moments, while this page is open":"Notifications are off. Keep this page open and check the top for what's next.")}catch(e){}render(true)},
  vpHere:async el=>{const tok=QS.get("vendor")||"";try{await RT(PSP+"vcheck/"+tok+"/here").set(el.dataset.k==="undo"?null:Date.now());toast(el.dataset.k==="undo"?"Check-in removed":"Checked in. Thanks!")}catch(e){toast("Couldn't send it. Check your connection.")}},

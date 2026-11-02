@@ -377,6 +377,14 @@
           ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))",
           ".validate": "newData.hasChildren(['title','kind']) && newData.child('title').isString() && newData.child('title').val().length <= 80 && (!newData.child('body').exists() || newData.child('body').val().length <= 40000)"
         }
+      },
+      "usage": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$m": {
+          "$k": {
+            ".write": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1 && $m.matches(/^20[0-9][0-9]-[01][0-9]$/) && $k.matches(/^[A-Za-z0-9_-]{1,40}$/)"
+          }
+        }
       }
     },
     "menu": {
