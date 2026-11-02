@@ -259,7 +259,7 @@ function plSubs(){if(plSubbed||!db)return;plSubbed=true;
  RT(PSP+"events").on("value",s=>{D.events=s.val()||{};L.loaded=true;renderSoon()});
  RT(PSP+"feedback").on("value",s=>{D.fbk=s.val()||{};renderSoon()});RT(PSP+"brand").on("value",s=>{D.brand=s.val();renderSoon()});RT(PSP+"dayOf").on("value",s=>{D.dayOf=!!s.val();renderSoon()});
  RT(PSP+"mates").on("value",s=>{D.mates=s.val()||{};renderSoon()});RT(PSP+"mateTasks").on("value",s=>{D.mtasks=s.val()||{};renderSoon()});
- [["clients","clients"],["clientTasks","ctasks"],["clientMsgs","cmsgs"],["clientFiles","cfiles"],["clientTemplates","ctpl"],["clientApprovals","caps"],["clientPayments","cpay"],["clientDates","cdates"],["clientVendors","cven"],["clientInvoices","cinv"],["packages","pkgs"],["inquiries","inq"],["showcase","show"],["showImg","showImg"],["vcheck","vchk"],["gear","gear"],["gearRes","gres"],["venue","vset"],["spaces","spaces"],["bookings","bks"],["blocks","vblk"]].forEach(([p,k])=>RT(PSP+p).on("value",s=>{D[k]=s.val()||{};if(k==="cven"||k==="clients")tvSyncSoon();renderSoon()}))}
+ [["clients","clients"],["clientTasks","ctasks"],["clientMsgs","cmsgs"],["clientFiles","cfiles"],["clientTemplates","ctpl"],["clientApprovals","caps"],["clientPayments","cpay"],["clientDates","cdates"],["clientVendors","cven"],["clientInvoices","cinv"],["packages","pkgs"],["inquiries","inq"],["showcase","show"],["showImg","showImg"],["vcheck","vchk"],["gear","gear"],["gearRes","gres"],["venue","vset"],["spaces","spaces"],["bookings","bks"],["blocks","vblk"]].forEach(([p,k])=>RT(PSP+p).on("value",s=>{D[k]=s.val()||{};if(k==="cven"||k==="clients")tvSyncSoon();if(["bks","vblk","spaces","vset","show"].includes(k))busySyncSoon();renderSoon()}))}
 /* teammates can't list a planner's clients, so the vendors marked "teammates see" are copied per event into tv/{EV} */
 let tvT=null;function tvSyncSoon(){clearTimeout(tvT);tvT=setTimeout(tvSync,600)}
 function tvSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;vpSyncSoon();const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
@@ -310,6 +310,20 @@ function plCalItems(){const out=[],cs=D.clients||{};
  return out.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time||"").localeCompare(String(b.time||"")))}
 const plJumpBtn=(x,l)=>x.tab?`<button class="btn xs" data-act="plJump" data-k="${x.tab}"${x.day?` data-d="${esc(x.day)}"`:""}>${l||"Open"}</button>`:x.id?`<button class="btn xs" data-act="plJump" data-k="clients" data-m="${esc(x.id)}" data-s="${x.s||"list"}">${l||"Open"}</button>`:"";
 const plCalRow=x=>`<div class="row between small clrow"><span class="mw0">${CAL_K[x.kind][0]} <b>${esc(x.title)}</b>${x.time?" · "+esc(clFmtTime(x.time)):""}<span class="db muted">${esc(clFmtDate(x.date))} · ${esc(x.who)}</span></span>${plJumpBtn(x)}</div>`;
+/* ---- Get set up: a checklist for a planner's first days, ticked off automatically as things get done ---- */
+function plSetupSteps(){const n=o=>Object.keys(o||{}).length;
+ return [["brand","Add your logo, colors and contact details","Branding",!!(D.brand&&(D.brand.name||D.brand.logo))],
+  ["data","Bring in your clients from a spreadsheet or another app, or add your first client","Import & export",n(D.clients)>0],
+  ["pkg","Add your packages and prices","Packages",n(D.pkgs)>0],
+  ["events","Create your first event (games, big screen and check-in)","Events",n(D.events)>0],
+  ["team","Invite a teammate for event days","Teammates",n(D.mates)>0],
+  ["show","Publish your Showcase page and inquiry form","Showcase",!!(D.show&&D.show.on)],
+  ["inv","Optional: add your rentals and decor to Inventory, or turn on venue bookings","Inventory",n(D.gear)>0||venueOn()]]}
+function plSetupCard(){if(window.__HMPDEMO&&!L.setupDemo)return "";const st=plSetupSteps(),done=st.filter(x=>x[3]).length,uid=PLID();if(done===st.length||store.get("plSetupHide_"+uid,false))return "";
+ return `<section class="card stack gilt"><div class="row between"><h3 class="m0">Get set up</h3><span class="pill">${done} of ${st.length} done</span></div>${mateBar(Math.round(done/st.length*100))}
+ <div class="stack tight">${st.map(([k,l,tab,ok])=>`<div class="row between small clrow ${ok?"done dim":""}"><span class="mw0">${ok?"✓":"○"} ${esc(l)}</span>${ok?"":`<button class="btn xs" data-act="plJump" data-k="${k==="brand"?"brand":k==="data"?"data":k}">Open ${esc(tab)}</button>`}</div>`).join("")}</div>
+ <div class="row"><button class="btn xs" data-act="plJump" data-k="help">Help desk</button><button class="btn xs" data-act="plSetupHide">Hide this list</button></div></section>`}
+ACT.plSetupHide=()=>{store.set("plSetupHide_"+PLID(),true);render(true)};
 function plHome(){const me=D.plMe||{},cs=D.clients||{},ids=Object.keys(cs),today=mateToday(),hr=new Date().getHours(),hi=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
  const week=plCalItems().filter(x=>x.date>=today&&x.date<=clDays(7)),soon=ids.filter(id=>cs[id].date&&cs[id].date>=today&&cs[id].date<=clDays(30)).length;
  const due=ids.reduce((n,id)=>n+clPayStats(id).left,0),att=[];
@@ -329,6 +343,7 @@ function plHome(){const me=D.plMe||{},cs=D.clients||{},ids=Object.keys(cs),today
  return `<section class="card stack"><div class="eyebrow">${esc(me.biz||"Planner portal")}</div><h2 class="m0">${hi}${me.name?", "+esc(String(me.name).split(" ")[0]):""}</h2>
  <div class="stats"><button class="stat" data-act="plJump" data-k="clients"><b>${ids.length}</b><span>Clients</span></button><button class="stat" data-act="plJump" data-k="cal"><b>${soon}</b><span>Events in the next 30 days</span></button><button class="stat" data-act="plJump" data-k="pkg"><b>${clMoney(due)}</b><span>Client payments still due</span></button><button class="stat ${att.length?"hot":""}" data-act="plScroll" data-k="plAtt"><b>${att.length}</b><span>Need your attention</span></button></div>
  <div class="row"><button class="btn sm primary" data-act="plJump" data-k="clients">Add a client</button><a class="btn sm" href="${esc(nu)}">New event</a><button class="btn sm" data-act="plJump" data-k="pkg">Packages and invoices</button><button class="btn sm" data-act="plJump" data-k="data">Import clients</button></div></section>
+${plSetupCard()}
  <section class="card stack" id="plAtt"><h3>Needs your attention</h3>${att.length?`<div class="stack tight">${att.map(([t,id,s])=>`<div class="row between small clrow"><span class="mw0">${t}</span>${id?`<button class="btn xs" data-act="plJump" data-k="clients" data-m="${esc(id)}" data-s="${s}">Open</button>`:`<button class="btn xs" data-act="plJump" data-k="${s}">Open</button>`}</div>`).join("")}</div>`:'<p class="small muted m0">You\'re all caught up.</p>'}
  ${waitAp?`<span class="small muted">Waiting on clients: ${waitAp} approval${waitAp===1?"":"s"} they haven't answered yet.</span>`:""}</section>
  <section class="card stack"><div class="row between"><h3>This week</h3><button class="btn xs" data-act="plJump" data-k="cal">Calendar</button></div>${week.length?`<div class="stack tight">${week.slice(0,12).map(plCalRow).join("")}</div>${week.length>12?`<span class="small muted">and ${week.length-12} more on the calendar</span>`:""}`:'<p class="small muted m0">Nothing due in the next seven days.</p>'}</section>`}

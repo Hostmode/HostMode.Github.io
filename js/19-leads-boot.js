@@ -87,13 +87,20 @@ function shConnect(){if(!PSP){L.loaded=true;renderSoon();return}
  RT(PSP+"brand").on("value",s=>{D.brand=s.val();applyTheme();renderSoon()});
  if(!QS.has("inquire"))RT(PSP+"showImg/cover").once("value").then(x=>{D.showImg.cover=x.val()||{};renderSoon()}).catch(()=>{});
  RT(PSP+"showcase").on("value",s=>{D.show=s.val();L.loaded=true;if(!QS.has("inquire"))shGallery(D.show).forEach(g=>{if(!D.showImg[g.k]){D.showImg[g.k]={};RT(PSP+"showImg/"+g.k).once("value").then(x=>{D.showImg[g.k]=x.val()||{};renderSoon()}).catch(()=>{})}});renderSoon()},()=>{L.loaded=true;renderSoon()})}
+/* open dates: a venue's portal publishes which days are taken (dates only, no names) to showcase/busy, so people pick a day that works */
+function inqAvail(){const busy=(D.show||{}).busy,d=dv("iq_date","");if(!busy)return "";const today=new Date().toISOString().slice(0,10);if(!d||d<today)return `<span class="small muted">Pick a date to see if it's open.</span>`;
+ const st=busy[d];if(st==="some")return `<span class="small okt">Some spaces are still open that day.</span>`;if(st!=="full")return `<span class="small okt">✓ That date is open.</span>`;
+ const near=[];for(let i=1;near.length<4&&i<120;i++){for(const s of [i,-i]){const t=new Date(d+"T12:00:00");t.setDate(t.getDate()+s);const x=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;if(x>=today&&busy[x]!=="full"&&!near.includes(x)&&near.length<4)near.push(x)}}
+ return `<div class="small"><span class="bad">That date is already booked.</span> Nearby open dates: ${near.sort().map(x=>`<button class="btn xs" data-act="inqPick" data-k="${x}">${esc(clFmtDate(x))}</button>`).join(" ")}</div>`}
+addEventListener("change",e=>{if(e.target&&e.target.dataset&&e.target.dataset.draft==="iq_date"&&VIEW==="show")render(true)});
+ACT.inqPick=el=>{L.drafts.iq_date=el.dataset.k;render(true)};
 function inqForm(solo){const b=D.brand||{},d=k=>esc(dv("iq_"+k,"")),bk=bookHref(b),nm=b.name||"the planner";
  if(L.inqDone)return `<section class="card stack" id="inquire"><h3 class="m0">Thank you!</h3><p class="m0">${esc(nm)} will get back to you soon.</p>${bk?`<a class="btn primary as" href="${esc(bk)}" target="_blank" rel="noopener">Book a meeting now</a>`:""}</section>`;
  const f=(k,l,tp,ph,mx,req)=>`<label class="stack tight"><span class="small">${l}${req?" *":""}</span><input type="${tp}" data-draft="iq_${k}" value="${d(k)}" placeholder="${esc(ph)}" maxlength="${mx}"${req?" required":""}></label>`;
  return `<section class="card stack" id="inquire">${solo&&(b.logo||b.name)?`<div class="row">${b.logo?`<img class="brandlogo" src="${esc(b.logo)}" alt="">`:""}<b>${esc(b.name||"")}</b></div>`:""}<h3 class="m0">Tell us about your event</h3><p class="small muted m0">Fill this in and ${esc(nm)} will get back to you.</p>
  <div class="grid2 g8">${f("name","Your name","text","Maya Jordan",80,1)}${f("email","Email","email","you@example.com",120,1)}${f("phone","Phone","tel","704-555-0100",30)}
  <label class="stack tight"><span class="small">Type of event</span><select data-draft="iq_type"><option value="">Pick one</option>${EV_KINDS.map(x=>`<option ${dv("iq_type","")===x?"selected":""}>${x}</option>`).join("")}</select></label>
- ${f("date","Event date","date","",10)}${f("guests","About how many guests","number","100",6)}${f("budget","Budget (optional)","text","$5,000",30)}</div>
+ ${f("date","Event date","date","",10)}${f("guests","About how many guests","number","100",6)}<div style="grid-column:1/-1">${inqAvail()}</div>${f("budget","Budget (optional)","text","$5,000",30)}</div>
  <label class="stack tight"><span class="small">Anything else we should know?</span><textarea rows="4" data-draft="iq_msg" maxlength="2000" placeholder="Theme, venue ideas, questions…">${d("msg")}</textarea></label>
  <input type="text" data-draft="iq_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
  <button class="btn primary" data-act="inqSend">Send</button>${bk?`<a class="btn as" href="${esc(bk)}" target="_blank" rel="noopener">Or book a meeting</a>`:""}<p class="small muted m0">Your details only go to ${esc(nm)}.</p></section>`}

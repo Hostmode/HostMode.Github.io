@@ -165,6 +165,14 @@ const blkTo=x=>x.to&&x.to>=x.from?x.to:x.from;
 const blocksOn=(d,space)=>blkList().filter(x=>x.from<=d&&blkTo(x)>=d&&spaceHit(x.space||"",space==null?"":space));
 function bkClashes(b,except){const [s,e]=bkSpan(b);return bkList().filter(o=>o.k!==except&&o.status!=="cancelled"&&o.date===b.date&&spaceHit(o.space||"",b.space||"")&&(([s2,e2])=>s<e2&&s2<e)(bkSpan(o)))}
 const bkTimes=b=>b.start||b.end?[b.start&&clFmtTime(b.start),b.end&&clFmtTime(b.end)].filter(Boolean).join(" to "):"All day";
+/* busy days for the public inquiry form: dates only, "full" or "some", for the next 18 months */
+let busyT=null;function busySyncSoon(){clearTimeout(busyT);busyT=setTimeout(busySync,900)}
+function busySync(){if(!PSP||VIEW!=="planner"||L.viewOnly||!D.show)return;const on=venueOn()&&!(D.vset&&D.vset.showBusy===false);let out=null;
+ if(on){out={};const today=mateToday(),end=dayAdd(today,540),sp=spaceList().map(s=>s.k),per={};
+  const add=(d,space)=>{if(d<today||d>end)return;(per[d]=per[d]||new Set()).add(space||"")};
+  bkList().filter(b=>b.status!=="cancelled"&&b.date).forEach(b=>add(b.date,b.space));blkList().forEach(x=>dayRange(x.from,blkTo(x)).forEach(d=>add(d,x.space)));
+  Object.keys(per).forEach(d=>{const s=per[d];out[d]=s.has("")||(sp.length&&sp.every(k=>s.has(k)))?"full":"some"});if(!Object.keys(out).length)out=null}
+ if(JSON.stringify(out)===JSON.stringify((D.show||{}).busy||null))return;RT(PSP+"showcase/busy").set(out).catch(()=>{})}
 const holdsDue=()=>bkList().filter(b=>b.status==="hold"&&b.date>=mateToday()&&b.holdUntil&&b.holdUntil<=dayAdd(mateToday(),2));
 
 /* ---- planner: Venue tab ---- */
@@ -239,9 +247,11 @@ function plVenueTab(){
  <section class="card stack"><div class="row between"><h3>Spaces</h3>${L.spEdit?"":`<button class="btn xs" data-act="spNew">Add a space</button>`}</div><p class="small muted m0">The rooms or areas you book separately, like a ballroom, a garden and a terrace. Booking the whole venue takes all of them.</p>
  ${L.spEdit?spaceForm(editS):""}
  ${sp.length?`<div class="stack tight">${sp.map(s=>`<div class="row between small clrow"><span class="mw0"><b>${esc(s.name)}</b><span class="db muted">${[s.cap?"up to "+(+s.cap)+" guests":"",+s.rate?clMoney(s.rate):"",s.note].filter(Boolean).map(esc).join(" · ")}</span></span><span class="row"><button class="btn xs" data-act="spEdit" data-k="${esc(s.k)}">Edit</button><button class="btn xs" data-act="spDel" data-k="${esc(s.k)}">${L.confirm==="spx"+s.k?"Tap again to delete":"Delete"}</button></span></div>`).join("")}</div>`:'<p class="small muted m0">No spaces yet, so every booking is for the whole venue.</p>'}</section>
+ <section class="card stack"><label class="row small"><input type="checkbox" data-act="vShowBusy" ${D.vset&&D.vset.showBusy===false?"":"checked"}> Show which dates are taken on your inquiry form</label><span class="small muted">People see only "booked" or "open" for each date, never who booked it, so they can pick a day that works.</span></section>
  <p class="small muted center"><button class="btn xs" data-act="vOff">${L.confirm==="voff"?"Tap again to hide venue bookings":"Turn off venue bookings"}</button> Your bookings are kept if you turn it back on.</p>`}
 const bkClear=()=>BK_F.concat(VB_F,["sp_name","sp_cap","sp_rate","sp_note"]).forEach(k=>delete L.drafts[k]);
 Object.assign(ACT,{
+ vShowBusy:async el=>{await RT(PSP+"venue/showBusy").set(!!el.checked);toast(el.checked?"Your inquiry form shows taken dates":"Your inquiry form no longer shows taken dates");busySyncSoon()},
  vOn:async()=>{await RT(PSP+"venue/on").set(true);toast("Venue bookings are on")},
  vOff:async()=>{if(L.confirm!=="voff"){L.confirm="voff";return render(true)}L.confirm=null;await RT(PSP+"venue/on").set(false);L.plTab="home";toast("Venue bookings hidden");render(true)},
  vSel:el=>{L.vSel=el.dataset.k;render(true)},
