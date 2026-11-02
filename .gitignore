@@ -1,0 +1,6 @@
+# made by the nightly agents and backups while they run
+agent-run.json
+agent-screens/
+agent-test-inventory.csv
+backup/
+.agent-*

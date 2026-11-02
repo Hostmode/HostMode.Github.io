@@ -1,0 +1,60 @@
+name: Nightly agents
+# The test customer tries the demos, then the technical agent works the new support tickets.
+# Pause them any time from the admin console (Support tab, Overnight report). See agents/README.md.
+on:
+  schedule:
+    - cron: "13 6 * * *"   # about 1:13 AM in Charlotte (2:13 AM in summer)
+  workflow_dispatch: {}
+permissions:
+  contents: write        # to push fix branches (never main)
+  pull-requests: write   # to open pull requests for Roy
+concurrency: nightly-agents
+jobs:
+  agents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      AGENT_SUPPORT_CODE: ${{ secrets.AGENT_SUPPORT_CODE }}
+      AGENT_PASSWORD: ${{ secrets.AGENT_PASSWORD }}
+      AGENT_MAX_USD: ${{ vars.AGENT_MAX_USD || '1.50' }}
+    steps:
+      - name: Check the setup
+        id: setup
+        run: |
+          if [ -z "$AGENT_PASSWORD" ]; then echo "The agents aren't set up yet: add the AGENT_PASSWORD and AGENT_SUPPORT_CODE secrets (see agents/README.md)."; echo "ready=no" >> "$GITHUB_OUTPUT"; else echo "ready=yes" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.setup.outputs.ready == 'yes'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        if: steps.setup.outputs.ready == 'yes'
+        with:
+          python-version: "3.12"
+      - name: Install the test browser
+        if: steps.setup.outputs.ready == 'yes'
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+      - name: Test customer
+        if: steps.setup.outputs.ready == 'yes'
+        run: |
+          python -m http.server 8765 >/dev/null 2>&1 &
+          sleep 2
+          python agents/tester.py
+      - name: Technical agent
+        if: steps.setup.outputs.ready == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m http.server 8765 >/dev/null 2>&1 &
+          sleep 2
+          python agents/tech.py
+      - name: Keep tonight's screenshots
+        if: always() && steps.setup.outputs.ready == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-screens-${{ github.run_id }}
+          path: agent-screens/
+          retention-days: 7
+          if-no-files-found: ignore

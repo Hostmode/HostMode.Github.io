@@ -341,6 +341,20 @@
         "$id": {
           ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
         }
+      },
+      "agents": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+      },
+      "agentRuns": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$id": {
+          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())"
+        }
+      },
+      "backupStatus": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
       }
     },
     "menu": {

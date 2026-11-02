@@ -870,6 +870,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .tkthread{border-left:3px solid var(--line);padding-left:10px}.tkmsg{font-size:14px}.tkmsg.me b{color:var(--btn1)}.tkmsg div{white-space:pre-wrap}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#aaa;vertical-align:middle}.dot.on{background:#2f9e44;box-shadow:0 0 0 3px color-mix(in srgb,#2f9e44 25%,transparent)}
 .vpbig{font-size:2.2rem;font-weight:800;line-height:1.1;color:var(--hd)}.vpherebtn{font-size:1.2rem;padding:16px 22px;align-self:stretch}.vpmine{border-left:4px solid var(--gold,#c08a00);padding-left:8px}
+.tkdraft{padding:8px 0}
 .cd-event{background:#e0338f}.cd-pay{background:#e8a20c}.cd-date{background:#3f74d6}.cd-task{background:#2f9e44}
 .landed{animation:landed 1.4s ease-out}@keyframes landed{0%{box-shadow:0 0 0 3px var(--btn1)}100%{box-shadow:0 0 0 3px transparent}}
 .shhero{text-align:center;align-items:center}.shlogo{max-height:84px;max-width:220px;border-radius:14px}
@@ -5750,7 +5751,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=10;
+const PDEMO_V=11;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -5875,7 +5876,13 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   tk4:{msg:"¿Cómo cambio mi nombre en el juego?",who:"guest",name:"Luis",ev:"WHELAN",page:"games.html?e=WHELAN",device:dev,lang:"es",status:"solved",seen:{roy:ago(30)},by:{uid:"roy",name:"Roy",t:ago(30)},solved:{uid:"roy",name:"Roy",t:ago(29)},t:ago(31),last:ago(29),lastFrom:"staff"}};
  pg.ticketReplies={tk2:{r1:{from:"staff",name:"Icee",text:"Hi Claire, thanks for letting us know! Could you tell me the names of the two vendors that are missing?",t:ago(3)},r2:{from:"reporter",name:"Claire Moran",text:"Bloom & Vine Florals and DJ Marcus.",t:ago(1)}},
   tk4:{r1:{from:"staff",name:"Roy",text:"¡Hola Luis! Toca tu nombre arriba de la pantalla y escribe el nuevo.",t:ago(29.5)}}};
+ pg.agents={paused:false};pg.backupStatus={t:ago(4),mb:3.1,ok:true};
+ pg.agentRuns={r1:{t:ago(6),done:ago(5.6),usage:{in:182000,out:9100,usd:0.45},
+  tester:{passed:13,failed:1,aiProblems:1,filed:2,problems:["Inventory import is broken","Venue calendar: \"Back to today\" is hard to find on a phone"],ai:{role:"venue",size:"phone",lang:"English",steps:27,summary:"Booking a room and blocking days was easy. Finding today again after moving months took a while."}},
+  tech:{seen:3,replied:1,drafted:1,person:0,notFixed:0,prs:[{url:"https://github.com/HostMode/HostMode.Github.io/pulls",confidence:"likely",summary:"The importer now reads dates written like 03.06.2027."}]},
+  log:["06:13 Scripted checks: 13 passed, 1 failed.","06:21 AI test customer (venue, phone, English) took 27 steps and reported 1 problem(s).","06:21 Filed 2 new ticket(s); 0 were already open.","06:24 3 new ticket(s) to look at.","06:24 Ticket tk5: reply","06:25 Ticket tk6: draft","06:31 Ticket tk7: fix","06:31 Done. About $0.45 of credits used tonight."]}};
  pg.ticketNotes={tk2:{n1:{kind:"take",name:"Icee",text:"took it",t:ago(4)},n2:{kind:"reply",name:"Icee",text:"replied to them",t:ago(3)},n3:{kind:"note",name:"Icee",text:"Their sheet has the vendors on a second tab. Checking whether the importer reads every tab.",t:ago(2.8)}},
+  tk3:{n1:{kind:"agent",name:"Support Assistant",text:"wrote a draft reply for a person to check (bug, likely). The big screen may have lost its connection for a moment.",t:ago(2.5)},n0:{kind:"draft",name:"Support Assistant",text:"Hi Margaret, thanks for letting us know, and sorry the screen went dark. That usually means the big screen lost its internet for a moment; it reconnects on its own. If it happens again, tap the screen once to bring the slideshow back. We're looking into it.",t:ago(2.6)}},
   tk4:{n1:{kind:"take",name:"Roy",text:"took it",t:ago(30)},n2:{kind:"solve",name:"Roy",text:"marked it solved",t:ago(29)}}};
  localStorage.setItem("hm_pdemo_db",JSON.stringify({pdemoV:PDEMO_V,partygames:pg}));try{firebase.database().ref("pdemoV").set(PDEMO_V)}catch(e){}}
 function pdemoReset(){try{localStorage.removeItem("hm_pdemo_db");["mateSeen_liam","mateSeen_niamh","clSeen_dublin"].forEach(k=>store.set(k,0));Object.keys(localStorage).filter(k=>/fbDone_|hm_theme_(DUBLIN|WHELAN|OCONNOR)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(e){}if(VIEW==="planner")location.reload();else location.href="games.html?pdemo=1#planner"}
@@ -6569,7 +6576,7 @@ Object.assign(ES,{"Something not working?":"¿Algo no funciona?","Report a probl
  "Send report":"Enviar reporte","Thanks! Your report was sent.":"¡Gracias! Tu reporte fue enviado.","Our support team will look at it soon. Replies show up here, under Your reports.":"Nuestro equipo de soporte lo revisará pronto. Las respuestas aparecen aquí, en Tus reportes.",
  "Received":"Recibido","Being worked on":"En proceso","Solved":"Resuelto","You":"Tú","Support":"Soporte","Write back":"Responder","Send":"Enviar","No reports yet.":"Aún no hay reportes.","New report":"Nuevo reporte","Tell us a little more first.":"Cuéntanos un poco más primero.",
  "You've sent a lot of reports. Please wait a little and try again.":"Has enviado muchos reportes. Espera un poco e inténtalo de nuevo.","Couldn't send it. Check your connection and try again.":"No se pudo enviar. Revisa tu conexión e inténtalo de nuevo."});
-const SUP_WHO={guest:"Guest",album:"Guest",moderator:"Host running an event",new:"Host creating an event",planner:"Planner",client:"Planner's client",mate:"Planner's teammate",fb:"Guest giving feedback",show:"Visitor to a planner's page",host:"Admin",support:"Support",vendor:"Vendor"};
+const SUP_WHO={guest:"Guest",album:"Guest",moderator:"Host running an event",new:"Host creating an event",planner:"Planner",client:"Planner's client",mate:"Planner's teammate",fb:"Guest giving feedback",show:"Visitor to a planner's page",host:"Admin",support:"Support",vendor:"Vendor",tester:"Nightly tester"};
 const TK_ST={new:["New","warn"],working:["Being worked on","gold"],solved:["Solved","ok"]};
 const supAgo=t=>{if(!t)return "";const s=Math.max(0,(Date.now()-t)/1000);return s<60?"just now":s<3600?Math.floor(s/60)+" min ago":s<86400?Math.floor(s/3600)+" hr ago":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"})};
 const supTime=t=>t?new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
@@ -6633,6 +6640,7 @@ function supSubs(){if(supSubbed||!db)return;supSubbed=true;
  RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
  if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
  RT("plist").once("value").then(s=>{D.plist=Object.assign({},D.plist||{},s.val()||{});renderSoon()}).catch(()=>{});
+ RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});RT("agentRuns").on("value",s=>{D.agentRuns=s.val()||{};renderSoon()},()=>{});RT("backupStatus").on("value",s=>{D.backupStatus=s.val();renderSoon()},()=>{});
  RT("index").once("value").then(s=>{D.supIdx=s.val()||{};renderSoon()}).catch(()=>{});
  const beat=()=>{const m=supMe();if(m&&(VIEW==="support"||(VIEW==="host"&&L.hostTab==="support")))RT("staff/"+m.uid+"/active").set(Date.now()).catch(()=>{})};
  if(!supBeat){beat();supBeat=setInterval(beat,60000)}}
@@ -6640,7 +6648,7 @@ function supEnsureOwner(){if(supDemo())return;const u=L.user;if(u&&D.owner&&u.ui
 let tkOn={};function tkSub(id){if(tkOn[id]||!db)return;tkOn[id]=1;
  RT("ticketReplies/"+id).on("value",s=>{D.tkReplies[id]=s.val()||{};renderSoon()},()=>{});RT("ticketNotes/"+id).on("value",s=>{D.tkNotes[id]=s.val()||{};renderSoon()},()=>{})}
 const tkNote=(id,kind,text)=>{const m=supMe();return RT("ticketNotes/"+id).push().set({kind,name:m?m.name:"",text:String(text||"").slice(0,2000),t:Date.now()})};
-const TK_KIND={note:"📝",take:"🙋",handoff:"🔁",release:"↩️",solve:"✅",reopen:"🔓",reply:"💬"};
+const TK_KIND={note:"📝",take:"🙋",handoff:"🔁",release:"↩️",solve:"✅",reopen:"🔓",reply:"💬",agent:"🤖",draft:"✍️"};
 function tkDetail(x){const id=x.k,me=supMe(),st=x.status||"new",mine=x.by&&me&&x.by.uid===me.uid,rs=Object.keys(D.tkReplies[id]||{}).map(k=>D.tkReplies[id][k]).sort((a,b)=>a.t-b.t),ns=Object.keys(D.tkNotes[id]||{}).map(k=>D.tkNotes[id][k]).sort((a,b)=>a.t-b.t);
  const pl=x.p&&(D.plist||{})[x.p],asLink=x.p?baseURL()+"?"+(supDemo()?"pdemo=1&":"")+"as="+encodeURIComponent(x.p)+"#planner":"";
  const info=[["From",(SUP_WHO[x.who]||x.who||"Someone")+(x.name?" · "+x.name:"")],["Contact",x.contact],["Event code",x.ev],["Planner",pl?(pl.name||"")+(pl.biz?" · "+pl.biz:""):x.p],["Page",x.page],["Device",x.device],["Language",x.lang&&x.lang!=="en"?x.lang:""]].filter(r=>r[1]);
@@ -6651,7 +6659,7 @@ function tkDetail(x){const id=x.k,me=supMe(),st=x.status||"new",mine=x.by&&me&&x
  ${supIsOwner()?`<button class="btn sm" data-act="tkDel" data-k="${esc(id)}">${L.confirm==="tkx"+id?"Tap again to delete":"Delete"}</button>`:""}</div>
  <div class="stack tight"><b class="small">Conversation with them</b>${rs.length?`<div class="stack tight tkthread">${rs.map(r=>`<div class="tkmsg ${r.from==="staff"?"me":"them"}"><b>${esc(r.from==="staff"?(r.name||"Support"):(r.name||x.name||"Them"))}</b> <span class="muted">${esc(supAgo(r.t))}</span><div>${esc(r.text)}</div></div>`).join("")}</div>`:'<span class="small muted">No replies yet.</span>'}
  <textarea rows="2" data-draft="tkr_${esc(id)}" maxlength="2000" placeholder="Reply to them. They see it under Your reports in the app.">${esc(dv("tkr_"+id,""))}</textarea><button class="btn sm as" data-act="tkReply" data-k="${esc(id)}">Send reply</button></div>
- <div class="stack tight"><b class="small">Team notes and history</b><span class="small muted">Only Roy and support can see these.</span>${ns.length?`<div class="stack tight">${ns.map(n=>`<div class="small">${TK_KIND[n.kind]||"•"} <b>${esc(n.name||"")}</b> ${esc(n.text||"")} <span class="muted">${esc(supTime(n.t))}</span></div>`).join("")}</div>`:""}
+ <div class="stack tight"><b class="small">Team notes and history</b><span class="small muted">Only Roy and support can see these.</span>${ns.length?`<div class="stack tight">${ns.map((n,i)=>n.kind==="draft"?`<div class="small tkdraft">✍️ <b>${esc(n.name||"")}</b> wrote a draft reply <span class="muted">${esc(supTime(n.t))}</span><div class="tkbody">${esc(n.text||"")}</div><button class="btn xs" data-act="tkUseDraft" data-k="${esc(id)}" data-i="${i}">Use this draft</button> <span class="muted">It goes in the reply box so you can change it before sending.</span></div>`:`<div class="small">${TK_KIND[n.kind]||"•"} <b>${esc(n.name||"")}</b> ${esc(n.text||"")} <span class="muted">${esc(supTime(n.t))}</span></div>`).join("")}</div>`:""}
  <div class="row"><input type="text" class="grow" data-draft="tkn_${esc(id)}" maxlength="2000" value="${esc(dv("tkn_"+id,""))}" placeholder="Add a private note" aria-label="Private note"><button class="btn xs" data-act="tkNoteAdd" data-k="${esc(id)}">Add note</button></div></div></div>`}
 function supportBody(){const me=supMe();if(!me)return `<section class="card stack"><p class="m0">This account doesn't have support access.</p></section>`;
  if(!L.supLoaded&&!supDemo())return loadingView();
@@ -6671,7 +6679,21 @@ function supportBody(){const me=supMe();if(!me)return `<section class="card stac
  ${shown.length?`<div class="stack tight">${shown.slice(0,60).map(x=>{const st=x.status||"new",open=L.tkOpen===x.k,wait=tkWaiting(x,me),unseen=!((x.seen||{})[me.uid]);
   return `<div class="mrow2 tkrow ${open?"open":""}"><button class="tkhead" data-act="tkOpen" data-k="${esc(x.k)}" aria-expanded="${open}"><span class="row between small"><span class="mw0"><span class="pill ${TK_ST[st][1]}">${TK_ST[st][0]}</span>${wait?' <span class="pill warn">They wrote back</span>':""}${unseen&&st!=="solved"?' <span class="pill">Unread</span>':""} <b>${esc(SUP_WHO[x.who]||"Someone")}</b>${x.name?" · "+esc(x.name):""}${x.ev?` · <span class="muted">${esc(x.ev)}</span>`:""}</span><span class="muted">${esc(supAgo(x.last||x.t))}</span></span>
   <span class="db small tkmsgline">${esc(String(x.msg||"").slice(0,160))}${String(x.msg||"").length>160?"…":""}</span><span class="db small muted">${tkLine(x)}</span></button>${open?tkDetail(x):""}</div>`}).join("")}</div>`:'<p class="small muted m0">Nothing here.</p>'}</section>
- ${supAccounts()}${supIsOwner()?supTeamCard():""}`}
+ ${supAgentsCard()}${supAccounts()}${supIsOwner()?supTeamCard():""}`}
+/* the nightly agents' morning summary, their pause switch and the last backup */
+function supAgentsCard(){const runs=Object.keys(D.agentRuns||{}).sort().reverse().map(k=>Object.assign({k},D.agentRuns[k])),last=runs[0],paused=!!(D.agents&&D.agents.paused),b=D.backupStatus,own=supIsOwner();
+ const runBox=r=>{const ts=r.tester||{},tc=r.tech||{},u=r.usage||{},prs=tc.prs||[];
+  return `<div class="stack tight small"><div class="row">${[[ts.passed,"check passed","checks passed","ok"],[ts.failed,"check failed","checks failed","warn"],[ts.aiProblems,"problem found by the AI tester","problems found by the AI tester","warn"],[tc.replied,"question answered","questions answered","ok"],[tc.drafted,"draft reply to check","draft replies to check","gold"],[tc.person,"needs a person","need a person",""],[prs.length,"fix waiting for Roy","fixes waiting for Roy","gold"]].map(([n,a,m,c])=>imPill(n,n===1?a:m,c)).join("")}</div>
+  ${ts.ai&&ts.ai.role?`<div><b>AI test customer</b> played a ${esc(ts.ai.role)} on a ${esc(ts.ai.size||"")} screen${ts.ai.lang&&ts.ai.lang!=="English"?" in "+esc(ts.ai.lang):""} (${+ts.ai.steps||0} steps).${ts.ai.summary?" "+esc(ts.ai.summary):""}</div>`:""}
+  ${(ts.problems||[]).length?`<div><b>Problems found:</b> ${(ts.problems||[]).map(esc).join(" · ")}</div>`:""}
+  ${prs.length?`<div class="stack tight">${prs.map(p=>`<div class="clrow"><a href="${esc(p.url)}" target="_blank" rel="noopener"><b>Review the fix</b></a> <span class="pill ${p.confidence==="sure"?"ok":p.confidence==="likely"?"gold":"warn"}">${esc(p.confidence)}</span><div class="muted">${esc(p.summary||"")}</div></div>`).join("")}</div>`:""}
+  <div class="muted">About ${clMoney(u.usd||0)} of credits used.</div>
+  ${L.agRun===r.k?`<pre class="tkerr">${esc((r.log||[]).join("\n"))}</pre>`:""}<button class="btn xs as" data-act="agRunOpen" data-k="${esc(r.k)}">${L.agRun===r.k?"Hide the log":"See everything they did"}</button></div>`};
+ return `<section class="card stack"><div class="row between"><h3>Overnight report</h3>${paused?'<span class="pill warn">Paused</span>':""}</div>
+ ${last?`<p class="small muted m0">Last run ${esc(supTime(last.t))}.</p>${runBox(last)}`:'<p class="small muted m0">The nightly test customer and technical agent haven\'t run yet. Their report shows up here each morning.</p>'}
+ ${runs.length>1?`<details><summary class="small">Earlier nights (${runs.length-1})</summary><div class="stack">${runs.slice(1,8).map(r=>`<div class="stack tight"><b class="small">${esc(supTime(r.t))}</b>${runBox(r)}</div>`).join("")}</div></details>`:""}
+ ${own?`<div class="row"><button class="btn sm ${paused?"primary":""}" data-act="agPause">${paused?"Turn the agents back on":L.confirm==="agp"?"Tap again to pause them":"Pause the agents"}</button><span class="small muted">Pausing stops them from the next run on.</span></div>`:""}
+ <div class="small ${b&&b.t&&Date.now()-b.t<36*36e5?"":"bad"}">💾 ${b&&b.t?`Last backup ${esc(supTime(b.t))} (${esc(String(b.mb||0))} MB)`:"No backup has run yet. See ops/BACKUPS.md in the code to switch them on."}</div></section>`}
 function supAccounts(){const pl=D.plist||{},ev=Object.assign({},D.supIdx||{},VIEW==="host"?D.events||{}:{}),q=String(dv("sa_q","")).toLowerCase().trim(),open=L.saOpen;
  const pk=Object.keys(pl).filter(u=>!q||[pl[u].name,pl[u].biz,pl[u].email].join(" ").toLowerCase().includes(q)).slice(0,30),ek=Object.keys(ev).filter(k=>!q||[k,ev[k].name].join(" ").toLowerCase().includes(q)).slice(0,30);
  return `<section class="card stack"><div class="row between"><h3>Look up an account</h3><button class="btn xs" data-act="saToggle">${open?"Hide":"Show"}</button></div><p class="small muted m0">See a planner's portal or an event the way they see it. This view is read-only, so nothing you tap changes their data.</p>
@@ -6700,6 +6722,9 @@ Object.assign(ACT,{
  tkReply:async el=>{const id=el.dataset.k,me=supMe(),text=String(dv("tkr_"+id,"")).trim();if(!text)return toast("Type a reply first");if(!me)return;const now=Date.now(),x=(D.tix||{})[id]||{};
   await RT("ticketReplies/"+id).push().set({from:"staff",name:me.name,text:text.slice(0,2000),t:now});const u={last:now,lastFrom:"staff"};if(!x.by&&x.status!=="solved"){u.status="working";u.by={uid:me.uid,name:me.name,t:now}}u["seen/"+me.uid]=now;await tkSet(id,u);
   await tkNote(id,"reply","replied to them");delete L.drafts["tkr_"+id];toast("Reply sent. They'll see it in the app.");render(true)},
+ tkUseDraft:el=>{const id=el.dataset.k,ns=Object.keys(D.tkNotes[id]||{}).map(k=>D.tkNotes[id][k]).sort((a,b)=>a.t-b.t),n=ns[+el.dataset.i];if(!n)return;L.drafts["tkr_"+id]=n.text||"";render(true);const t=document.querySelector(`[data-draft="tkr_${CSS.escape(id)}"]`);if(t){t.focus();t.scrollIntoView({block:"center"})}},
+ agPause:async()=>{if(!supIsOwner())return;const on=!(D.agents&&D.agents.paused);if(on&&L.confirm!=="agp"){L.confirm="agp";return render(true)}L.confirm=null;await RT("agents/paused").set(on);toast(on?"Agents paused. They'll skip tonight.":"Agents turned back on")},
+ agRunOpen:el=>{L.agRun=L.agRun===el.dataset.k?null:el.dataset.k;render(true)},
  tkNoteAdd:async el=>{const id=el.dataset.k,text=String(dv("tkn_"+id,"")).trim();if(!text)return;await tkNote(id,"note",text);delete L.drafts["tkn_"+id];render(true)},
  tkDel:async el=>{const id=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="tkx"+id){L.confirm="tkx"+id;return render(true)}L.confirm=null;
   await Promise.all([RT("ticketReplies/"+id).remove(),RT("ticketNotes/"+id).remove()]);await RT("tickets/"+id).remove();L.tkOpen=null;toast("Report deleted")},
