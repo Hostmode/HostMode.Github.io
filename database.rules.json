@@ -152,6 +152,26 @@
           },
           "showImg": {
             ".read": true
+          },
+          "vpages": {
+            "$tok": {
+              ".read": true
+            }
+          },
+          "vcheck": {
+            "$tok": {
+              ".read": true,
+              "here": {
+                ".write": "root.child('partygames/planners/' + $uid + '/vpages/' + $tok).exists()",
+                ".validate": "newData.isNumber() && newData.val() > now - 600000 && newData.val() < now + 600000"
+              },
+              "issues": {
+                "$k": {
+                  ".write": "!data.exists() && root.child('partygames/planners/' + $uid + '/vpages/' + $tok).exists()",
+                  ".validate": "newData.hasChildren(['text','t']) && newData.child('text').isString() && newData.child('text').val().length <= 300 && newData.child('t').isNumber()"
+                }
+              }
+            }
           }
         }
       },
@@ -238,7 +258,10 @@
       "library": {
         ".read": true,
         "$id": {
-          ".write": true
+          ".write": "!data.exists() || (auth != null && auth.uid === root.child('partygames/owner').val())",
+          "schemaJson": {
+            ".write": "data.exists() && (data.val() === '{}' || data.val() === '')"
+          }
         }
       },
       "archives": {
@@ -293,7 +316,7 @@
         "$id": {
           ".read": true,
           ".write": "(!data.exists() && newData.child('status').val() === 'new') || (auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && data.exists() && newData.exists())))",
-          ".validate": "newData.hasChildren(['msg','t','status']) && newData.child('msg').isString() && newData.child('msg').val().length <= 2000 && newData.child('t').isNumber()",
+          ".validate": "newData.hasChildren(['msg','t','status']) && newData.child('msg').isString() && newData.child('msg').val().length >= 5 && newData.child('msg').val().length <= 2000 && newData.child('t').isNumber() && (data.exists() || (newData.child('t').val() > now - 600000 && newData.child('t').val() < now + 600000)) && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 60)) && (!newData.child('contact').exists() || (newData.child('contact').isString() && newData.child('contact').val().length <= 120)) && (!newData.child('page').exists() || (newData.child('page').isString() && newData.child('page').val().length <= 300)) && (!newData.child('device').exists() || (newData.child('device').isString() && newData.child('device').val().length <= 200)) && (!newData.child('errs').exists() || (newData.child('errs').isString() && newData.child('errs').val().length <= 1000))",
           "last": {
             ".write": "data.parent().exists()",
             ".validate": "newData.isNumber()"
@@ -309,7 +332,7 @@
           ".read": true,
           "$r": {
             ".write": "!data.exists() && root.child('partygames/tickets/' + $id).exists() && (newData.child('from').val() === 'reporter' || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())))",
-            ".validate": "newData.hasChildren(['text','t','from']) && newData.child('text').isString() && newData.child('text').val().length <= 2000 && (newData.child('from').val() === 'reporter' || newData.child('from').val() === 'staff')"
+            ".validate": "newData.hasChildren(['text','t','from']) && newData.child('text').isString() && newData.child('text').val().length <= 2000 && (newData.child('from').val() === 'reporter' || newData.child('from').val() === 'staff') && newData.child('t').isNumber() && newData.child('t').val() > now - 600000 && newData.child('t').val() < now + 600000"
           }
         }
       },

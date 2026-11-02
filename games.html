@@ -869,6 +869,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .tkdetail{padding:10px 0 4px}.tkbody{white-space:pre-wrap;padding:10px 12px;background:var(--ground);border-radius:10px}.tkerr{white-space:pre-wrap;font-size:12px;margin:4px 0;max-height:160px;overflow:auto}
 .tkthread{border-left:3px solid var(--line);padding-left:10px}.tkmsg{font-size:14px}.tkmsg.me b{color:var(--btn1)}.tkmsg div{white-space:pre-wrap}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#aaa;vertical-align:middle}.dot.on{background:#2f9e44;box-shadow:0 0 0 3px color-mix(in srgb,#2f9e44 25%,transparent)}
+.vpbig{font-size:2.2rem;font-weight:800;line-height:1.1;color:var(--hd)}.vpherebtn{font-size:1.2rem;padding:16px 22px;align-self:stretch}.vpmine{border-left:4px solid var(--gold,#c08a00);padding-left:8px}
 .cd-event{background:#e0338f}.cd-pay{background:#e8a20c}.cd-date{background:#3f74d6}.cd-task{background:#2f9e44}
 .landed{animation:landed 1.4s ease-out}@keyframes landed{0%{box-shadow:0 0 0 3px var(--btn1)}100%{box-shadow:0 0 0 3px transparent}}
 .shhero{text-align:center;align-items:center}.shlogo{max-height:84px;max-width:220px;border-radius:14px}
@@ -1098,7 +1099,7 @@ const QS=new URLSearchParams(location.search);
 const EV=((QS.get("e")||"").toUpperCase().replace(/[^A-Z0-9-]/g,""))||null;
 /* planner space: client, teammate and feedback links carry ?p=<planner id>; the planner portal sets it after sign-in */
 let PSP=/^[A-Za-z0-9_-]{1,64}$/.test(QS.get("p")||"")?"planners/"+QS.get("p")+"/":"";
-const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","support","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
+const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("vendor"))return "vendor";if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","support","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
 const baseURL=()=>location.origin+location.pathname;
 const eventURL=(code,hash)=>baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"e="+encodeURIComponent(code)+(hash?"#"+hash:"");
 
@@ -1276,6 +1277,7 @@ function connect(){
  if(VIEW==="show"){shConnect();return}
  if(VIEW==="planner"){plConnect();return}
  if(VIEW==="support"){supConnect();return}
+ if(VIEW==="vendor"){vendorConnect();return}
  if(VIEW==="host"){hostConnect();return}
  if(!EV){routeWithoutCode();return}
  subscribeEvent();
@@ -1299,7 +1301,7 @@ function createEvent(code,name,content,pinHash,practice){const tm=Date.now();con
 
 function subscribeEvent(){
  const on=(p,fn)=>ER(p).on("value",s=>{fn(s.val());renderSoon()});
- ER("meta").on("value",s=>{D.meta=s.val();L.missing=!D.meta;if(!D.meta&&EV)ER("movedTo").once("value").then(m=>{const to=m.val();if(to&&to!==EV)location.replace(eventURL(to,location.hash.slice(1)))}).catch(()=>{});L.loaded=true;checkAuth();renderSoon()});
+ ER("meta").on("value",s=>{D.meta=s.val();L.missing=!D.meta;if(VIEW==="moderator"&&D.meta&&D.meta.planner&&!L.evVenSub){L.evVenSub=1;RT("planners/"+D.meta.planner+"/tv/"+EV).on("value",x=>{D.evVen=x.val()||{};renderSoon()},()=>{})}if(!D.meta&&EV)ER("movedTo").once("value").then(m=>{const to=m.val();if(to&&to!==EV)location.replace(eventURL(to,location.hash.slice(1)))}).catch(()=>{});L.loaded=true;checkAuth();renderSoon()});
  on("content",v=>{D.content=v||null;D.contentLoaded=true;cwCache.key=null;applyTheme()});
  on("state",v=>{D.state=v||{};onState()});
  on("players",v=>{D.players=v||{};L.playersLoaded=true});
@@ -1385,6 +1387,7 @@ function render(force){
  else if(VIEW==="planner")html=plannerView();
  else if(VIEW==="show")html=showView();
  else if(VIEW==="support")html=supportView();
+ else if(VIEW==="vendor")html=vendorView();
  else if(!EV)html=L.loaded?landing():loadingView();
  else if(L.missing)html=landing(true);
  else if(!L.loaded)html=loadingView();
@@ -1419,8 +1422,8 @@ document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.datase
 document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest("#rv");if(r){const s=st().reveal;if(s&&now()>s.at+1500){r.classList.remove("on");r.innerHTML=""}}});
 
 function headerView(){
- const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
- const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Support":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
+ const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
+ const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Support":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
  const showAa=VIEW==="guest"||VIEW==="album"||VIEW==="keepsake";
  return `<div class="brand"><h1>${esc(title)}</h1>${sub?`<p>${esc(sub)}</p>`:""}</div>${showAa?`<button class="btn sm aa" data-act="settings" aria-label="${t("Settings")}">Aa</button>`:""}${VIEW==="moderator"&&L.modOK?`<span class="row"><span class="pill ${D.meta&&D.meta.practice?"warn":"live"}">${D.meta&&D.meta.practice?"Practice run":L.isAdmin?"Administrator":"Moderator"} · ${esc(EV)}</span><span class="small muted">${esc(L.isAdmin?"":L.modName||"")}</span>${modBackLinks()}<button class="btn xs" data-act="modSignOut">Sign out</button></span>`:""}`}
 /* back buttons from an event console to the admin console and the planner portal */
@@ -1807,7 +1810,7 @@ function mMemories(){const w=D.wishes||{};const wk=Object.keys(w).sort((a,b)=>(w
 /* ================= HOST CONSOLE ================= */
 function hostView(){
  if(!L.loaded)return loadingView();
- if(!L.hostOK)return `<section class="card stack narrow"><div class="eyebrow">Administrator</div><h2>Enter the host PIN</h2><p class="small muted m0">The host PIN is the administrator PIN. It opens every event. It starts as 0102 until you change it.</p><input type="password" inputmode="numeric" id="hpin" data-draft="hpin" value="${esc(dv("hpin",""))}"><button class="btn primary" data-act="hostPin">Open</button></section>`;
+ if(!L.hostOK)return `<section class="card stack narrow"><div class="eyebrow">Administrator</div><h2>Enter the host PIN</h2><p class="small muted m0">The host PIN is the administrator PIN. It opens every event.</p><input type="password" inputmode="numeric" id="hpin" data-draft="hpin" value="${esc(dv("hpin",""))}"><button class="btn primary" data-act="hostPin">Open</button></section>`;
  const tab=(k,l)=>`<button data-act="hostTab" data-k="${k}" aria-pressed="${(L.hostTab||"events")===k}">${l}</button>`;
  const body={support:supportBody,events:hEvents,invites:hInvites,planners:hPlanners,leads:hLeads,archives:hArchives,themes:hThemes,library:hLibrary,settings:hSettings}[L.hostTab||"events"]();
  return `<div class="console"><nav class="side">${tab("events","Events")}${tab("support","Support"+(tkNewCount()?` <span class="pill warn">${tkNewCount()}</span>`:""))}${tab("invites","Invite codes")}${tab("planners","Planners")}${tab("leads","Contacts"+(Object.keys(D.leads||{}).length?` <span class="pill gold">${Object.keys(D.leads).length}</span>`:""))}${tab("archives","Archives")}${tab("themes","Themes")}${tab("library","Game inventory")}${tab("settings","Host settings")}</nav><div class="stack mw0">${body}</div></div>`}
@@ -1822,7 +1825,7 @@ function hEvents(){const ev=D.events||{},def=D.admin.defaultEvent;const keys=Obj
  <button class="btn primary as" data-act="newEvent">Create event</button><p class="small muted m0">Give the PIN to whoever runs the event, like your cousin for her clients. It only opens that event.</p></section>`}
 function hThemes(){const th=D.themes||{};const keys=Object.keys(th).sort((a,b)=>(th[b].t||0)-(th[a].t||0));
  return `<section class="card stack"><h2>Saved themes</h2><p class="small muted m0">Save a theme from any event's Event tab. Each one keeps its title, colors, image and game content.</p>${keys.length?keys.map(id=>`<div class="gamerow evrow"><span class="gnum"></span><div class="mw0"><input type="text" data-draft="tn_${id}" value="${esc(dv("tn_"+id,th[id].name))}" aria-label="Theme name"><div class="small muted">${esc((th[id].content||{}).themeDesc||"")}</div></div><div class="row"><button class="btn sm" data-act="renameTheme" data-id="${id}">Rename</button><button class="btn sm" data-act="dupTheme" data-id="${id}">Duplicate</button>${L.confirm==="dt:"+id?`<button class="btn sm gold" data-act="delTheme" data-id="${id}">Delete</button><button class="btn sm" data-act="cancelConfirm">Keep</button>`:`<button class="btn sm" data-act="askDelTheme" data-id="${id}">Delete</button>`}</div></div>`).join(""):'<p class="small muted m0">No saved themes yet.</p>'}</section>`}
-function hSettings(){return `<section class="card stack"><h2>Host PIN</h2><p class="small muted m0">${D.admin.pinHash?"You've set your own host PIN.":"You're still using the starting PIN 0102. Set your own now."}</p><div class="row"><input type="password" inputmode="numeric" data-draft="newHost" value="${esc(dv("newHost",""))}" placeholder="New host PIN"><button class="btn primary" data-act="changeHostPin">Save</button></div></section>
+function hSettings(){return `<section class="card stack"><h2>Host PIN</h2><p class="small muted m0">${D.admin.pinHash?"You've set your own host PIN. It opens every event's console as the administrator.":"You haven't set a host PIN yet, so administrator sign-in at events is turned off. Set one with at least 6 digits."}</p><div class="row"><input type="password" inputmode="numeric" data-draft="newHost" value="${esc(dv("newHost",""))}" placeholder="New host PIN"><button class="btn primary" data-act="changeHostPin">Save</button></div></section>
  <section class="card stack"><h2>Main link</h2><p class="small muted m0">Guests who open <span class="brk">${esc(baseURL())}</span> without a code go to your main event: <b>${esc(D.admin.defaultEvent||"none")}</b>. Change it from the Events tab.</p></section>
  <section class="card stack"><h2>Fine print</h2><p class="small muted m0">Your Terms and Privacy Policy show this name and contact. Use your name or business and an email address guests can write to.</p><div class="grid2 g8"><label class="stack tight"><span class="small">Name or business</span><input type="text" data-draft="lg_name" value="${esc(dv("lg_name",D.admin.legalName||""))}" placeholder="Host Mode LLC"></label><label class="stack tight"><span class="small">Contact</span><input type="text" data-draft="lg_contact" value="${esc(dv("lg_contact",D.admin.contact||""))}" placeholder="email@example.com"></label></div><button class="btn as" data-act="saveLegal">Save</button>${legalFoot()}</section>
  <section class="card stack"><h2>Sign out</h2><button class="btn as" data-act="hostOut">Sign out of the admin console</button></section>`}
@@ -2731,7 +2734,7 @@ const ACT={
  dupTheme:el=>{const th=(D.themes||{})[el.dataset.id];if(th)RT("themes").push({name:th.name+" copy",content:clone(th.content),t:Date.now()})},
  askDelTheme:el=>{L.confirm="dt:"+el.dataset.id;render()},
  delTheme:el=>{RT("themes/"+el.dataset.id).remove();L.confirm=null},
- changeHostPin:async()=>{const p=(dv("newHost","")).trim();if(p.length<4)return toast("Use at least 4 digits");const h=await hashPin(p);await RT("admin/pinHash").set(h);store.set("host",h);L.drafts.newHost="";toast("Host PIN saved");render()},
+ changeHostPin:async()=>{const p=(dv("newHost","")).trim();if(p.length<6)return toast("Use at least 6 digits");if(/^(\d)\1+$|^(0123|1234|2345|0102)/.test(p))return toast("Pick something harder to guess");const h=await hashPin(p);await RT("admin/pinHash").set(h);store.set("host",h);L.drafts.newHost="";toast("Host PIN saved");render()},
 
  /* ---- print ---- */
  printSel:el=>{L.printSel[el.dataset.k]=el.checked;render()},
@@ -2824,14 +2827,17 @@ document.addEventListener("change",e=>{if(e.target.id==="jMonth")draftFromForm()
 /* ================= ADMIN, MODERATORS, START FRESH, INVITE CODES, NEW-EVENT PAGE, THEME STUDIO ================= */
 /* --- sign-in: the host PIN is the administrator; each moderator has a personal PIN; an optional shared event PIN --- */
 function modSession(){const s=store.get("mod_"+EV,null);if(!s)return null;return typeof s==="string"?{h:s}:s}
+/* the starting host PIN (0102) is public, so on the live site it only works until Roy sets his own; demos and offline test copies keep it */
+const masterLive=()=>!(L.masterHash&&L.masterHash===L.defaultHash&&!window.__HMDEMO&&!window.__HMPDEMO&&AUTH());
 function checkAuth(){const m=L.masterHash;const hs=store.get("host",null);L.hostOK=!!m&&(hs===m||!!hs&&hs.h===m);
  if(EV&&D.meta){const s=modSession();const mods=D.mods||{};let ok=false,admin=false,name="";
-  if(s&&s.h){if(s.h===m){ok=admin=true;name="Administrator"}else if(s.id&&mods[s.id]&&mods[s.id].pinHash===s.h){ok=true;name=mods[s.id].name}else if(D.meta.pinHash&&s.h===D.meta.pinHash&&!s.id){ok=true;name="Moderator"}}
+  if(s&&s.h){if(s.h===m&&masterLive()){ok=admin=true;name="Administrator"}else if(s.id&&mods[s.id]&&mods[s.id].pinHash===s.h){ok=true;name=mods[s.id].name}else if(D.meta.pinHash&&s.h===D.meta.pinHash&&!s.id){ok=true;name="Moderator"}}
   if(L.modOK&&!ok&&VIEW==="moderator")L.kicked=true;L.modOK=ok;L.isAdmin=admin;L.modName=name;L.modId=ok&&s&&s.id||null;L.isOwner=!!(ok&&s&&s.id&&mods[s.id]&&mods[s.id].owner)}}
 function pinScreen(){return `<section class="card stack narrow"><div class="eyebrow">Moderators only</div><h2>Enter your PIN</h2><p class="small muted m0">${esc(D.meta?D.meta.name:"")}</p>${L.kicked?'<div class="nudge">Your moderator access for this event was removed by the administrator.</div>':""}
  <input type="password" id="pin" inputmode="numeric" autocomplete="off" data-draft="pin" value="${esc(dv("pin",""))}"><button class="btn primary" data-act="pin">Open the console</button><p class="small muted m0">Use your personal moderator PIN. The administrator signs in with the host PIN.</p><a class="small muted" href="${esc(eventURL(EV))}">I'm a guest</a></section>`}
 Object.assign(ACT,{
  pin:async()=>{const h=await hashPin(dv("pin",""));const mods=D.mods||{};let s=null;
+  if(h===L.masterHash&&!masterLive())return toast("The starting host PIN is turned off. Roy: set your own host PIN in the admin console, under Host settings.");
   if(h===L.masterHash)s={h,r:"admin"};else{const id=Object.keys(mods).find(k=>mods[k].pinHash===h);if(id)s={h,id,r:"mod"};else if(D.meta&&D.meta.pinHash===h)s={h,r:"shared"}}
   if(!s)return toast("That PIN isn't right");store.set("mod_"+EV,s);L.kicked=false;L.drafts.pin="";checkAuth();render(true)},
  modSignOut:()=>{store.set("mod_"+EV,null);checkAuth();render(true)},
@@ -3540,7 +3546,7 @@ subscribeEvent=function(){_subTonight();
  if(VIEW==="moderator"){ER("gifts").on("value",s=>{D.gifts=s.val()||{};renderSoon()});ER("rosDone").on("value",s=>{D.rosDone=s.val()||{};renderSoon()})}};
 let guestNames=()=>ids().filter(i=>!P(i).bot).map(i=>P(i).name).filter(Boolean);
 const nameList=id=>`<datalist id="${id}">${[...new Set(guestNames())].sort().map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>`;
-const helperName=id=>id&&(D.mods||{})[id]?D.mods[id].name:"Everyone";
+const helperName=id=>id&&String(id).startsWith("v:")?(((D.evVen||{})[String(id).slice(2)]||{}).name||"A vendor")+" (vendor)":id&&(D.mods||{})[id]?D.mods[id].name:"Everyone";
 
 /* ---- run of show ---- */
 function rosDefault(){const baby=evType()==="baby",raf=rafCfg(),ord=C().order||[],moms=C().moments||[];
@@ -3567,7 +3573,7 @@ function rosRow(x,i,next){const done=(D.rosDone||{})[x.k],late=rosLate(x),ed=L.r
  return `<div class="gamerow evrow ${done?"dim":""} ${next?"on":""}"><span class="gnum rostime">${esc(fmtTime(x.time))||"·"}</span><div class="mw0"><b>${esc(x.title||"")}</b> ${done?`<span class="pill ok">✓ Done</span>`:late?'<span class="pill warn">Running late</span>':next?'<span class="pill live">Up next</span>':""}
   <div class="small muted">${esc(helperName(x.who))}${x.note?" · "+esc(x.note):""}${done?` · checked off by ${esc(done.by||"a teammate")}`:""}</div></div>
   <div class="row"><button class="btn sm ${done?"":"primary"}" data-act="rosDone" data-k="${x.k}">${done?"Undo":"Done"}</button><button class="btn sm" data-act="rosEditOpen" data-k="${x.k}" aria-label="Edit ${esc(x.title||"")}">Edit</button></div></div>`}
-function rosWhoOpts(sel){const m=D.mods||{};return `<option value="">Everyone</option>${Object.keys(m).map(id=>`<option value="${id}" ${sel===id?"selected":""}>${esc(m[id].name)}</option>`).join("")}`}
+function rosWhoOpts(sel){const m=D.mods||{},vs=D.evVen||{};return `<option value="">Everyone</option>${Object.keys(m).map(id=>`<option value="${id}" ${sel===id?"selected":""}>${esc(m[id].name)}</option>`).join("")}${Object.keys(vs).length?`<optgroup label="Vendors">${Object.keys(vs).map(k=>`<option value="v:${esc(k)}" ${sel==="v:"+k?"selected":""}>${esc(vs[k].name||"Vendor")}${vs[k].role?" · "+esc(vs[k].role):""}</option>`).join("")}</optgroup>`:""}`}
 function rosSection(){const items=rosItems(),nextI=items.findIndex(x=>!(D.rosDone||{})[x.k]);const done=items.filter(x=>(D.rosDone||{})[x.k]).length;
  const mine=L.modId?items.filter(x=>x.who===L.modId&&!(D.rosDone||{})[x.k]):[];
  return `<section class="card stack gilt"><div class="row between"><h2>Run of show</h2>${items.length?`<span class="pill">${done} of ${items.length} done</span>`:""}</div>
@@ -3771,7 +3777,7 @@ const markKind=()=>{const m=C().mark;if(m==="none")return null;if(MARKS[m])retur
 function markSVG(k,size){const m=MARKS[k];if(!m)return "";const id="gm"+k+size;
  return `<svg class="tmark" viewBox="${m.vb}" width="${size}" height="${Math.round(size*(+m.vb.split(" ")[3])/(+m.vb.split(" ")[2]))}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f6dc83"/><stop offset=".5" style="stop-color:var(--gold)"/><stop offset="1" stop-color="#9c6b00"/></linearGradient></defs><path d="${m.d}" fill="none" stroke="url(#${id})" stroke-width="${size>=40?1.7:1.4}" stroke-linecap="round" stroke-linejoin="round"/>${m.eye?`<circle cx="${m.eye[0]}" cy="${m.eye[1]}" r=".95" fill="url(#${id})"/>`:""}</svg>`}
 const titleMark=size=>{const k=markKind();return k?markSVG(k,size):""};
-const _hvDL=headerView;headerView=function(){const h=_hvDL();if(!EV||L.missing||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||!titleMark(30))return h;return h.replace(/<h1>([\s\S]*?)<\/h1>/,(m,t)=>`<h1><span class="tline">${t}${titleMark(VIEW==="screen"?56:44)}</span></h1>`)};
+const _hvDL=headerView;headerView=function(){const h=_hvDL();if(!EV||L.missing||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||!titleMark(30))return h;return h.replace(/<h1>([\s\S]*?)<\/h1>/,(m,t)=>`<h1><span class="tline">${t}${titleMark(VIEW==="screen"?56:44)}</span></h1>`)};
 const _mEventDL=mEvent;mEvent=function(){const cur=markKind()||"none";const b=(k,l)=>`<button class="btn sm ${cur===k?"primary":""}" data-act="setMark" data-k="${k}" aria-pressed="${cur===k}">${k==="none"?"":markSVG(k,22)} ${l}</button>`;
  return _mEventDL()+`<section class="card stack"><h2>Title mark</h2><p class="small muted m0">A small gold drawing beside the event title on guests' phones and the big screen.</p><div class="row">${b("bird","Songbird")}${b("rose","Rose")}${b("none","None")}</div></section>`};
 ACT.setMark=el=>{ER("content/mark").set(el.dataset.k);toast(el.dataset.k==="none"?"Title mark off":"Title mark updated")};
@@ -5288,7 +5294,7 @@ function imProblemCsv(){const I=L.im;if(!I)return;const recs=imBuild(),bad=recs.
 /* export everything: one workbook, one tab per kind, with headers the importer reads back */
 function exAllSheets(){const cs=D.clients||{},cn=id=>(cs[id]||{}).name||"",sh=[];
  sh.push({name:"Clients",rows:clExportAllRows()});
- const ven=[["Vendor name","Role","Phone","Email","Arrival time","What they bring","Notes","Client"]];Object.keys(cs).forEach(id=>clVendors(id).forEach(v=>ven.push([v.name,v.role||"",v.phone||"",v.email||"",v.arrive?clFmtTime(v.arrive):"",v.delivers||"",v.note||"",cn(id)])));sh.push({name:"Vendors",rows:ven});
+ const ven=[["Vendor name","Role","Phone","Email","Arrival time","What they bring","Notes","Client","Pickup time","Notes for the vendor","Details by vendor type","Vendor page"]];Object.keys(cs).forEach(id=>clVendors(id).forEach(v=>ven.push([v.name,v.role||"",v.phone||"",v.email||"",v.arrive?clFmtTime(v.arrive):"",v.delivers||"",v.note||"",cn(id),v.pickup?clFmtTime(v.pickup):"",v.vnote||"",v.extra||"",v.tok?vpLink(v.tok):""])));sh.push({name:"Vendors",rows:ven});
  sh.push({name:"Inventory",rows:[["Item","Category","How many","Color or size","Where it's stored","In repair","Cost each","Reorder below","Notes"]].concat(gearList().map(it=>[it.name,it.cat||"",+it.qty||0,it.color||"",it.spot||"",+it.rep||0,+it.cost||0,it.low===""||it.low==null?"":+it.low,it.note||""]))});
  sh.push({name:"Pull lists",rows:[["Pull list","Goes out","Comes back","Status","Items","Notes"]].concat(gresList().map(r=>[r.label||"",r.from||"",gresTo(r)||"",GR_ST[r.status||"held"][0],gresWhat(r).join("; "),r.note||""]))});
  sh.push({name:"Venue spaces",rows:[["Space","Capacity","Fee","Notes"]].concat(spaceList().map(s=>[s.name,+s.cap||0,+s.rate||0,s.note||""]))});
@@ -5589,7 +5595,7 @@ function clPlanDates(id){const l=clDates(id);return `<div class="stack tight">${
  <label class="stack tight"><span class="small">Date</span><input type="date" data-draft="dt_date" value="${esc(dv("dt_date",""))}"></label><label class="stack tight"><span class="small">Time (optional)</span><input type="time" data-draft="dt_time" value="${esc(dv("dt_time",""))}"></label>
  <label class="stack tight" style="grid-column:1/-1"><span class="small">Note (optional)</span><input type="text" data-draft="dt_note" maxlength="140" value="${esc(dv("dt_note",""))}" placeholder="Bring your guest count"></label></div>
  <button class="btn primary as" data-act="clDateAdd" data-m="${id}">Add date</button><p class="small muted m0">The client's calendar also lists their checklist due dates and payments, with “add to my calendar” buttons.</p>`}
-function clPlanVendors(id){const l=clVendors(id);return `<div class="stack tight">${l.map(v=>`<div class="row between mrow2"><div class="mw0">${clVendorRow(v)}<div class="row small"><button class="btn xs" data-act="clVenFlag" data-m="${id}" data-k="${v.k}" data-f="show">${v.show?"👁 client sees":"hidden from client"}</button><button class="btn xs" data-act="clVenFlag" data-m="${id}" data-k="${v.k}" data-f="team">${v.team?"👥 teammates see":"not shared with teammates"}</button></div></div><button class="btn xs" data-act="clVenDel" data-m="${id}" data-k="${v.k}" aria-label="Delete">×</button></div>`).join("")||'<span class="small muted">No vendors yet.</span>'}</div>
+function clPlanVendors(id){const l=clVendors(id);return `<div class="stack tight">${l.map(v=>`<div class="row between mrow2"><div class="mw0">${clVendorRow(v)}<div class="row small"><button class="btn xs" data-act="clVenFlag" data-m="${id}" data-k="${v.k}" data-f="show">${v.show?"👁 client sees":"hidden from client"}</button><button class="btn xs" data-act="clVenFlag" data-m="${id}" data-k="${v.k}" data-f="team">${v.team?"👥 teammates see":"not shared with teammates"}</button><button class="btn xs ${v.tok?"":"primary"}" data-act="vpToggle" data-m="${id}" data-k="${v.k}">${v.tok?"📱 Vendor page":"Make a vendor page"}</button>${v.tok&&((D.vchk||{})[v.tok]||{}).here?'<span class="pill ok">Checked in</span>':""}${v.tok&&vpIssues((D.vchk||{})[v.tok]||{}).some(i=>!i.ok)?'<span class="pill warn">Flagged a problem</span>':""}</div>${L.vpOpen===id+"|"+v.k?vpEditor(id,v):""}</div><button class="btn xs" data-act="clVenDel" data-m="${id}" data-k="${v.k}" aria-label="Delete">×</button></div>`).join("")||'<span class="small muted">No vendors yet.</span>'}</div>
  <div class="grid2 g8"><label class="stack tight"><span class="small">Name</span><input type="text" data-draft="vn_name" maxlength="60" value="${esc(dv("vn_name",""))}" placeholder="DJ Marcus"></label><label class="stack tight"><span class="small">Role</span><input type="text" data-draft="vn_role" maxlength="40" value="${esc(dv("vn_role",""))}" placeholder="DJ"></label>
  <label class="stack tight"><span class="small">Phone</span><input type="tel" data-draft="vn_phone" maxlength="30" value="${esc(dv("vn_phone",""))}"></label><label class="stack tight"><span class="small">Email</span><input type="email" data-draft="vn_email" maxlength="80" value="${esc(dv("vn_email",""))}"></label>
  <label class="stack tight"><span class="small">Arrives at</span><input type="time" data-draft="vn_arrive" value="${esc(dv("vn_arrive",""))}"></label><label class="stack tight"><span class="small">Bringing</span><input type="text" data-draft="vn_delivers" maxlength="80" value="${esc(dv("vn_delivers",""))}" placeholder="Speakers and lights"></label></div>
@@ -5608,7 +5614,7 @@ Object.assign(ACT,{
   await RT(PSP+"clientVendors/"+id).push().set({name:n,role:dv("vn_role","").trim().slice(0,40),phone:dv("vn_phone","").trim().slice(0,30),email:dv("vn_email","").trim().slice(0,80),arrive:dv("vn_arrive",""),delivers:dv("vn_delivers","").trim().slice(0,80),show:true,team:true,t:Date.now()});
   ["vn_name","vn_role","vn_phone","vn_email","vn_arrive","vn_delivers"].forEach(k=>delete L.drafts[k]);toast("Vendor added");render(true)},
  clVenFlag:async el=>{const m=el.dataset.m,k=el.dataset.k,f=el.dataset.f,v=((D.cven||{})[m]||{})[k]||{};await RT(PSP+`clientVendors/${m}/${k}/${f}`).set(!v[f])},
- clVenDel:async el=>{await RT(PSP+`clientVendors/${el.dataset.m}/${el.dataset.k}`).remove()},
+ clVenDel:async el=>{const v=((D.cven||{})[el.dataset.m]||{})[el.dataset.k]||{};await RT(PSP+`clientVendors/${el.dataset.m}/${el.dataset.k}`).remove();if(v.tok)RT(PSP+"vcheck/"+v.tok).remove().catch(()=>{});vpSyncSoon()},
  clSummarySend:async el=>{const id=el.dataset.m,note=dv("sum_note_"+id,"").trim();await RT(PSP+"clientMsgs/"+id).push().set({from:"planner",text:clSummaryText(id,note),t:Date.now()});await RT(PSP+`clients/${id}/plSeen`).set(Date.now());delete L.drafts["sum_note_"+id];toast("Posted to the client's messages");render(true)},
  clIcsOne:el=>{const id=clKey(),x=clTimeline(id).find(i=>i.k===el.dataset.k);if(!x)return;clDownload("event.ics",clIcs([x],(D.cliMe||{}).evName),"text/calendar")},
  clIcsAll:()=>{const id=clKey(),tl=clTimeline(id);if(!tl.length)return;clDownload("event-calendar.ics",clIcs(tl,(D.cliMe||{}).evName),"text/calendar")}
@@ -5744,7 +5750,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=9;
+const PDEMO_V=10;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -5855,6 +5861,9 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   bk5:{name:"Brianna Lewis venue tour",space:"s2",date:day(3),start:"10:00",end:"11:00",kind:"Tour or tasting",guests:2,status:"confirmed",t:5}};
  pl.blocks={b1:{from:day(26),to:day(28),space:"s1",reason:"Floor refinishing",t:1},b2:{from:day(52),to:day(52),space:"",reason:"Closed for the holiday",t:2}};
  const evs=pl.events_;delete pl.events_;const idx=pl._idx;delete pl._idx;
+ Object.assign(pl.clients.dublin,{venue:pl.clients.dublin.venue||"Spencer Dock, North Wall Quay, Dublin",guests:pl.clients.dublin.guests||180});pl.vpages={};pl.vcheck={};["v1","v2","v3"].forEach((vk,i)=>{const v=pl.clientVendors.dublin[vk],tok="demoVendor"+(i+1)+"x";v.tok=tok;if(vk==="v3"){v.extra="One gluten-free and two vegetarian lunches. Coffee refills at the 10:30 break.";v.vnote="Load in at the service entrance on the east side. Ask for Niamh at the desk."}
+  pl.vpages[tok]=vpBuild(Object.assign({k:vk},v),"dublin",pl.clients.dublin,pl.brand,pl.profile)});
+ pl.vcheck={demoVendor2x:{here:ago(0.5),issues:{i1:{text:"Our van is 10 minutes out, traffic on the quays.",t:ago(0.6)}}}};
  pl.tv={DUBLIN:{}};Object.keys(pl.clientVendors.dublin).forEach(k=>{const v=pl.clientVendors.dublin[k];if(v.team)pl.tv.DUBLIN["dublin_"+k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}});
  const pg={admin:{},index:idx,events:evs,planners:{northlight:pl},plist:{northlight:{name:"Claire Moran",biz:"Northlight Events",email:"claire@northlight.example",t:ago(2000)}}};
  const dev="iPhone/iPad · Safari · screen 390×844 · online · en-US";
@@ -6056,6 +6065,7 @@ const HELP={
   ["Reserve items for an event","Inventory → Reserve for an event makes a pull list, warns you if you're short that day, and lets you check items out and back in.","inv","reserve pull list pack check out check in return missing damaged double booked availability free"],
   ["Book your venue","Venue → turn on venue bookings, add your spaces, then save holds and confirmed bookings. Overlaps and blocked days are flagged.","venue","venue booking book hold rooms spaces ballroom calendar availability deposit"],
   ["Block off days at your venue","Venue → Block off days marks days the whole venue or one space can't be booked, like maintenance or holidays.","venue","block blackout blocked closed holiday maintenance unavailable day off"],
+  ["Give a vendor their own page","Clients → open a client → Vendors → Make a vendor page. Copy or text them the link: they see their arrival time, an I'm here button, the schedule with their moments, your notes, and a way to flag a problem.","clients","vendor page link caterer dj photographer florist rentals arrival check in schedule run of show"],
   ["Add a booking link","Branding → Booking link. Paste your Calendly or Google booking link to show a Book a meeting button.","brand","booking meeting calendly consultation tasting appointment schedule zoom call"],
   ["Bring in your data","Import & export takes spreadsheets, whole workbooks, Google Sheets and PDFs, works out what each tab holds, and puts clients, vendors, guests, inventory, venue bookings, packages and payments where they belong.","data","import upload spreadsheet workbook tabs excel csv google sheets pdf honeybook dubsado move switch data inventory bookings packages payments"],
   ["Fix or undo an import","Before saving, rows with a problem can be skipped or downloaded to fix. Duplicates can be skipped or updated. Any import can be undone for 24 hours.","data","undo duplicate duplicates update problem rows fix skip wrong mistake"],
@@ -6121,10 +6131,10 @@ function plSubs(){if(plSubbed||!db)return;plSubbed=true;
  RT(PSP+"events").on("value",s=>{D.events=s.val()||{};L.loaded=true;renderSoon()});
  RT(PSP+"feedback").on("value",s=>{D.fbk=s.val()||{};renderSoon()});RT(PSP+"brand").on("value",s=>{D.brand=s.val();renderSoon()});RT(PSP+"dayOf").on("value",s=>{D.dayOf=!!s.val();renderSoon()});
  RT(PSP+"mates").on("value",s=>{D.mates=s.val()||{};renderSoon()});RT(PSP+"mateTasks").on("value",s=>{D.mtasks=s.val()||{};renderSoon()});
- [["clients","clients"],["clientTasks","ctasks"],["clientMsgs","cmsgs"],["clientFiles","cfiles"],["clientTemplates","ctpl"],["clientApprovals","caps"],["clientPayments","cpay"],["clientDates","cdates"],["clientVendors","cven"],["clientInvoices","cinv"],["packages","pkgs"],["inquiries","inq"],["showcase","show"],["showImg","showImg"],["gear","gear"],["gearRes","gres"],["venue","vset"],["spaces","spaces"],["bookings","bks"],["blocks","vblk"]].forEach(([p,k])=>RT(PSP+p).on("value",s=>{D[k]=s.val()||{};if(k==="cven"||k==="clients")tvSyncSoon();renderSoon()}))}
+ [["clients","clients"],["clientTasks","ctasks"],["clientMsgs","cmsgs"],["clientFiles","cfiles"],["clientTemplates","ctpl"],["clientApprovals","caps"],["clientPayments","cpay"],["clientDates","cdates"],["clientVendors","cven"],["clientInvoices","cinv"],["packages","pkgs"],["inquiries","inq"],["showcase","show"],["showImg","showImg"],["vcheck","vchk"],["gear","gear"],["gearRes","gres"],["venue","vset"],["spaces","spaces"],["bookings","bks"],["blocks","vblk"]].forEach(([p,k])=>RT(PSP+p).on("value",s=>{D[k]=s.val()||{};if(k==="cven"||k==="clients")tvSyncSoon();renderSoon()}))}
 /* teammates can't list a planner's clients, so the vendors marked "teammates see" are copied per event into tv/{EV} */
 let tvT=null;function tvSyncSoon(){clearTimeout(tvT);tvT=setTimeout(tvSync,600)}
-function tvSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
+function tvSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;vpSyncSoon();const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
  const j=JSON.stringify(out);if(j===L.tvLast)return;L.tvLast=j;RT(PSP+"tv").set(out)}
 function plConnect(){
  if(window.__HMPDEMO){PSP="planners/northlight/";L.plOK=true;L.authReady=true;plSubs();return}
@@ -6182,6 +6192,7 @@ function plHome(){const me=D.plMe||{},cs=D.clients||{},ids=Object.keys(cs),today
   if(lt)att.push([`⏰ ${lt} of your checklist item${lt===1?"":"s"} for <b>${nm}</b> ${lt===1?"is":"are"} overdue`,id,"list"]);
   clPays(id).filter(x=>!x.paid&&x.due&&x.due<today).forEach(x=>att.push([`💵 <b>${nm}</b>: ${esc(x.title)} ${clMoney(x.amount)} was due ${esc(mateDue(x.due))}`,id,"money"]))});
  {const nl=inqNew();if(nl)att.unshift([`📨 ${nl} new inquir${nl===1?"y":"ies"} from your form`,null,"leads"])}
+ vpAll().forEach(x=>vpIssues(x.chk).filter(i=>!i.ok).forEach(i=>att.push([`🚩 <b>${esc(x.v.name)}</b> (${esc(x.c.name||"a client")}): ${esc(i.text)}`,x.cid,"ven"])));
  if(venueOn())holdsDue().forEach(b=>att.push([`⏳ Hold for <b>${esc(b.name||"a booking")}</b> on ${esc(clFmtDate(b.date))} ${b.holdUntil<today?"ran out":"runs out"} ${esc(mateDue(b.holdUntil))}`,null,"venue"]));
  gresList().forEach(r=>{if(gresLate(r))att.push([`📦 Rentals for <b>${esc(r.label||"an event")}</b> were due back ${esc(mateDue(gresTo(r)))}`,null,"inv"]);else if(gresTo(r)>=today){const sh=gresShort(r);if(sh.length)att.push([`📦 Not enough ${sh.map(x=>esc(x.name)).join(", ")} for <b>${esc(r.label||"an event")}</b>`,null,"inv"])}});
  Object.keys(D.mates||{}).forEach(k=>{const m=D.mates[k];if(m&&m.help&&!m.help.ok)att.push([`🆘 <b>${esc(m.name||"A teammate")}</b> asked for help`,null,"team"])});
@@ -6558,7 +6569,7 @@ Object.assign(ES,{"Something not working?":"¿Algo no funciona?","Report a probl
  "Send report":"Enviar reporte","Thanks! Your report was sent.":"¡Gracias! Tu reporte fue enviado.","Our support team will look at it soon. Replies show up here, under Your reports.":"Nuestro equipo de soporte lo revisará pronto. Las respuestas aparecen aquí, en Tus reportes.",
  "Received":"Recibido","Being worked on":"En proceso","Solved":"Resuelto","You":"Tú","Support":"Soporte","Write back":"Responder","Send":"Enviar","No reports yet.":"Aún no hay reportes.","New report":"Nuevo reporte","Tell us a little more first.":"Cuéntanos un poco más primero.",
  "You've sent a lot of reports. Please wait a little and try again.":"Has enviado muchos reportes. Espera un poco e inténtalo de nuevo.","Couldn't send it. Check your connection and try again.":"No se pudo enviar. Revisa tu conexión e inténtalo de nuevo."});
-const SUP_WHO={guest:"Guest",album:"Guest",moderator:"Host running an event",new:"Host creating an event",planner:"Planner",client:"Planner's client",mate:"Planner's teammate",fb:"Guest giving feedback",show:"Visitor to a planner's page",host:"Admin",support:"Support"};
+const SUP_WHO={guest:"Guest",album:"Guest",moderator:"Host running an event",new:"Host creating an event",planner:"Planner",client:"Planner's client",mate:"Planner's teammate",fb:"Guest giving feedback",show:"Visitor to a planner's page",host:"Admin",support:"Support",vendor:"Vendor"};
 const TK_ST={new:["New","warn"],working:["Being worked on","gold"],solved:["Solved","ok"]};
 const supAgo=t=>{if(!t)return "";const s=Math.max(0,(Date.now()-t)/1000);return s<60?"just now":s<3600?Math.floor(s/60)+" min ago":s<86400?Math.floor(s/3600)+" hr ago":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"})};
 const supTime=t=>t?new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
@@ -6718,6 +6729,90 @@ function supportView(){if(supDemo())return supportBody();
   :`<p class="small muted m0">For the Host Mode support team.</p>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="join">I have a support code</button>`);
  const me=supMe();if(!me)return card("No support access",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, which doesn't have a support login. If Roy gave you a support code, sign out and tap "I have a support code."</p><button class="btn" data-act="acOut">Sign out</button>`);
  return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+supportBody()}
+
+/* ================= VENDOR PAGES =================
+   Each vendor gets a private link (games.html?vendor=TOKEN&p=PLANNER), no account needed.
+   planners/{uid}/clientVendors/{cid}/{vk} also holds: tok (the link's token), vnote (notes for the vendor), extra (details by vendor type), pickup
+   planners/{uid}/vpages/{tok}  = what the vendor sees; rebuilt by the planner's portal (vpSync). Anyone with the token can read it.
+   planners/{uid}/vcheck/{tok}  = {here: t, issues:{k:{text,t,ok}}}; written from the vendor's phone
+   The run of show comes straight from the event (events/{EV}/content/ros and rosDone). A step is the vendor's when its "who" is
+   "v:<cid>_<vk>", or when its words match the vendor's type (a caterer sees lunch and coffee, a DJ sees the first dance). */
+const VK={
+ cater:{l:"Caterer",x:"Allergies and meal notes",ph:"Two nut allergies at table 4. Twelve vegetarian plates.",kw:/coffee|lunch|dinner|breakfast|brunch|meal|food|buffet|cake|dessert|toast|cocktail|drink|\bbar\b|serve|snack/i,head:true},
+ music:{l:"DJ or band",x:"Music cues",ph:"Grand entrance song, first dance song, last song of the night.",kw:/dance|music|song|entrance|toast|speech|remarks|welcome|introduc|award|keynote|panel|cake|send.?off|game/i},
+ photo:{l:"Photographer or videographer",x:"Shot list",ph:"Family photo after the ceremony. Candids of the grandparents.",kw:/photo|portrait|ceremony|entrance|first dance|cake|toast|speech|keynote|award|group|send.?off|reveal/i},
+ rental:{l:"Florist, decor or rentals",x:"Delivery and setup details",ph:"Load in through the side door. Centerpieces on every guest table.",kw:/setup|set up|load|deliver|teardown|tear down|strike|registration|doors|close/i,pickup:true},
+ venue:{l:"Venue staff",x:"Room setup",ph:"20 round tables of 8, stage on the north wall, dance floor in the middle.",kw:/doors|registration|setup|break|lunch|dinner|close|end|reset/i},
+ other:{l:"Vendor",x:"Details for you",ph:"",kw:null}};
+/* a function declaration (not a const) so the planner demo can build vendor pages while the page is still loading */
+function vKind(role){const r=String(role||"").toLowerCase();return [["cater",/cater|food|chef|kitchen|bak|cake|dessert|bartend|\bbar\b|beverage|drink|coffee/],["music",/\bdj\b|band|music|sound|entertain|singer|\bmc\b|emcee/],["photo",/photo|video|film|camera/],["rental",/flor|flower|decor|rental|tent|linen|chair|table|light|balloon|drap|furniture|\bav\b|staging|screen|badge|sign|print/],["venue",/venue|hall|staff|facility|site|room|centre|center|ballroom/]].map(([k,re])=>re.test(r)?k:"").find(Boolean)||"other"}
+const vpLink=tok=>location.origin+location.pathname.replace(/[^/]*$/,"")+"games.html?"+(window.__HMPDEMO?"pdemo=1&":"")+"vendor="+encodeURIComponent(tok)+"&p="+encodeURIComponent(PLID());
+const vpNewTok=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789",r=crypto.getRandomValues(new Uint32Array(18));let s="";r.forEach(x=>s+=a[x%a.length]);return s};
+/* the vendor's page, from the planner's records (pure, so the demo can build it too) */
+function vpBuild(v,cid,c,brand,prof){brand=brand||{};prof=prof||{};c=c||{};
+ return {name:String(v.name||"").slice(0,60),role:String(v.role||"").slice(0,40),kind:vKind(v.role),arrive:v.arrive||"",pickup:v.pickup||"",delivers:String(v.delivers||"").slice(0,80),
+  vnote:String(v.vnote||"").slice(0,600),extra:String(v.extra||"").slice(0,1500),ev:c.ev||"",evName:String(c.evName||c.evTitle||((c.name||"")+"'s event")).slice(0,80),date:c.date||"",place:String(c.venue||"").slice(0,120),
+  guests:+c.guests||0,vkey:cid+"_"+(v.k||""),plan:{name:String(brand.name||prof.biz||prof.name||"Your planner").slice(0,80),phone:String(brand.phone||prof.phone||"").slice(0,30)}}}
+let vpT=null;function vpSyncSoon(){clearTimeout(vpT);vpT=setTimeout(vpSync,700)}
+function vpSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;const out={},cs=D.clients||{};
+ Object.keys(D.cven||{}).forEach(cid=>{if(!cs[cid])return;Object.keys(D.cven[cid]||{}).forEach(vk=>{const v=D.cven[cid][vk];if(v&&v.tok)out[v.tok]=vpBuild(Object.assign({k:vk},v),cid,cs[cid],D.brand,D.plMe)})});
+ const j=JSON.stringify(out);if(j===L.vpLast)return;L.vpLast=j;RT(PSP+"vpages").set(out).catch(()=>{})}
+/* every vendor with a link, for the planner's Home and Vendors tab */
+function vpAll(){const out=[],cs=D.clients||{};Object.keys(D.cven||{}).forEach(cid=>Object.keys(D.cven[cid]||{}).forEach(vk=>{const v=D.cven[cid][vk];if(v&&v.tok)out.push({cid,vk,v,c:cs[cid]||{},chk:(D.vchk||{})[v.tok]||{}})}));return out}
+const vpIssues=chk=>Object.keys(chk.issues||{}).map(k=>Object.assign({k},chk.issues[k])).sort((a,b)=>(a.t||0)-(b.t||0));
+const vpOpenIssues=()=>vpAll().reduce((n,x)=>n+vpIssues(x.chk).filter(i=>!i.ok).length,0);
+/* planner side: the vendor page editor inside a client's Vendors tab */
+function vpEditor(cid,v){const K=VK[vKind(v.role)],tok=v.tok,chk=tok?((D.vchk||{})[tok]||{}):{},iss=vpIssues(chk),p="vp_"+cid+"_"+v.k+"_",g=(f,d)=>dv(p+f,v[f]==null?(d||""):v[f]);
+ const link=tok?vpLink(tok):"",sms=tok&&v.phone?`sms:${String(v.phone).replace(/[^+\d]/g,"")}?&body=${encodeURIComponent(`Hi ${v.name}, here's your page for the event, with your arrival time and the schedule: ${link}`)}`:"";
+ return `<div class="card stack tight"><div class="row between"><b>${esc(v.name)}'s vendor page</b><span class="pill">${esc(K.l)}</span></div>
+ <span class="small muted">One page on their phone with the event basics, their arrival time and an "I'm here" button, the schedule with their moments highlighted, your notes, and a way to flag a problem. No account needed.</span>
+ ${tok?`<div class="small">${chk.here?`<span class="okt">✓ Checked in at ${esc(supTime(chk.here))}</span>`:"Not checked in yet"}</div>`:""}
+ ${iss.length?`<div class="stack tight">${iss.map(i=>`<div class="row between small clrow"><span class="mw0 ${i.ok?"muted":"bad"}">🚩 ${esc(i.text)} <span class="muted">· ${esc(supAgo(i.t))}</span></span>${i.ok?'<span class="small muted">Handled</span>':`<button class="btn xs" data-act="vpIssueOk" data-m="${esc(cid)}" data-k="${esc(v.k)}" data-i="${esc(i.k)}">Handled</button>`}</div>`).join("")}</div>`:""}
+ <div class="grid2 g8"><label class="stack tight"><span class="small">Arrives at</span><input type="time" data-draft="${p}arrive" value="${esc(g("arrive"))}"></label>
+ ${K.pickup?`<label class="stack tight"><span class="small">Picks up at</span><input type="time" data-draft="${p}pickup" value="${esc(g("pickup"))}"></label>`:""}
+ <label class="stack tight" style="grid-column:1/-1"><span class="small">Notes for ${esc(v.name)}</span><textarea rows="2" data-draft="${p}vnote" maxlength="600" placeholder="Park in the back lot. Power is on the stage wall.">${esc(g("vnote"))}</textarea></label>
+ <label class="stack tight" style="grid-column:1/-1"><span class="small">${esc(K.x)}</span><textarea rows="3" data-draft="${p}extra" maxlength="1500" placeholder="${esc(K.ph)}">${esc(g("extra"))}</textarea></label></div>
+ <div class="row"><button class="btn sm primary" data-act="vpSave" data-m="${esc(cid)}" data-k="${esc(v.k)}">${tok?"Save":"Save and make their link"}</button>${tok?`<button class="btn sm" data-act="vpCopy" data-m="${esc(cid)}" data-k="${esc(v.k)}">Copy their link</button>${sms?`<a class="btn sm" href="${esc(sms)}">Text it to them</a>`:""}<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Open it</a>`:""}<button class="btn sm" data-act="vpToggle" data-m="${esc(cid)}" data-k="${esc(v.k)}">Close</button></div>
+ ${tok?`<span class="small muted">To give them their own steps in the schedule, pick them under "Who" when you add a step in the event's run of show. ${c0(cid)}</span>`:""}</div>`}
+const c0=cid=>((D.clients||{})[cid]||{}).ev?"":"Link this client to an event first, so the schedule shows up on the page.";
+Object.assign(ACT,{
+ vpToggle:el=>{const k=el.dataset.m+"|"+el.dataset.k;L.vpOpen=L.vpOpen===k?null:k;render(true)},
+ vpSave:async el=>{const cid=el.dataset.m,vk=el.dataset.k,v=((D.cven||{})[cid]||{})[vk];if(!v)return;const p="vp_"+cid+"_"+vk+"_",g=f=>dv(p+f,v[f]==null?"":v[f]);
+  const u={arrive:g("arrive"),pickup:VK[vKind(v.role)].pickup?g("pickup"):(v.pickup||""),vnote:String(g("vnote")).trim().slice(0,600),extra:String(g("extra")).trim().slice(0,1500)};if(!v.tok)u.tok=vpNewTok();
+  await RT(PSP+`clientVendors/${cid}/${vk}`).update(u);Object.keys(L.drafts).filter(k=>k.startsWith(p)).forEach(k=>delete L.drafts[k]);vpSyncSoon();toast(v.tok?"Saved. Their page updates right away.":"Saved. Their link is ready to copy.");render(true)},
+ vpCopy:async el=>{const v=((D.cven||{})[el.dataset.m]||{})[el.dataset.k];if(!v||!v.tok)return;const l=vpLink(v.tok);try{await navigator.clipboard.writeText(l);toast("Link copied. Send it to "+v.name+".")}catch(e){prompt("Copy this link",l)}},
+ vpIssueOk:async el=>{const v=((D.cven||{})[el.dataset.m]||{})[el.dataset.k];if(!v||!v.tok)return;await RT(PSP+`vcheck/${v.tok}/issues/${el.dataset.i}/ok`).set(true);toast("Marked handled")}
+});
+/* the vendor's own page */
+function vendorConnect(){const tok=QS.get("vendor")||"";if(!/^[A-Za-z0-9_-]{8,40}$/.test(tok)||!PSP){L.loaded=true;D.vp=null;renderSoon();return}
+ RT(PSP+"vpages/"+tok).on("value",s=>{D.vp=s.val();L.loaded=true;const ev=D.vp&&D.vp.ev;
+  if(ev&&L.vpEv!==ev){L.vpEv=ev;ER("content/ros",ev).on("value",x=>{D.vros=x.val()||{};renderSoon()},()=>{});ER("rosDone",ev).on("value",x=>{D.vdone=x.val()||{};renderSoon()},()=>{})}renderSoon()},()=>{L.loaded=true;D.vp=null;renderSoon()});
+ RT(PSP+"vcheck/"+tok).on("value",s=>{D.vc=s.val()||{};renderSoon()},()=>{});
+ RT(PSP+"brand").on("value",s=>{D.brand=s.val();try{applyTheme()}catch(e){}renderSoon()},()=>{})}
+function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
+ if(!v)return `<section class="card stack narrow"><h2>This link isn't working</h2><p class="small muted m0">It may have been mistyped or turned off. Ask your planner to send it again.</p></section>`;
+ const K=VK[v.kind]||VK.other,c=D.vc||{},iss=vpIssues(c),me="v:"+v.vkey,done=D.vdone||{};
+ const ros=Object.keys(D.vros||{}).map(k=>Object.assign({k},D.vros[k])).sort((a,b)=>String(a.time||"99").localeCompare(String(b.time||"99"))||(a.t||0)-(b.t||0));
+ const mine=x=>x.who===me||(!!K.kw&&!x.who&&K.kw.test((x.title||"")+" "+(x.note||""))),nextI=ros.findIndex(x=>!done[x.k]),myN=ros.filter(x=>mine(x)&&!done[x.k]);
+ const tel=v.plan&&v.plan.phone?String(v.plan.phone).replace(/[^+\d]/g,""):"";
+ return `<section class="card stack"><div class="eyebrow">${esc(v.role||K.l)}</div><h2 class="m0">${esc(v.name)}</h2>
+ <div class="small"><b>${esc(v.evName)}</b>${v.date?` · ${esc(clFmtDate(v.date))}`:""}${v.place?`<span class="db">${esc(v.place)} · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.place)}" target="_blank" rel="noopener">Directions</a></span>`:""}</div>
+ <div class="small">Questions? ${esc(v.plan&&v.plan.name||"Your planner")}${tel?` · <a href="tel:${esc(tel)}">${esc(v.plan.phone)}</a>`:""}</div></section>
+ <section class="card stack"><h3>Your arrival</h3>${v.arrive?`<div class="vpbig">${esc(clFmtTime(v.arrive))}</div>`:'<p class="small muted m0">Your planner hasn\'t set an arrival time yet.</p>'}${v.pickup?`<div class="small">Pick up at <b>${esc(clFmtTime(v.pickup))}</b></div>`:""}${v.delivers?`<div class="small muted">Bringing: ${esc(v.delivers)}</div>`:""}
+ ${c.here?`<div class="okt"><b>✓ You checked in at ${esc(supTime(c.here))}</b></div><button class="btn xs as" data-act="vpHere" data-k="undo">That was a mistake</button>`:`<button class="btn primary vpherebtn" data-act="vpHere">I'm here</button><span class="small muted">Tap when you arrive, so ${esc(v.plan&&v.plan.name||"your planner")} knows without a call.</span>`}</section>
+ ${myN.length?`<section class="card stack gilt"><h3>Your moments</h3><div class="stack tight">${myN.slice(0,6).map(x=>`<div class="row between small clrow"><b>${esc(x.title)}</b><span>${esc(clFmtTime(x.time)||"")}</span></div>`).join("")}</div></section>`:""}
+ <section class="card stack"><div class="row between"><h3>Schedule</h3>${ros.length?`<span class="pill">${ros.filter(x=>done[x.k]).length} of ${ros.length} done</span>`:""}</div>
+ ${ros.length?`<div class="stack tight">${ros.map((x,i)=>{const d=!!done[x.k],m=mine(x);return `<div class="row between small clrow ${d?"done dim":""} ${m?"vpmine":""}"><span class="mw0"><b>${esc(x.title||"")}</b>${m?' <span class="pill gold">You</span>':""}${i===nextI?' <span class="pill live">Up next</span>':""}${d?' <span class="pill ok">Done</span>':""}${x.note?`<span class="db muted">${esc(x.note)}</span>`:""}</span><span class="rostime">${esc(clFmtTime(x.time)||"")}</span></div>`}).join("")}</div><span class="small muted">Updates live as the day runs.</span>`:'<p class="small muted m0">The schedule shows up here once your planner shares it.</p>'}</section>
+ ${v.extra||(K.head&&v.guests)?`<section class="card stack"><h3>${esc(K.x)}</h3>${K.head&&v.guests?`<div class="small">Headcount: <b>${+v.guests}</b></div>`:""}${v.extra?`<div class="small" style="white-space:pre-wrap">${esc(v.extra)}</div>`:""}</section>`:""}
+ ${v.vnote?`<section class="card stack"><h3>Notes from ${esc(v.plan&&v.plan.name||"your planner")}</h3><div class="small" style="white-space:pre-wrap">${esc(v.vnote)}</div></section>`:""}
+ <section class="card stack"><h3>Something wrong?</h3><p class="small muted m0">Stuck in traffic, missing a delivery, can't find the loading door? Tell ${esc(v.plan&&v.plan.name||"your planner")} here.</p>
+ ${iss.length?`<div class="stack tight">${iss.map(i=>`<div class="small clrow">🚩 ${esc(i.text)} <span class="muted">· ${esc(supAgo(i.t))}${i.ok?" · seen and handled":""}</span></div>`).join("")}</div>`:""}
+ <textarea rows="2" data-draft="vp_issue" maxlength="300" placeholder="Running 15 minutes late">${esc(dv("vp_issue",""))}</textarea><button class="btn sm as" data-act="vpIssue">Send to the planner</button></section>`}
+Object.assign(ACT,{
+ vpHere:async el=>{const tok=QS.get("vendor")||"";try{await RT(PSP+"vcheck/"+tok+"/here").set(el.dataset.k==="undo"?null:Date.now());toast(el.dataset.k==="undo"?"Check-in removed":"Checked in. Thanks!")}catch(e){toast("Couldn't send it. Check your connection.")}},
+ vpIssue:async()=>{const tok=QS.get("vendor")||"",text=String(dv("vp_issue","")).trim().slice(0,300);if(!text)return toast("Say what's wrong first");
+  try{await RT(PSP+"vcheck/"+tok+"/issues").push().set({text,t:Date.now()});delete L.drafts.vp_issue;toast("Sent to the planner");render(true)}catch(e){toast("Couldn't send it. Check your connection.")}}
+});
 
 /* ================= LEADS, SHOWCASE, REPORTS =================
    planners/{uid}/inquiries/{id} = {name, email, phone, type, date, guests, budget, msg, src, t, status: new|contacted|booked|lost, cid}
