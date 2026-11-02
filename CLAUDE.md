@@ -25,7 +25,12 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). .github/workflows: nightly agents and nightly backup. ops/BACKUPS.md: how backups work and how to restore one.
 - Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
-- Skills in .claude/skills: test-as-customer and answer-support-ticket (used by the nightly agents) and pitch-email (sales outreach).
+- Skills in .claude/skills (each has a SKILL.md; read the one that fits before starting):
+  - Agents: test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
+  - Building: new-event-type, spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
+  - Planners: onboard-new-planner, pricing-helper, event-debrief, theme-builder, guest-message-writer, testimonial-collector.
+  - Sales and marketing: pitch-email, vendor-outreach, social-media-posts, promo-video-script, release-notes.
+  - Staff only (never public): competitor-watch, business-plan-update.
 
 ## Where things go
 
