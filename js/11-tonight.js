@@ -1,10 +1,10 @@
 /* ================= TONIGHT TAB: run of show, diaper raffle, gift log ================= */
-D.raf={};D.rafWins={};D.gifts={};D.rosDone={};
+D.raf={};D.rafWins={};D.gifts={};D.rosDone={};D.rosShifts={};D.rosFlags={};
 const normName=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 const _subTonight=subscribeEvent;
 subscribeEvent=function(){_subTonight();
  if(VIEW==="moderator"||VIEW==="screen"){ER("raffle").on("value",s=>{D.raf=s.val()||{};renderSoon()});ER("rafWins").on("value",s=>{D.rafWins=s.val()||{};renderSoon()})}
- if(VIEW==="moderator"){ER("gifts").on("value",s=>{D.gifts=s.val()||{};renderSoon()});ER("rosDone").on("value",s=>{D.rosDone=s.val()||{};renderSoon()})}};
+ if(VIEW==="moderator"){ER("gifts").on("value",s=>{D.gifts=s.val()||{};renderSoon()});ER("rosDone").on("value",s=>{D.rosDone=s.val()||{};renderSoon()});ER("rosShifts").on("value",s=>{D.rosShifts=s.val()||{};renderSoon()});ER("rosFlags").on("value",s=>{D.rosFlags=s.val()||{};renderSoon()})}};
 let guestNames=()=>ids().filter(i=>!P(i).bot).map(i=>P(i).name).filter(Boolean);
 const nameList=id=>`<datalist id="${id}">${[...new Set(guestNames())].sort().map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>`;
 const helperName=id=>id&&String(id).startsWith("v:")?(((D.evVen||{})[String(id).slice(2)]||{}).name||"A vendor")+" (vendor)":id&&(D.mods||{})[id]?D.mods[id].name:"Everyone";
@@ -33,18 +33,55 @@ function rosRow(x,i,next){const done=(D.rosDone||{})[x.k],late=rosLate(x),ed=L.r
   <div class="row"><button class="btn sm primary" data-act="rosSave" data-k="${x.k}">Save</button><button class="btn sm" data-act="rosCancel">Cancel</button><button class="btn sm" data-act="rosDel" data-k="${x.k}">Delete</button></div></div>`;
  return `<div class="gamerow evrow ${done?"dim":""} ${next?"on":""}"><span class="gnum rostime">${esc(fmtTime(x.time))||"·"}</span><div class="mw0"><b>${esc(x.title||"")}</b> ${done?`<span class="pill ok">✓ Done</span>`:late?'<span class="pill warn">Running late</span>':next?'<span class="pill live">Up next</span>':""}
   <div class="small muted">${esc(helperName(x.who))}${x.note?" · "+esc(x.note):""}${done?` · checked off by ${esc(done.by||"a teammate")}`:""}</div></div>
-  <div class="row"><button class="btn sm ${done?"":"primary"}" data-act="rosDone" data-k="${x.k}">${done?"Undo":"Done"}</button><button class="btn sm" data-act="rosEditOpen" data-k="${x.k}" aria-label="Edit ${esc(x.title||"")}">Edit</button></div></div>`}
+  ${rosFlagList(x.k)}${L.rosFlag===x.k?`<div class="row"><input type="text" class="grow" data-draft="rf_text" maxlength="200" value="${esc(dv("rf_text",""))}" placeholder="Cake hasn't arrived" aria-label="What's wrong"><button class="btn xs primary" data-act="rosFlagSave" data-k="${x.k}">Flag it</button><button class="btn xs" data-act="rosFlagOpen" data-k="">Cancel</button></div>`:""}</div>
+  <div class="row"><button class="btn sm ${done?"":"primary"}" data-act="rosDone" data-k="${x.k}">${done?"Undo":"Done"}</button><button class="btn sm" data-act="rosEditOpen" data-k="${x.k}" aria-label="Edit ${esc(x.title||"")}">Edit</button>${done?"":`<button class="btn sm" data-act="rosFlagOpen" data-k="${x.k}" aria-label="Flag a problem with ${esc(x.title||"")}">Flag</button>`}</div></div>`}
 function rosWhoOpts(sel){const m=D.mods||{},vs=D.evVen||{};return `<option value="">Everyone</option>${Object.keys(m).map(id=>`<option value="${id}" ${sel===id?"selected":""}>${esc(m[id].name)}</option>`).join("")}${Object.keys(vs).length?`<optgroup label="Vendors">${Object.keys(vs).map(k=>`<option value="v:${esc(k)}" ${sel==="v:"+k?"selected":""}>${esc(vs[k].name||"Vendor")}${vs[k].role?" · "+esc(vs[k].role):""}</option>`).join("")}</optgroup>`:""}`}
 function rosSection(){const items=rosItems(),nextI=items.findIndex(x=>!(D.rosDone||{})[x.k]);const done=items.filter(x=>(D.rosDone||{})[x.k]).length;
  const mine=L.modId?items.filter(x=>x.who===L.modId&&!(D.rosDone||{})[x.k]):[];
  return `<section class="card stack gilt"><div class="row between"><h2>Run of show</h2>${items.length?`<span class="pill">${done} of ${items.length} done</span>`:""}</div>
  ${mine.length?`<div class="nudge"><b>Your jobs:</b> ${mine.map(x=>`${esc(fmtTime(x.time))} ${esc(x.title)}`).join(" · ")}</div>`:""}
+ ${items.length&&nextI>=0?rosLateBox():""}
  ${items.length?`<div class="stack tight">${items.map((x,i)=>rosRow(x,i,i===nextI)).join("")}</div>`:`<p class="small muted m0">Plan the evening hour by hour and give each job to a teammate. Start from the suggested plan and change anything.</p><button class="btn primary as" data-act="rosStarter">Use the suggested plan</button>`}
  <details class="stack"><summary class="small"><b>Add a step</b></summary><div class="grid2 g8"><label class="stack tight"><span class="small">Time</span><input type="time" data-draft="rn_time" value="${esc(dv("rn_time",""))}"></label>
   <label class="stack tight"><span class="small">Who</span><select data-draft="rn_who">${rosWhoOpts(dv("rn_who",""))}</select></label>
   <label class="stack tight"><span class="small">What</span><input type="text" data-draft="rn_title" value="${esc(dv("rn_title",""))}" placeholder="Cut the cake"></label>
   <label class="stack tight"><span class="small">Note (optional)</span><input type="text" data-draft="rn_note" value="${esc(dv("rn_note",""))}"></label></div><button class="btn sm primary as" data-act="rosAdd">Add step</button></details>
- ${Object.keys(D.mods||{}).length?"":`<p class="small muted m0">Add teammates on the Event tab, then assign them steps here. Each teammate sees their own jobs when they sign in.</p>`}</section>`}
+ ${Object.keys(D.mods||{}).length?"":`<p class="small muted m0">Add teammates on the Event tab, then assign them steps here. Each teammate sees their own jobs when they sign in.</p>`}</section>${done?rosRecord():""}`}
+/* ---- running late, flags and the after-event record ----
+   events/{EV}/rosShifts/{k} = {mins, by, t, prev:{stepKey:"HH:MM"}}   a "running late" shift of every step not done yet; prev undoes it
+   events/{EV}/rosFlags/{step}/{k} = {text, by, t, ok}                 a problem on one step
+   Vendor pages read the same steps, so moved times show on every vendor's phone right away. */
+const rosAdd=(t,m)=>{if(!/^\d{1,2}:\d{2}/.test(t||""))return t;const [h,mi]=t.split(":").map(Number),v=Math.min(23*60+59,Math.max(0,h*60+mi+m));return String(Math.floor(v/60)).padStart(2,"0")+":"+String(v%60).padStart(2,"0")};
+const rosMin=t=>{const [h,m]=String(t||"").split(":").map(Number);return isNaN(h)?null:h*60+(m||0)};
+const rosShiftList=()=>Object.keys(D.rosShifts||{}).map(k=>Object.assign({k},D.rosShifts[k])).sort((a,b)=>(a.t||0)-(b.t||0));
+const rosFlagsOf=k=>Object.keys((D.rosFlags||{})[k]||{}).map(f=>Object.assign({f},D.rosFlags[k][f])).sort((a,b)=>(a.t||0)-(b.t||0));
+const rosFlagList=k=>{const l=rosFlagsOf(k);return l.length?`<div class="stack tight">${l.map(f=>`<div class="small ${f.ok?"muted":"bad"}">🚩 ${esc(f.text)} <span class="muted">· ${esc(f.by||"")}</span>${f.ok?" · handled":` <button class="btn xs" data-act="rosFlagOk" data-k="${k}" data-f="${esc(f.f)}">Handled</button>`}</div>`).join("")}</div>`:""};
+/* the time a step was first planned for, before any running-late shifts */
+/* lateness only counts for steps ticked off on the event day itself (not practice runs) */
+const rosOnDay=t=>{const d=new Date(t);return C().date===`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+const rosPlanned=x=>{const s=rosShiftList().find(z=>z.prev&&z.prev[x.k]);return s?s.prev[x.k]:x.time};
+function rosLateBox(){const sh=rosShiftList(),last=sh[sh.length-1],total=sh.reduce((n,z)=>n+(+z.mins||0),0);
+ return `<div class="row rosLate"><span class="small"><b>Running late?</b></span><select data-draft="rl_mins" aria-label="How many minutes late">${[5,10,15,20,30,45,60].map(m=>`<option value="${m}" ${String(dv("rl_mins","15"))===String(m)?"selected":""}>${m} minutes</option>`).join("")}</select><button class="btn sm" data-act="rosShift">Move the rest later</button>
+ ${last?`<span class="small muted">${total>0?`Running ${total} min behind`:"Back on the plan"} · last moved ${esc(supTime(last.t))} by ${esc(last.by||"a teammate")}</span><button class="btn xs" data-act="rosShiftUndo" data-k="${esc(last.k)}">Undo that</button>`:`<span class="small muted">Every step not done yet moves, and vendors see the new times on their phones.</span>`}</div>`}
+function rosRecord(){const items=rosItems(),done=D.rosDone||{},rows=items.map(x=>{const d=done[x.k],p=rosPlanned(x),pm=rosMin(p);let diff=null;if(d&&d.t&&pm!=null&&rosOnDay(d.t)){const t=new Date(d.t);diff=t.getHours()*60+t.getMinutes()-pm}return {x,d,p,diff}});
+ const timed=rows.filter(r=>r.diff!=null),late=timed.filter(r=>r.diff>5),flags=items.reduce((n,x)=>n+rosFlagsOf(x.k).length,0),sh=rosShiftList();
+ const lbl=r=>r.diff==null?(r.d?"done":"not done"):r.diff>5?`${r.diff} min late`:r.diff<-5?`${-r.diff} min early`:"on time";
+ return `<section class="card stack"><div class="row between"><h3>How the event ran</h3><button class="btn xs" data-act="rosRecordCopy">Copy for the debrief</button></div>
+ <div class="row">${imPill(timed.length-late.length,"on time","ok")}${imPill(late.length,"ran late","warn")}${imPill(sh.length,sh.length===1?"time the schedule moved":"times the schedule moved","gold")}${imPill(flags,flags===1?"problem flagged":"problems flagged","")}</div>
+ <div class="stack tight">${rows.map(r=>`<div class="row between small clrow"><span class="mw0"><b>${esc(r.x.title||"")}</b><span class="db muted">Planned ${esc(fmtTime(r.p)||"—")}${r.d&&r.d.t?" · done "+esc(new Date(r.d.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))+(r.d.by?" by "+esc(r.d.by):""):""}</span></span><span class="pill ${r.diff!=null&&r.diff>5?"warn":r.d?"ok":""}">${lbl(r)}</span></div>`).join("")}</div>
+ ${sh.length?`<div class="small muted">${sh.map(z=>`${+z.mins>0?"Moved "+z.mins+" min later":"Moved "+(-z.mins)+" min earlier"} at ${esc(new Date(z.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))} by ${esc(z.by||"a teammate")}`).join(" · ")}</div>`:""}</section>`}
+function rosRecordText(){const items=rosItems(),done=D.rosDone||{};
+ return `How ${C().title||"the event"} ran\n\n`+items.map(x=>{const d=done[x.k],p=rosPlanned(x),pm=rosMin(p);let s=`- ${x.title} (planned ${fmtTime(p)||"no time"})`;if(d&&d.t){const t=new Date(d.t),diff=pm==null||!rosOnDay(d.t)?null:t.getHours()*60+t.getMinutes()-pm;s+=`: done ${t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`+(diff==null?"":diff>5?`, ${diff} min late`:diff<-5?`, ${-diff} min early`:", on time")}else s+=": not done";
+  rosFlagsOf(x.k).forEach(f=>s+=`\n  Problem: ${f.text}`);return s}).join("\n")+(rosShiftList().length?`\n\nSchedule moves: `+rosShiftList().map(z=>`${z.mins} min at ${new Date(z.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`).join(", "):"")}
+Object.assign(ACT,{
+ rosShift:async()=>{const mins=+dv("rl_mins","15")||15,prev={},u={};rosItems().filter(x=>!(D.rosDone||{})[x.k]&&x.time).forEach(x=>{prev[x.k]=x.time;u[x.k+"/time"]=rosAdd(x.time,mins)});
+  if(!Object.keys(prev).length)return toast("Every step with a time is already done");await ER("content/ros").update(u);await ER("rosShifts").push().set({mins,by:L.modName||"A teammate",t:Date.now(),prev});toast(`Moved ${Object.keys(prev).length} steps ${mins} minutes later`)},
+ rosShiftUndo:async el=>{const z=(D.rosShifts||{})[el.dataset.k];if(!z)return;const u={};Object.keys(z.prev||{}).forEach(k=>{if((C().ros||{})[k])u[k+"/time"]=z.prev[k]});if(Object.keys(u).length)await ER("content/ros").update(u);await ER("rosShifts/"+el.dataset.k).remove();toast("Put the times back")},
+ rosFlagOpen:el=>{L.rosFlag=el.dataset.k||null;delete L.drafts.rf_text;render(true)},
+ rosFlagSave:async el=>{const text=String(dv("rf_text","")).trim().slice(0,200);if(!text)return toast("Say what's wrong");await ER("rosFlags/"+el.dataset.k).push().set({text,by:L.modName||"A teammate",t:Date.now(),ok:false});delete L.drafts.rf_text;L.rosFlag=null;buzz(30);render(true)},
+ rosFlagOk:async el=>{await ER(`rosFlags/${el.dataset.k}/${el.dataset.f}/ok`).set(true)},
+ rosRecordCopy:async()=>{const t=rosRecordText();try{await navigator.clipboard.writeText(t);toast("Copied")}catch(e){prompt("Copy this",t)}}
+});
 
 /* ---- diaper raffle ---- */
 /* Baby showers start with the diaper raffle on. Every other event gets a general raffle, off until someone turns it on. */

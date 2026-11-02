@@ -863,6 +863,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .vpbig{font-size:2.2rem;font-weight:800;line-height:1.1;color:var(--hd)}.vpherebtn{font-size:1.2rem;padding:16px 22px;align-self:stretch}.vpmine{border-left:4px solid var(--gold,#c08a00);padding-left:8px}
 .tkdraft{padding:8px 0}
 .sttabs{gap:6px;margin-bottom:4px}.rsdoc h4{margin:12px 0 4px}.rsdoc ul{padding-left:20px}.rstable{overflow-x:auto}.rstable table{border-collapse:collapse;font-size:13px}.rstable td,.rstable th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+.vpsoon{border:2px solid var(--flame,#e8650f)}.rosLate{gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--ground)}
 .cd-event{background:#e0338f}.cd-pay{background:#e8a20c}.cd-date{background:#3f74d6}.cd-task{background:#2f9e44}
 .landed{animation:landed 1.4s ease-out}@keyframes landed{0%{box-shadow:0 0 0 3px var(--btn1)}100%{box-shadow:0 0 0 3px transparent}}
 .shhero{text-align:center;align-items:center}.shlogo{max-height:84px;max-width:220px;border-radius:14px}

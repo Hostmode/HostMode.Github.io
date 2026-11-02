@@ -255,9 +255,17 @@ Object.assign(ACT,{
 /* the vendor's own page */
 function vendorConnect(){const tok=QS.get("vendor")||"";if(!/^[A-Za-z0-9_-]{8,40}$/.test(tok)||!PSP){L.loaded=true;D.vp=null;renderSoon();return}
  RT(PSP+"vpages/"+tok).on("value",s=>{D.vp=s.val();L.loaded=true;const ev=D.vp&&D.vp.ev;
-  if(ev&&L.vpEv!==ev){L.vpEv=ev;ER("content/ros",ev).on("value",x=>{D.vros=x.val()||{};renderSoon()},()=>{});ER("rosDone",ev).on("value",x=>{D.vdone=x.val()||{};renderSoon()},()=>{})}renderSoon()},()=>{L.loaded=true;D.vp=null;renderSoon()});
+  if(ev&&L.vpEv!==ev){L.vpEv=ev;ER("content/ros",ev).on("value",x=>{D.vros=x.val()||{};renderSoon()},()=>{});ER("rosDone",ev).on("value",x=>{D.vdone=x.val()||{};renderSoon()},()=>{});ER("rosShifts",ev).on("value",x=>{D.vshift=x.val()||{};renderSoon()},()=>{})}renderSoon()},()=>{L.loaded=true;D.vp=null;renderSoon()});
  RT(PSP+"vcheck/"+tok).on("value",s=>{D.vc=s.val()||{};renderSoon()},()=>{});
- RT(PSP+"brand").on("value",s=>{D.brand=s.val();try{applyTheme()}catch(e){}renderSoon()},()=>{})}
+ RT(PSP+"brand").on("value",s=>{D.brand=s.val();try{applyTheme()}catch(e){}renderSoon()},()=>{});
+ setInterval(()=>{vpNudge();renderSoon()},30000)}
+/* heads-up: on the day, the vendor's next moment within 15 minutes shows at the top; with notifications allowed,
+   the phone also buzzes 5 minutes before (free browser notifications, while the page is open) */
+function vpNext(){const v=D.vp;if(!v||v.date!==todayISO())return null;const K=VK[v.kind]||VK.other,me="v:"+v.vkey,done=D.vdone||{},n=new Date(),now=n.getHours()*60+n.getMinutes();
+ return Object.keys(D.vros||{}).map(k=>Object.assign({k},D.vros[k])).filter(x=>!done[x.k]&&x.time&&(x.who===me||(!!K.kw&&!x.who&&K.kw.test((x.title||"")+" "+(x.note||""))))).map(x=>Object.assign(x,{inMin:rosMin(x.time)-now})).filter(x=>x.inMin>=-5&&x.inMin<=15).sort((a,b)=>a.inMin-b.inMin)[0]||null}
+function vpNudge(){const x=vpNext();if(!x||x.inMin>5||x.inMin<0)return;const key="vpN_"+x.k+"_"+x.time;if(store.get(key,0))return;store.set(key,1);
+ try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+ try{if(window.Notification&&Notification.permission==="granted")new Notification("Coming up at "+fmtTime(x.time),{body:x.title+". You're on."})}catch(e){}}
 function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  if(!v)return `<section class="card stack narrow"><h2>This link isn't working</h2><p class="small muted m0">It may have been mistyped or turned off. Ask your planner to send it again.</p></section>`;
  const K=VK[v.kind]||VK.other,c=D.vc||{},iss=vpIssues(c),me="v:"+v.vkey,done=D.vdone||{};
@@ -267,9 +275,12 @@ function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  return `<section class="card stack"><div class="eyebrow">${esc(v.role||K.l)}</div><h2 class="m0">${esc(v.name)}</h2>
  <div class="small"><b>${esc(v.evName)}</b>${v.date?` · ${esc(clFmtDate(v.date))}`:""}${v.place?`<span class="db">${esc(v.place)} · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.place)}" target="_blank" rel="noopener">Directions</a></span>`:""}</div>
  <div class="small">Questions? ${esc(v.plan&&v.plan.name||"Your planner")}${tel?` · <a href="tel:${esc(tel)}">${esc(v.plan.phone)}</a>`:""}</div></section>
+ ${(()=>{const x=vpNext();return x?`<section class="card stack gilt vpsoon" role="status"><b>${x.inMin<=0?"Happening now":"Coming up in "+x.inMin+" min"}: ${esc(x.title)}</b><span class="small">${esc(fmtTime(x.time))} · you're on</span></section>`:""})()}
+ ${(()=>{const sh=Object.values(D.vshift||{}).sort((a,b)=>(a.t||0)-(b.t||0)),tot=sh.reduce((n,z)=>n+(+z.mins||0),0),last=sh[sh.length-1];return last&&tot?`<section class="card stack"><b>The schedule moved ${tot} minutes later</b><span class="small muted">Last change at ${esc(new Date(last.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))}. The times below are up to date.</span></section>`:""})()}
  <section class="card stack"><h3>Your arrival</h3>${v.arrive?`<div class="vpbig">${esc(clFmtTime(v.arrive))}</div>`:'<p class="small muted m0">Your planner hasn\'t set an arrival time yet.</p>'}${v.pickup?`<div class="small">Pick up at <b>${esc(clFmtTime(v.pickup))}</b></div>`:""}${v.delivers?`<div class="small muted">Bringing: ${esc(v.delivers)}</div>`:""}
  ${c.here?`<div class="okt"><b>✓ You checked in at ${esc(supTime(c.here))}</b></div><button class="btn xs as" data-act="vpHere" data-k="undo">That was a mistake</button>`:`<button class="btn primary vpherebtn" data-act="vpHere">I'm here</button><span class="small muted">Tap when you arrive, so ${esc(v.plan&&v.plan.name||"your planner")} knows without a call.</span>`}</section>
  ${myN.length?`<section class="card stack gilt"><h3>Your moments</h3><div class="stack tight">${myN.slice(0,6).map(x=>`<div class="row between small clrow"><b>${esc(x.title)}</b><span>${esc(clFmtTime(x.time)||"")}</span></div>`).join("")}</div></section>`:""}
+ ${v.date===todayISO()&&window.Notification&&Notification.permission==="default"?`<button class="btn sm as" data-act="vpNotify">Buzz my phone 5 minutes before my moments</button>`:""}
  <section class="card stack"><div class="row between"><h3>Schedule</h3>${ros.length?`<span class="pill">${ros.filter(x=>done[x.k]).length} of ${ros.length} done</span>`:""}</div>
  ${ros.length?`<div class="stack tight">${ros.map((x,i)=>{const d=!!done[x.k],m=mine(x);return `<div class="row between small clrow ${d?"done dim":""} ${m?"vpmine":""}"><span class="mw0"><b>${esc(x.title||"")}</b>${m?' <span class="pill gold">You</span>':""}${i===nextI?' <span class="pill live">Up next</span>':""}${d?' <span class="pill ok">Done</span>':""}${x.note?`<span class="db muted">${esc(x.note)}</span>`:""}</span><span class="rostime">${esc(clFmtTime(x.time)||"")}</span></div>`}).join("")}</div><span class="small muted">Updates live as the day runs.</span>`:'<p class="small muted m0">The schedule shows up here once your planner shares it.</p>'}</section>
  ${v.extra||(K.head&&v.guests)?`<section class="card stack"><h3>${esc(K.x)}</h3>${K.head&&v.guests?`<div class="small">Headcount: <b>${+v.guests}</b></div>`:""}${v.extra?`<div class="small" style="white-space:pre-wrap">${esc(v.extra)}</div>`:""}</section>`:""}
@@ -278,6 +289,7 @@ function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  ${iss.length?`<div class="stack tight">${iss.map(i=>`<div class="small clrow">🚩 ${esc(i.text)} <span class="muted">· ${esc(supAgo(i.t))}${i.ok?" · seen and handled":""}</span></div>`).join("")}</div>`:""}
  <textarea rows="2" data-draft="vp_issue" maxlength="300" placeholder="Running 15 minutes late">${esc(dv("vp_issue",""))}</textarea><button class="btn sm as" data-act="vpIssue">Send to the planner</button></section>`}
 Object.assign(ACT,{
+ vpNotify:async()=>{try{const p=await Notification.requestPermission();toast(p==="granted"?"You'll get a buzz 5 minutes before your moments, while this page is open":"Notifications are off. Keep this page open and check the top for what's next.")}catch(e){}render(true)},
  vpHere:async el=>{const tok=QS.get("vendor")||"";try{await RT(PSP+"vcheck/"+tok+"/here").set(el.dataset.k==="undo"?null:Date.now());toast(el.dataset.k==="undo"?"Check-in removed":"Checked in. Thanks!")}catch(e){toast("Couldn't send it. Check your connection.")}},
  vpIssue:async()=>{const tok=QS.get("vendor")||"",text=String(dv("vp_issue","")).trim().slice(0,300);if(!text)return toast("Say what's wrong first");
   try{await RT(PSP+"vcheck/"+tok+"/issues").push().set({text,t:Date.now()});delete L.drafts.vp_issue;toast("Sent to the planner");render(true)}catch(e){toast("Couldn't send it. Check your connection.")}}
