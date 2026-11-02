@@ -86,6 +86,7 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
    - In this sandbox the internet CDNs are blocked: route jszip.min.js to /opt/npm-tools/node_modules/jszip/dist/jszip.min.js in Playwright to test Excel imports, and expect plain (non-demo) views to show "offline".
    - After raising PDEMO_V, clear localStorage (the demo database is kept there) before testing.
    - Background servers stop between turns; start the server in the same command as the test.
+   - For big changes (moving code, refactors, anything touching guest, moderator or big-screen screens), record the screens first with `python agents/compare_screens.py before`, make the change, then run it with `after`: it lists any of 14 key screens that changed or shows an error.
 4. Commit with a short plain-English summary of what changed.
 5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval.
 
