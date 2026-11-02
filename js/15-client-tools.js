@@ -431,3 +431,76 @@ function pdemoEvRow(){if(!EV||!["moderator","guest","screen"].includes(VIEW))ret
  return `<div class="dbrow"><span class="dbt">This event</span><span class="small" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">${esc(nm)}</span></div><div class="dbscreens">${e("moderator","Console","moderator")}${e("","Guest phone","guest")}${e("screen","Big screen","screen")}</div>`}
 const _hvPD=headerView;headerView=function(){return pdemoBar()+_hvPD()};
 
+
+/* ================= QUESTIONNAIRE AND EVENT SHEET =================
+   Questionnaire: the planner asks, the client answers in their portal, and the answers fill in the client's details.
+   partygames(planner)/clients/{id}/askQ = {t, extra:["Any questions the planner added"]}
+   partygames(planner)/clients/{id}/qa   = {a:{key:answer}, x:[extra answers], t, seen}
+   Answers fill the client's empty details (date, guests, venue, budget, event type); different answers wait for the planner.
+   Event sheet (a banquet event order): one printable page per event for the kitchen, venue and crew. */
+const QA=[["date","Event date","date"],["guests","About how many guests?","number"],["venue","Where is it? (venue or address)","text"],["evType","What kind of event?","kind"],
+ ["budget","What budget do you have in mind?","text"],["colors","Colors, theme or feel","text"],["mustHaves","Must-haves for the day","area"],["food","Food and drinks, including allergies or dietary needs","area"],
+ ["music","Music: songs you love, songs to skip","area"],["vips","Who should we make sure to celebrate or look after?","area"],["other","Anything else we should know?","area"]];
+const QA_FILL={date:"date",guests:"guests",venue:"venue",evType:"evType",budget:"budget"};
+const qaOf=c=>(c&&c.qa)||null;
+function qaPlannerBox(id){const c=(D.clients||{})[id]||{},q=qaOf(c),ask=c.askQ,open=L.qaOpen===id;
+ if(q&&q.t&&!(q.seen>=q.t)&&!L.viewOnly&&!L.qaMark){L.qaMark=1;setTimeout(()=>{RT(PSP+"clients/"+id+"/qa/seen").set(Date.now()).catch(()=>{});L.qaMark=0},800)}
+ if(!ask&&!q)return `<div class="row small"><span>Questionnaire:</span>${open?"":`<button class="btn xs" data-act="qaToggle" data-m="${esc(id)}">Ask about their event</button>`}</div>${open?qaAskForm(id):""}`;
+ if(!q)return `<div class="row small"><span>Questionnaire sent ${esc(supAgo(ask.t))}, waiting for their answers.</span><button class="btn xs" data-act="qaCancel" data-m="${esc(id)}">${L.confirm==="qac"+id?"Tap again to take it back":"Take it back"}</button></div>`;
+ const diff=Object.keys(QA_FILL).filter(k=>q.a&&q.a[k]!=null&&q.a[k]!==""&&String(c[QA_FILL[k]]||"")!==String(q.a[k]));
+ return `<div class="card stack tight"><div class="row between"><b>Their answers</b><span class="small muted">${esc(supAgo(q.t))}</span></div>
+ <div class="small stack tight">${QA.filter(([k])=>q.a&&q.a[k]!=null&&q.a[k]!=="").map(([k,l,t])=>`<div><span class="muted">${esc(l)}</span><div style="white-space:pre-wrap">${esc(k==="date"?clFmtDate(q.a[k]):q.a[k])}</div></div>`).join("")}
+ ${(ask&&ask.extra||[]).map((x,i)=>q.x&&q.x[i]?`<div><span class="muted">${esc(x)}</span><div style="white-space:pre-wrap">${esc(q.x[i])}</div></div>`:"").join("")}</div>
+ ${diff.length?`<div class="row small"><span>Some answers differ from what you have:</span>${diff.map(k=>`<button class="btn xs" data-act="qaUse" data-m="${esc(id)}" data-k="${k}">Use their ${({date:"date",guests:"guest count",venue:"venue",evType:"event type",budget:"budget"})[k]}</button>`).join("")}</div>`:""}
+ <div class="row"><button class="btn xs" data-act="qaToggle" data-m="${esc(id)}">${open?"Close":"Ask again"}</button></div>${open?qaAskForm(id):""}</div>`}
+function qaAskForm(id){return `<div class="card stack tight"><span class="small">They'll see a short form in their portal: date, guests, venue, budget, theme, must-haves, food and allergies, music and more. Their answers fill in their details here.</span>
+ <label class="stack tight"><span class="small">Your own questions, one per line (optional)</span><textarea rows="3" data-draft="qa_extra_${esc(id)}" maxlength="800" placeholder="Do you have a ceremony and a reception?">${esc(dv("qa_extra_"+id,""))}</textarea></label>
+ <button class="btn sm primary as" data-act="qaSend" data-m="${esc(id)}">Send the questionnaire</button></div>`}
+/* the client's side */
+function qaClientCard(id,me){const ask=me.askQ;if(!ask||(me.qa&&me.qa.t>=ask.t&&!L.qaEdit))return me.qa&&ask?`<section class="card stack"><div class="row between"><h3>Your event details</h3><button class="btn xs" data-act="qaEdit">Change my answers</button></div><p class="small muted m0">Thanks! Your planner has your answers.</p></section>`:"";
+ const a=(me.qa&&me.qa.a)||{},x=(me.qa&&me.qa.x)||[],f=(k,l,t)=>{const v=dv("qa_"+k,a[k]==null?(k==="date"?me.date||"":k==="guests"?me.guests||"":k==="venue"?me.venue||"":""):a[k]);
+  return `<label class="stack tight"><span class="small">${esc(l)}</span>${t==="area"?`<textarea rows="3" data-draft="qa_${k}" maxlength="1500">${esc(v)}</textarea>`:t==="kind"?`<select data-draft="qa_${k}"><option value="">Pick one</option>${EV_KINDS.map(z=>`<option ${v===z?"selected":""}>${esc(z)}</option>`).join("")}</select>`:`<input type="${t==="number"?"number":t}" ${t==="number"?'min="0" inputmode="numeric"':""} data-draft="qa_${k}" maxlength="200" value="${esc(v)}">`}</label>`};
+ return `<section class="card stack gilt"><h3>Tell us about your event</h3><p class="small muted m0">A few questions from your planner. Answer what you can; you can change your answers later.</p>
+ ${QA.map(([k,l,t])=>f(k,l,t)).join("")}${(ask.extra||[]).map((q,i)=>`<label class="stack tight"><span class="small">${esc(q)}</span><textarea rows="2" data-draft="qa_x${i}" maxlength="1500">${esc(dv("qa_x"+i,x[i]||""))}</textarea></label>`).join("")}
+ <button class="btn primary as" data-act="qaSubmit">Send my answers</button></section>`}
+Object.assign(ACT,{
+ qaToggle:el=>{const id=el.dataset.m;L.qaOpen=L.qaOpen===id?null:id;render(true)},
+ qaSend:async el=>{const id=el.dataset.m,extra=String(dv("qa_extra_"+id,"")).split("\n").map(x=>x.trim()).filter(Boolean).slice(0,8).map(x=>x.slice(0,200));
+  await RT(PSP+"clients/"+id+"/askQ").set({t:Date.now(),extra});await RT(PSP+"clientMsgs/"+id).push().set({from:"planner",text:"I've sent you a few questions about your event. You'll find them on your Overview. Thank you!",t:Date.now()});
+  delete L.drafts["qa_extra_"+id];L.qaOpen=null;toast("Sent. It's on their Overview, with a message so they notice.");render(true)},
+ qaCancel:async el=>{const id=el.dataset.m;if(L.confirm!=="qac"+id){L.confirm="qac"+id;return render(true)}L.confirm=null;await RT(PSP+"clients/"+id+"/askQ").remove();toast("Questionnaire taken back")},
+ qaUse:async el=>{const id=el.dataset.m,k=el.dataset.k,c=(D.clients||{})[id]||{},v=qaOf(c)&&qaOf(c).a[k];if(v==null)return;await RT(PSP+`clients/${id}/${QA_FILL[k]}`).set(k==="guests"?(+v||0):v);toast("Updated")},
+ qaEdit:()=>{L.qaEdit=true;render(true)},
+ qaSubmit:async()=>{const id=clKey(),me=D.cliMe||{},ask=me.askQ||{},a={},x=[];
+  QA.forEach(([k,,t])=>{const v=String(dv("qa_"+k,((me.qa||{}).a||{})[k]||"")).trim();if(v)a[k]=t==="number"?Math.max(0,Math.round(+v||0)):v.slice(0,1500)});
+  (ask.extra||[]).forEach((q,i)=>x.push(String(dv("qa_x"+i,((me.qa||{}).x||[])[i]||"")).trim().slice(0,1500)));
+  if(!Object.keys(a).length&&!x.some(Boolean))return toast("Answer at least one question");
+  const u={qa:{a,x,t:Date.now()}};Object.keys(QA_FILL).forEach(k=>{const f=QA_FILL[k];if(a[k]!=null&&(me[f]==null||me[f]===""))u[f]=a[k]});
+  await RT(PSP+"clients/"+id).update(u);Object.keys(L.drafts).filter(k=>k.startsWith("qa_")).forEach(k=>delete L.drafts[k]);L.qaEdit=false;toast("Thank you! Your planner has your answers.");render(true)}
+});
+/* ---- the event sheet (banquet event order) ---- */
+async function beoHTML(id){const c=(D.clients||{})[id]||{},f=invFrom(),ev=c.ev||"";let content={},orders={},meta={};
+ if(ev){try{const [a,b,m]=await Promise.all(["content","orders","meta"].map(p=>ER(p,ev).once("value").then(s=>s.val()).catch(()=>null)));content=a||{};orders=b||{};meta=m||{}}catch(e){}}
+ const ros=Object.keys(content.ros||{}).map(k=>content.ros[k]).sort((x,y)=>String(x.time||"").localeCompare(String(y.time||""))),vs=clVendors(id),q=(qaOf(c)||{}).a||{};
+ const bk=typeof bkList==="function"?bkList().filter(b=>b.ref==="c:"+id&&b.status!=="cancelled"):[],gr=typeof gresList==="function"?gresList().filter(r=>r.ref==="c:"+id&&r.status!=="back"):[];
+ const m=content.menu?Object.assign({groups:[]},content.menu):null,groups=m?arr(m.groups).map(g=>Object.assign({},g,{items:arr(g.items)})):[],counts=groups.map(g=>g.items.map(()=>0));
+ Object.values(orders||{}).forEach(o=>{const p=(o&&o.picks)||{};Object.keys(p).forEach(gi=>arr(p[gi]).forEach(ii=>{if(counts[gi]&&counts[gi][ii]!=null)counts[gi][ii]++}))});
+ const allergy=[q.food].concat(vs.filter(v=>vKind(v.role)==="cater"&&v.extra).map(v=>v.extra)).filter(Boolean);
+ const sec=(h,body)=>body?`<h2>${h}</h2>${body}`:"",li=a=>a.length?`<ul>${a.map(x=>`<li>${x}</li>`).join("")}</ul>`:"";
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event sheet · ${esc(c.evName||c.name||"Event")}</title>
+<style>body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1d2433;background:#f4f1ea}.pg{max-width:800px;margin:20px auto;background:#fff;padding:32px 38px;border-radius:12px}
+h1{margin:0;font-size:24px;color:${esc(f.color)}}h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#6b7385;border-bottom:2px solid ${esc(f.color)};padding-bottom:4px;margin:22px 0 8px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}.meta div span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7385}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 4px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}th{font-size:11px;text-transform:uppercase;color:#6b7385}.n{text-align:right;font-weight:700}.al{background:#fff4e5;border-left:4px solid #e8650f;padding:8px 10px;border-radius:6px}
+ul{margin:4px 0;padding-left:20px}.m{color:#6b7385}@media print{body{background:#fff}.pg{margin:0;padding:0}}</style></head><body><div class="pg">
+<div class="m">${esc(f.name)} · Event sheet</div><h1>${esc(c.evName||c.evTitle||c.name||"Event")}</h1>
+<div class="meta"><div><span>Client</span>${esc(c.name||"")}</div><div><span>Date</span>${esc(c.date?clFmtDate(c.date):"Not set")}</div><div><span>Guests</span>${esc(String(c.guests||q.guests||"—"))}</div><div><span>Where</span>${esc(c.venue||q.venue||"—")}</div>${bk.length?`<div><span>Room</span>${bk.map(b=>esc(spaceName(b.space)+" · "+bkTimes(b))).join("<br>")}</div>`:""}<div><span>Planner</span>${esc(f.name)}${f.phone?"<br>"+esc(f.phone):""}</div></div>
+${allergy.length?`<h2>Allergies and dietary needs</h2><div class="al">${allergy.map(a=>esc(a)).join("<br>")}</div>`:""}
+${sec("Timeline",ros.length?`<table><tr><th>Time</th><th>What</th><th>Notes</th></tr>${ros.map(x=>`<tr><td>${esc(fmtTime(x.time)||"")}</td><td><b>${esc(x.title||"")}</b></td><td>${esc(x.note||"")}</td></tr>`).join("")}</table>`:(clDates(id).length?li(clDates(id).map(x=>`${esc(clFmtDate(x.date))} ${esc(x.time?clFmtTime(x.time):"")} · ${esc(x.title)}`)):`<p class="m">Add the run of show in the event's Tonight tab.</p>`))}
+${groups.some(g=>g.items.length)?`<h2>${esc(m.title||"Menu")}</h2>${groups.filter(g=>g.items.length).map((g,gi)=>`<b>${esc(g.name)}</b><table>${g.items.map((it,ii)=>`<tr><td>${esc(it.n)}${it.d?` <span class="m">· ${esc(it.d)}</span>`:""}</td><td class="n">${counts[groups.indexOf(g)]&&counts[groups.indexOf(g)][ii]?counts[groups.indexOf(g)][ii]+" ordered":""}</td></tr>`).join("")}</table>`).join("")}`:(m&&m.text?`<h2>Menu</h2><p style="white-space:pre-wrap">${esc(m.text)}</p>`:"")}
+${sec("Vendors",vs.length?`<table><tr><th>Vendor</th><th>Arrives</th><th>Bringing and notes</th><th>Phone</th></tr>${vs.map(v=>`<tr><td><b>${esc(v.name)}</b><div class="m">${esc(v.role||"")}</div></td><td>${esc(v.arrive?clFmtTime(v.arrive):"")}${v.pickup?"<div class='m'>pickup "+esc(clFmtTime(v.pickup))+"</div>":""}</td><td>${esc([v.delivers,v.vnote,v.extra].filter(Boolean).join(" · "))}</td><td>${esc(v.phone||"")}</td></tr>`).join("")}</table>`:"")}
+${sec("Room setup and rentals",[...bk.filter(b=>b.note).map(b=>esc(b.note)),...gr.map(r=>`<b>${esc(r.label)}</b>: ${gresWhat(r).map(esc).join(", ")}`)].length?li([...bk.filter(b=>b.note).map(b=>esc(b.note)),...gr.map(r=>`<b>${esc(r.label)}</b>: ${gresWhat(r).map(esc).join(", ")}`)]):"")}
+${sec("From the client",[q.colors&&"Theme and colors: "+esc(q.colors),q.mustHaves&&"Must-haves: "+esc(q.mustHaves),q.music&&"Music: "+esc(q.music),q.vips&&"Look after: "+esc(q.vips),q.other&&esc(q.other)].filter(Boolean).length?li([q.colors&&"Theme and colors: "+esc(q.colors),q.mustHaves&&"Must-haves: "+esc(q.mustHaves),q.music&&"Music: "+esc(q.music),q.vips&&"Look after: "+esc(q.vips),q.other&&esc(q.other)].filter(Boolean)):"")}
+${c.notes?`<h2>Notes</h2><p style="white-space:pre-wrap">${esc(c.notes)}</p>`:""}
+<p class="m">Printed ${esc(new Date().toLocaleString())} · Made with Host Mode</p></div></body></html>`}
+ACT.beoView=async el=>{toast("Making the event sheet…");const html=await beoHTML(el.dataset.m),w=window.open("","_blank");if(w){w.document.open();w.document.write(html);w.document.close()}else download("event-sheet.html",new Blob([html],{type:"text/html"}))};
