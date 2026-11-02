@@ -864,6 +864,11 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .calday.today{border:2px solid var(--btn1)}.calday.sel{background:var(--btn1);color:#fff;border-color:var(--btn1)}.calday.sel b{box-shadow:0 0 0 1px #fff}
 .cd-venue,.cd-vbk{background:#7048e8}.cd-vhold{background:#c08a00}.cd-block,.cd-vblk{background:#555}.cd-gear{background:#0c8599}.okt{color:#2f9e44}
 .calday.blkd{background:repeating-linear-gradient(135deg,var(--card) 0 6px,color-mix(in srgb,var(--muted) 18%,transparent) 6px 12px)}.calday.blkd.sel{background:var(--btn1)}
+.supfoot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:22px 0 8px;text-align:center}.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--btn1);text-decoration:underline;cursor:pointer}
+.tkrow{padding:0}.tkhead{display:block;width:100%;text-align:left;background:none;border:0;font:inherit;color:inherit;padding:10px 0;cursor:pointer}.tkrow.open .tkhead{border-bottom:1px solid var(--line)}.tkmsgline{margin-top:4px}
+.tkdetail{padding:10px 0 4px}.tkbody{white-space:pre-wrap;padding:10px 12px;background:var(--ground);border-radius:10px}.tkerr{white-space:pre-wrap;font-size:12px;margin:4px 0;max-height:160px;overflow:auto}
+.tkthread{border-left:3px solid var(--line);padding-left:10px}.tkmsg{font-size:14px}.tkmsg.me b{color:var(--btn1)}.tkmsg div{white-space:pre-wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#aaa;vertical-align:middle}.dot.on{background:#2f9e44;box-shadow:0 0 0 3px color-mix(in srgb,#2f9e44 25%,transparent)}
 .cd-event{background:#e0338f}.cd-pay{background:#e8a20c}.cd-date{background:#3f74d6}.cd-task{background:#2f9e44}
 .landed{animation:landed 1.4s ease-out}@keyframes landed{0%{box-shadow:0 0 0 3px var(--btn1)}100%{box-shadow:0 0 0 3px transparent}}
 .shhero{text-align:center;align-items:center}.shlogo{max-height:84px;max-width:220px;border-radius:14px}
@@ -1093,7 +1098,7 @@ const QS=new URLSearchParams(location.search);
 const EV=((QS.get("e")||"").toUpperCase().replace(/[^A-Z0-9-]/g,""))||null;
 /* planner space: client, teammate and feedback links carry ?p=<planner id>; the planner portal sets it after sign-in */
 let PSP=/^[A-Za-z0-9_-]{1,64}$/.test(QS.get("p")||"")?"planners/"+QS.get("p")+"/":"";
-const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
+const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","support","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
 const baseURL=()=>location.origin+location.pathname;
 const eventURL=(code,hash)=>baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"e="+encodeURIComponent(code)+(hash?"#"+hash:"");
 
@@ -1260,6 +1265,7 @@ function connect(){
  if(!window.firebase||!FIREBASE_CONFIG.apiKey){L.offline=true;render();return}
  try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){L.offline=true;render();return}
  db.ref(".info/connected").on("value",s=>{L.connected=!!s.val();renderSoon()});
+ supMineSubs();
  if(VIEW==="moderator"){try{const a=firebase.auth&&firebase.auth();if(a)a.onAuthStateChanged(u=>{L.navUid=u?u.uid:null;renderSoon()})}catch(e){}}
  db.ref(".info/serverTimeOffset").on("value",s=>{L.offset=s.val()||0});
  hashPin(DEFAULT_MASTER_PIN).then(h=>{L.defaultHash=h;RT("admin").on("value",s=>{D.admin=s.val()||{};L.masterHash=D.admin.pinHash||L.defaultHash;checkAuth();renderSoon()})});
@@ -1269,6 +1275,7 @@ function connect(){
  if(VIEW==="fb"){fbConnect();return}
  if(VIEW==="show"){shConnect();return}
  if(VIEW==="planner"){plConnect();return}
+ if(VIEW==="support"){supConnect();return}
  if(VIEW==="host"){hostConnect();return}
  if(!EV){routeWithoutCode();return}
  subscribeEvent();
@@ -1377,6 +1384,7 @@ function render(force){
  else if(VIEW==="fb")html=fbView();
  else if(VIEW==="planner")html=plannerView();
  else if(VIEW==="show")html=showView();
+ else if(VIEW==="support")html=supportView();
  else if(!EV)html=L.loaded?landing():loadingView();
  else if(L.missing)html=landing(true);
  else if(!L.loaded)html=loadingView();
@@ -1386,14 +1394,14 @@ function render(force){
  else if(VIEW==="keepsake")html=keepsakeView();
  else if(VIEW==="print")html=L.modOK?printView():pinScreen();
  else html=player();
- const app=$("#app");app.innerHTML=html;$("#hdr").innerHTML=headerView();
+ const app=$("#app");app.innerHTML=html+supFoot();$("#hdr").innerHTML=headerView();
  const key=viewKey(),changed=key!==L.lastKey,liveNow=st().live||null;
  const swiped=changed&&L.lastLive!==null&&liveNow!==L.lastLive;
  L.lastKey=key;L.lastLive=liveNow;
  if(changed&&!reduceMotion()){let i=0;app.querySelectorAll(".card,.livebtn,.tbar,.gamerow,.item,.choice,.cwbox,.banner,.lw .col,.stage,.ph,.hero").forEach(el=>{if(i>24)return;el.classList.add("ai");el.style.animationDelay=Math.min(i,12)*45+"ms";i++});
   if(swiped){app.classList.remove("swipe");void app.offsetWidth;app.classList.add("swipe")}}
  bind(app);bind($("#hdr"));
- $("#sheet").innerHTML=L.legal?legalSheet():L.settings?settingsSheet():"";bind($("#sheet"));
+ $("#sheet").innerHTML=L.legal?legalSheet():L.settings?settingsSheet():L.report?supSheet():"";bind($("#sheet"));
  $("#lb").innerHTML=L.lightbox?lightboxView():"";bind($("#lb"));
  if(keep){const el=keep.cell?app.querySelector(`[data-cell="${keep.cell}"]`):keep.id?document.getElementById(keep.id):keep.draft?app.querySelector(`[data-draft="${keep.draft}"]`):null;
   if(el){el.focus({preventScroll:true});try{if(keep.ss!=null&&el.setSelectionRange)el.setSelectionRange(keep.ss,keep.se)}catch(e){}}}
@@ -1411,8 +1419,8 @@ document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.datase
 document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest("#rv");if(r){const s=st().reveal;if(s&&now()>s.at+1500){r.classList.remove("on");r.innerHTML=""}}});
 
 function headerView(){
- const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
- const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
+ const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
+ const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Support":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
  const showAa=VIEW==="guest"||VIEW==="album"||VIEW==="keepsake";
  return `<div class="brand"><h1>${esc(title)}</h1>${sub?`<p>${esc(sub)}</p>`:""}</div>${showAa?`<button class="btn sm aa" data-act="settings" aria-label="${t("Settings")}">Aa</button>`:""}${VIEW==="moderator"&&L.modOK?`<span class="row"><span class="pill ${D.meta&&D.meta.practice?"warn":"live"}">${D.meta&&D.meta.practice?"Practice run":L.isAdmin?"Administrator":"Moderator"} · ${esc(EV)}</span><span class="small muted">${esc(L.isAdmin?"":L.modName||"")}</span>${modBackLinks()}<button class="btn xs" data-act="modSignOut">Sign out</button></span>`:""}`}
 /* back buttons from an event console to the admin console and the planner portal */
@@ -1801,8 +1809,8 @@ function hostView(){
  if(!L.loaded)return loadingView();
  if(!L.hostOK)return `<section class="card stack narrow"><div class="eyebrow">Administrator</div><h2>Enter the host PIN</h2><p class="small muted m0">The host PIN is the administrator PIN. It opens every event. It starts as 0102 until you change it.</p><input type="password" inputmode="numeric" id="hpin" data-draft="hpin" value="${esc(dv("hpin",""))}"><button class="btn primary" data-act="hostPin">Open</button></section>`;
  const tab=(k,l)=>`<button data-act="hostTab" data-k="${k}" aria-pressed="${(L.hostTab||"events")===k}">${l}</button>`;
- const body={events:hEvents,invites:hInvites,planners:hPlanners,leads:hLeads,archives:hArchives,themes:hThemes,library:hLibrary,settings:hSettings}[L.hostTab||"events"]();
- return `<div class="console"><nav class="side">${tab("events","Events")}${tab("invites","Invite codes")}${tab("planners","Planners")}${tab("leads","Contacts"+(Object.keys(D.leads||{}).length?` <span class="pill gold">${Object.keys(D.leads).length}</span>`:""))}${tab("archives","Archives")}${tab("themes","Themes")}${tab("library","Game inventory")}${tab("settings","Host settings")}</nav><div class="stack mw0">${body}</div></div>`}
+ const body={support:supportBody,events:hEvents,invites:hInvites,planners:hPlanners,leads:hLeads,archives:hArchives,themes:hThemes,library:hLibrary,settings:hSettings}[L.hostTab||"events"]();
+ return `<div class="console"><nav class="side">${tab("events","Events")}${tab("support","Support"+(tkNewCount()?` <span class="pill warn">${tkNewCount()}</span>`:""))}${tab("invites","Invite codes")}${tab("planners","Planners")}${tab("leads","Contacts"+(Object.keys(D.leads||{}).length?` <span class="pill gold">${Object.keys(D.leads).length}</span>`:""))}${tab("archives","Archives")}${tab("themes","Themes")}${tab("library","Game inventory")}${tab("settings","Host settings")}</nav><div class="stack mw0">${body}</div></div>`}
 function hEvents(){const ev=D.events||{},def=D.admin.defaultEvent;const keys=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0));const th=D.themes||{};
  return `<section class="card stack"><h2>Your events</h2>${keys.length?keys.map(k=>`<div class="gamerow evrow"><span class="gnum">${def===k?"★":""}</span><div class="mw0"><b>${esc(ev[k].name||k)}</b> ${ev[k].practice?'<span class="pill warn">practice</span>':""}<div class="small muted">Code ${esc(k)}${def===k?" · opens from the main link":""}</div></div>
  <div class="row">${L.confirm==="del:"+k?`<span class="small">Delete everything?</span><button class="btn sm gold" data-act="delEvent" data-k="${k}">Delete</button><button class="btn sm" data-act="cancelConfirm">Keep</button>`:`<button class="btn sm primary" data-act="openMod" data-k="${k}">Console</button><a class="btn sm" href="${esc(eventURL(k))}" target="_blank" rel="noopener">Guest view</a><a class="btn sm" href="${esc(eventURL(k,"screen"))}" target="_blank" rel="noopener">Big screen</a>${def===k?"":`<button class="btn sm" data-act="setMain" data-k="${k}">Make main</button>`}<button class="btn sm" data-act="askDel" data-k="${k}">Delete</button>`}</div></div>`).join(""):'<p class="small muted m0">No events yet.</p>'}</section>
@@ -3763,7 +3771,7 @@ const markKind=()=>{const m=C().mark;if(m==="none")return null;if(MARKS[m])retur
 function markSVG(k,size){const m=MARKS[k];if(!m)return "";const id="gm"+k+size;
  return `<svg class="tmark" viewBox="${m.vb}" width="${size}" height="${Math.round(size*(+m.vb.split(" ")[3])/(+m.vb.split(" ")[2]))}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f6dc83"/><stop offset=".5" style="stop-color:var(--gold)"/><stop offset="1" stop-color="#9c6b00"/></linearGradient></defs><path d="${m.d}" fill="none" stroke="url(#${id})" stroke-width="${size>=40?1.7:1.4}" stroke-linecap="round" stroke-linejoin="round"/>${m.eye?`<circle cx="${m.eye[0]}" cy="${m.eye[1]}" r=".95" fill="url(#${id})"/>`:""}</svg>`}
 const titleMark=size=>{const k=markKind();return k?markSVG(k,size):""};
-const _hvDL=headerView;headerView=function(){const h=_hvDL();if(!EV||L.missing||VIEW==="host"||VIEW==="planner"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||!titleMark(30))return h;return h.replace(/<h1>([\s\S]*?)<\/h1>/,(m,t)=>`<h1><span class="tline">${t}${titleMark(VIEW==="screen"?56:44)}</span></h1>`)};
+const _hvDL=headerView;headerView=function(){const h=_hvDL();if(!EV||L.missing||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||!titleMark(30))return h;return h.replace(/<h1>([\s\S]*?)<\/h1>/,(m,t)=>`<h1><span class="tline">${t}${titleMark(VIEW==="screen"?56:44)}</span></h1>`)};
 const _mEventDL=mEvent;mEvent=function(){const cur=markKind()||"none";const b=(k,l)=>`<button class="btn sm ${cur===k?"primary":""}" data-act="setMark" data-k="${k}" aria-pressed="${cur===k}">${k==="none"?"":markSVG(k,22)} ${l}</button>`;
  return _mEventDL()+`<section class="card stack"><h2>Title mark</h2><p class="small muted m0">A small gold drawing beside the event title on guests' phones and the big screen.</p><div class="row">${b("bird","Songbird")}${b("rose","Rose")}${b("none","None")}</div></section>`};
 ACT.setMark=el=>{ER("content/mark").set(el.dataset.k);toast(el.dataset.k==="none"?"Title mark off":"Title mark updated")};
@@ -4734,7 +4742,7 @@ const clMB=n=>n<1048576?Math.max(1,Math.round(n/1024))+" KB":(n/1048576).toFixed
 const clAgo=t=>{const s=Math.max(0,(Date.now()-t)/1000);return s<60?"just now":s<3600?Math.floor(s/60)+" min ago":s<86400?Math.floor(s/3600)+" hr ago":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"})};
 
 /* ---- reading and shrinking files ---- */
-const clUnesc=s=>String(s).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");
+const clUnesc=s=>String(s).replace(/&#(x[0-9a-f]+|\d+);/gi,(m,c)=>{try{return String.fromCodePoint(c[0].toLowerCase()==="x"?parseInt(c.slice(1),16):+c)}catch(e){return m}}).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");
 async function clXlsxToCsv(file){if(!window.JSZip)throw new Error("nozip");const z=await JSZip.loadAsync(await file.arrayBuffer());const strs=[];const ss=z.file("xl/sharedStrings.xml");
  if(ss){const x=await ss.async("string");(x.match(/<si[\s\S]*?<\/si>/g)||[]).forEach(si=>strs.push(clUnesc((si.match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).map(t=>t.replace(/<[^>]+>/g,"")).join(""))))}
  const sh=z.file("xl/worksheets/sheet1.xml");if(!sh)throw new Error("nosheet");const x=await sh.async("string");const rows=[];
@@ -4897,12 +4905,15 @@ function imTime(v){v=String(v||"").trim().toLowerCase();if(!v)return "";let m;
  if(v==="noon")return "12:00";return null}
 function imNum(v){const s=String(v||"").replace(/[$£€,\s]/g,"").replace(/usd$/i,"");if(!s)return "";const m=s.match(/^(-?\d*\.?\d+)(k)?$/i);return m?parseFloat(m[1])*(m[2]?1000:1):null}
 const imOkEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-function imBuild(){const I=L.im,m=I.map,g=(r,k)=>m[k]!=null&&m[k]!==""?String(r[+m[k]]==null?"":r[+m[k]]).replace(/\s+/g," ").trim():"";
+const IM2=["gear","spaces","bookings","blocks","packages","payments"];
+function imBuild(){const I=L.im,off=I.off||{};return imBuild0().map(r=>{if(!r.skip&&off[r.line]){r.skip="you chose to skip it";r.mine=true}return r})}
+function imBuild0(){const I=L.im,m=I.map,g=(r,k)=>m[k]!=null&&m[k]!==""?String(r[+m[k]]==null?"":r[+m[k]]).replace(/\s+/g," ").trim():"";
  const used=new Set(Object.values(m).filter(v=>v!==""&&v!=null).map(Number));
  const extras=r=>I.keep?I.head.map((h,j)=>{if(used.has(j))return "";const v=String(r[j]==null?"":r[j]).trim();return v?`${h||"Column "+(j+1)}: ${v}`:""}).filter(Boolean):[];
  const cs=D.clients||{},seen={};
  const person=(r,k)=>(g(r,k)||[g(r,"first"),g(r,"last")].filter(Boolean).join(" "));
- if(I.type==="clients"){const byEm={},byNd={};Object.keys(cs).forEach(id=>{const c=cs[id];if(c.email)byEm[String(c.email).toLowerCase()]=1;byNd[normName(c.name)+"|"+(c.date||"")]=1});
+ if(IM2.includes(I.type))return imBuild2(I,g,extras);
+ if(I.type==="clients"){const byEm={},byNd={};Object.keys(cs).forEach(id=>{const c=cs[id];if(c.email)byEm[String(c.email).toLowerCase()]=id;byNd[normName(c.name)+"|"+(c.date||"")]=id});
   const evs=D.events||{},evBy={};Object.keys(evs).forEach(k=>{evBy[normName(k)]=k;evBy[normName(evs[k].name||k)]=k});
   return I.rows.map((r,i)=>{const name=person(r,"name"),o={line:I.start+i+2,name:name.slice(0,40),warn:[],skip:""};if(!name){o.skip="no name";return o}
    const em=g(r,"email").toLowerCase();if(em){if(imOkEmail(em))o.email=em.slice(0,120);else o.warn.push("email doesn't look right")}
@@ -4912,7 +4923,7 @@ function imBuild(){const I=L.im,m=I.map,g=(r,k)=>m[k]!=null&&m[k]!==""?String(r[
    [["evType",40],["venue",120],["status",40]].forEach(([k,n])=>{const v=g(r,k);if(v)o[k]=v.slice(0,n)});
    [["guests","guest count"],["budget","budget"]].forEach(([k,l])=>{const raw=g(r,k),n=imNum(raw);if(n===null)o.warn.push(`couldn't read the ${l} "${raw.slice(0,20)}"`);else if(n!==""&&n>=0)o[k]=k==="guests"?Math.round(n):Math.round(n*100)/100});
    const nt=[g(r,"notes")].concat(extras(r)).filter(Boolean).join("\n");if(nt)o.notes=nt.slice(0,1000);
-   const nd=normName(o.name)+"|"+(o.date||"");if((o.email&&(byEm[o.email]||seen["e"+o.email]))||byNd[nd]||seen[nd])o.dup=true;if(o.email)seen["e"+o.email]=1;seen[nd]=1;
+   const nd=normName(o.name)+"|"+(o.date||"");if((o.email&&(byEm[o.email]||seen["e"+o.email]))||byNd[nd]||seen[nd]){o.dup=true;o.ex=(o.email&&byEm[o.email])||byNd[nd]||""}if(o.email)seen["e"+o.email]=1;seen[nd]=1;
    return o})}
  if(I.type==="vendors"){const cBy={};Object.keys(cs).forEach(id=>{cBy[normName(cs[id].name)]=id});const have={};
   return I.rows.map((r,i)=>{const name=g(r,"vname"),o={line:I.start+i+2,name:name.slice(0,60),warn:[],skip:""};if(!name){o.skip="no vendor name";return o}
@@ -4923,7 +4934,7 @@ function imBuild(){const I=L.im,m=I.map,g=(r,k)=>m[k]!=null&&m[k]!==""?String(r[
    const ar=g(r,"arrive"),t=imTime(ar);if(t)o.arrive=t;else if(t===null)o.warn.push(`couldn't read the arrival time "${ar.slice(0,20)}"`);
    const dl=g(r,"delivers");if(dl)o.delivers=dl.slice(0,80);
    const nt=[g(r,"vnote")].concat(extras(r)).filter(Boolean).join("; ");if(nt)o.note=nt.slice(0,300);
-   if(!have[cid]){have[cid]={};clVendors(cid).forEach(v=>have[cid][normName(v.name)]=1)}const nk=cid+"|"+normName(o.name);if(have[cid][normName(o.name)]||seen[nk])o.dup=true;seen[nk]=1;
+   if(!have[cid]){have[cid]={};clVendors(cid).forEach(v=>have[cid][normName(v.name)]=v.k)}const nk=cid+"|"+normName(o.name);if(have[cid][normName(o.name)]||seen[nk]){o.dup=true;o.ex=have[cid][normName(o.name)]||""}seen[nk]=1;
    return o})}
  /* guests */
  const have=Object.assign({},I.have||{});
@@ -4938,15 +4949,16 @@ function imSubLog(){if(L.imSub===PSP||!db)return;L.imSub=PSP;RT(PSP+"imports").o
 async function imLoadHave(){const I=L.im;if(!I||I.type!=="guests"||!I.target||I.haveFor===I.target)return;const code=I.target;I.haveFor=code;I.have=null;
  const snap=(await ER("guests",code).once("value")).val()||{},h={};Object.values(snap).forEach(x=>{const n=normName(x&&x.name);if(n)h[n]=(h[n]||0)+1});
  if(L.im===I&&I.haveFor===code){I.have=h;render(true)}}
-async function imLoadRows(name,rows){rows=(rows||[]).map(r=>(r||[]).map(c=>String(c==null?"":c).replace(/\s+/g," ").trim()));
+async function imLoadRows(name,rows,sheet){rows=(rows||[]).map(r=>(r||[]).map(c=>String(c==null?"":c).replace(/\s+/g," ").trim()));
  const start=rows.findIndex(r=>r.some(Boolean));if(start<0)return toast("That file looks empty");
  const head=rows[start];let body=rows.slice(start+1).filter(r=>r.some(Boolean));if(!body.length)return toast("We found headers but nothing under them");
  if(body.length>5000){body=body.slice(0,5000);toast("Reading the first 5,000 rows")}
- const type=L.imType||"clients",sig=imSig(type,head);let map=imGuess(type,head),saved=false;
+ const auto=!L.imType||L.imType==="auto"||!IM_T[L.imType],type=auto?imDetect(head,sheet||name):L.imType,sig=imSig(type,head);let map=imGuess(type,head),saved=false;
  try{const sv=(await RT(PSP+"imMaps/"+sig).once("value")).val();if(sv&&typeof sv==="object"&&Object.values(sv).every(v=>v===""||(+v>=0&&+v<head.length))){map=Object.assign({},sv);saved=true}}catch(e){}
  const cl=Object.keys(D.clients||{});
- L.im={type,step:"map",file:String(name).slice(0,80),head,rows:body,start,map,sig,saved,dup:"skip",keep:true,
-  target:type==="vendors"?(map.client!=null&&map.client!==""?"col":(L.cliOpen&&D.clients[L.cliOpen]?L.cliOpen:"")):type==="guests"?((L.cliOpen&&(D.clients[L.cliOpen]||{}).ev)||""):""};
+ const tabs=L.imTabs||1;
+ L.im={type,auto,sheet:sheet||"",tabs,tabN:tabs-(L.imQ||[]).length,step:"map",file:String(name).slice(0,80),head,rows:body,start,map,sig,saved,dup:"skip",keep:true,off:{},
+  target:type==="vendors"?(map.client!=null&&map.client!==""?"col":(L.cliOpen&&D.clients[L.cliOpen]?L.cliOpen:"")):type==="payments"?(map.payclient!=null&&map.payclient!==""?"col":(L.cliOpen&&D.clients[L.cliOpen]?L.cliOpen:"")):type==="guests"?((L.cliOpen&&(D.clients[L.cliOpen]||{}).ev)||""):""};
  render(true)}
 /* PDFs: pdf.js reads the text and where it sits on the page; lines become rows and the header line's positions become the columns. */
 async function imPdfLib(){if(window.pdfjsLib)return window.pdfjsLib;const base="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
@@ -4968,51 +4980,57 @@ async function imPdfRows(file){const lib=await imPdfLib(),pdf=await lib.getDocum
  return rows}
 const imPill=(n,l,cls)=>n?`<span class="pill ${cls||""}">${n} ${l}</span>`:"";
 function imRow(r){const I=L.im,fd=d=>new Date(d+"T12:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
- const det=I.type==="clients"?[r.date?fd(r.date):"",r.evName||r.evTitle,r.venue,r.guests?r.guests+" guests":"",r.budget?clMoney(r.budget):"",r.email,r.phone]
+ const det=IM2.includes(I.type)?imDet2(r,I):I.type==="clients"?[r.date?fd(r.date):"",r.evName||r.evTitle,r.venue,r.guests?r.guests+" guests":"",r.budget?clMoney(r.budget):"",r.email,r.phone]
   :I.type==="vendors"?[r.role,r.arrive?"arrives "+clFmtTime(r.arrive):"",r.delivers,r.phone,r.email,I.target==="col"&&r.cname?"for "+r.cname:""]
   :[r.rsvp==="yes"?"coming":r.rsvp==="no"?"not coming":r.rsvp==="maybe"?"maybe":"no reply yet",r.invited===true?"invited":r.invited===false?"not invited yet":"",r.plusOf?"plus-one of "+r.plusOf:""];
- const T=IM_T[I.type],flags=(r.skip?[`skipped: ${r.skip}`]:[]).concat(r.dup?[I.dup==="skip"?"already there, will be skipped":"already there, will be added again"]:[],r.warn);
- return `<div class="mrow2 small"><div class="row between"><b>${esc(r.name||"(no name)")}</b><span class="muted">row ${r.line}</span></div>${det.filter(Boolean).length?`<div class="muted">${det.filter(Boolean).map(esc).join(" · ")}</div>`:""}${flags.length?`<div class="row">${flags.map(f=>`<span class="pill warn">${esc(f)}</span>`).join("")}</div>`:""}</div>`}
+ const T=IM_T[I.type],flags=(r.skip?[`skipped: ${r.skip}`]:[]).concat(r.dup?[I.dup==="skip"||(I.dup==="update"&&!r.ex)?"already there, will be skipped":I.dup==="update"?"already there, will be updated":"already there, will be added again"]:[],r.warn);
+ const tog=(!r.skip||r.mine)&&(r.mine||r.warn.length||r.dup)?`<button class="btn xs" data-act="imOff" data-k="${r.line}">${r.mine?"Include it":"Skip this row"}</button>`:"";
+ return `<div class="mrow2 small"><div class="row between"><b>${esc(r.name||"(no name)")}</b><span class="row"><span class="muted">row ${r.line}</span>${tog}</span></div>${det.filter(Boolean).length?`<div class="muted">${det.filter(Boolean).map(esc).join(" · ")}</div>`:""}${flags.length?`<div class="row">${flags.map(f=>`<span class="pill warn">${esc(f)}</span>`).join("")}</div>`:""}</div>`}
 function imTargetSel(){const I=L.im,cs=D.clients||{},ev=D.events||{};
  if(I.type==="vendors"){const ids=Object.keys(cs).sort((a,b)=>String(cs[a].name).localeCompare(String(cs[b].name)));const hasCol=I.map.client!=null&&I.map.client!=="";
   return `<label class="stack tight"><span class="small"><b>Add these vendors to</b></span><select data-act="imTarget"><option value="">Pick a client</option>${hasCol?`<option value="col" ${I.target==="col"?"selected":""}>Each row's client, from the Client column</option>`:""}${ids.map(id=>`<option value="${esc(id)}" ${I.target===id?"selected":""}>${esc(cs[id].name)}</option>`).join("")}</select></label>`}
+ if(I.type==="payments"){const ids=Object.keys(cs).sort((a,b)=>String(cs[a].name).localeCompare(String(cs[b].name)));const hasCol=I.map.payclient!=null&&I.map.payclient!=="";
+  return `<label class="stack tight"><span class="small"><b>Add these payments to</b></span><select data-act="imTarget"><option value="">Pick a client</option>${hasCol?`<option value="col" ${I.target==="col"?"selected":""}>Each row's client, from the Client column</option>`:""}${ids.map(id=>`<option value="${esc(id)}" ${I.target===id?"selected":""}>${esc(cs[id].name)}</option>`).join("")}</select>${ids.length?"":'<span class="small bad">Add your clients first, then their payments.</span>'}</label>`}
  if(I.type==="guests"){const ks=Object.keys(ev);return `<label class="stack tight"><span class="small"><b>Add these guests to</b></span><select data-act="imTarget"><option value="">Pick an event</option>${ks.map(k=>`<option value="${esc(k)}" ${I.target===k?"selected":""}>${esc(ev[k].name||k)}</option>`).join("")}</select>${ks.length?"":'<span class="small bad">Create an event first, then import its guests.</span>'}</label>`}
  return ""}
-function imCard(){imSubLog();const I=L.im,type=(I&&I.type)||L.imType||"clients",T=IM_T[type],log=imLog();
+function imCard(){imSubLog();const I=L.im,type=(I&&I.type)||L.imType||"auto",T=IM_T[type]||null,log=imLog();
  const undo=log.map(x=>{const t=IM_T[x.type]||IM_T.clients;return `<div class="row between small"><span>Imported ${x.n} ${x.n===1?t.one:t.many}${x.where?" to "+esc(x.where):""} ${esc(clAgo(x.t))}</span><button class="btn xs" data-act="imUndo" data-k="${esc(x.id)}">${L.confirm==="iu"+x.id?`Tap again to remove those ${x.n}`:"Undo this import"}</button></div>`}).join("");
  const undoBox=undo?`<div class="stack tight">${undo}</div>`:"";
- const head=`<div class="row between"><h2>Import from another app</h2><button class="btn sm" data-act="imTemplate">Download a ${T.one} template</button></div>`;
+ const head=`<div class="row between"><h2>Import from another app</h2>${T?`<button class="btn sm" data-act="imTemplate">Download a ${T.one} template</button>`:""}</div>`;
  if(!I)return `<section class="card stack">${head}
-  <div class="row">${Object.keys(IM_T).map(k=>`<button class="btn sm ${type===k?"primary":""}" data-act="imType" data-k="${k}">${IM_T[k].l}</button>`).join("")}</div>
-  <p class="small muted m0">${T.about} Export from the app you use now, upload the file here, and Host Mode sorts each column into the right place. You check everything before it saves.</p>
+  <span class="small"><b>What's in the file?</b></span><div class="row"><button class="btn sm ${type==="auto"?"primary":""}" data-act="imType" data-k="auto">Figure it out for me</button>${Object.keys(IM_T).map(k=>`<button class="btn sm ${type===k?"primary":""}" data-act="imType" data-k="${k}">${IM_T[k].l}</button>`).join("")}</div>
+  <p class="small muted m0">${T?T.about:"Upload one spreadsheet or a whole workbook. Host Mode looks at each tab and sends clients, vendors, guests, inventory, venue spaces, bookings, blocked days, packages and payments where they belong."} Export from the app you use now, upload the file here, and Host Mode sorts each column into the right place. You check everything before it saves, matches you fix are remembered for next time, and any import can be undone for 24 hours.</p>
   <div class="row"><label class="btn primary upl">Upload a file<input type="file" accept=".csv,.tsv,.txt,.xlsx,.pdf,text/csv,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-act="imFile"></label><span class="small muted">CSV, Excel or PDF</span></div>
   <div class="row"><input type="url" class="grow" data-draft="im_url" value="${esc(dv("im_url",""))}" placeholder="Or paste a Google Sheets link"><button class="btn sm" data-act="imSheet">Open sheet</button></div>
   ${undoBox}</section>`;
  let body="";
  if(I.step==="map"){const used=new Set(Object.values(I.map).filter(v=>v!==""&&v!=null).map(Number)),rest=I.head.map((h,i)=>used.has(i)?"":(h||"Column "+(i+1))).filter(Boolean);
   const opts=sel=>`<option value="">Don't import</option>`+I.head.map((h,i)=>`<option value="${i}" ${String(sel)===String(i)?"selected":""}>${esc(h||"Column "+(i+1))}${I.rows[0]&&I.rows[0][i]?` (e.g. ${esc(String(I.rows[0][i]).slice(0,24))})`:""}</option>`).join("");
-  body=`<p class="small muted m0"><b>${esc(I.file)}</b> · ${I.rows.length} ${T.l.toLowerCase()} row${I.rows.length===1?"":"s"}. ${I.saved?"We used the matches you saved for this kind of file.":"We matched your columns where we could."} Fix any that look wrong.</p>
+  body=`${I.tabs>1?`<span class="pill">Tab ${I.tabN} of ${I.tabs}</span>`:""}<p class="small muted m0"><b>${esc(I.file)}</b> · ${I.rows.length} row${I.rows.length===1?"":"s"}. ${I.saved?"We used the matches you saved for this kind of file.":"We matched your columns where we could."} Fix any that look wrong.</p>
+  <label class="stack tight"><span class="small"><b>${I.auto?"This looks like":"This is"}</b></span><select data-act="imRetype">${Object.keys(IM_T).map(k=>`<option value="${k}" ${I.type===k?"selected":""}>${IM_T[k].l}</option>`).join("")}</select>${I.auto?`<span class="small muted">Not right? Pick what this ${I.tabs>1?"tab":"file"} really holds.</span>`:""}</label>
   ${imTargetSel()}
   <div class="grid2 g8">${T.show.map(k=>`<label class="stack tight"><span class="small">${IM_FIELDS[k].l}${k===T.need[0]&&T.need.length>1?" <span class='muted'>(or use first + last)</span>":""}${k==="client"?" <span class='muted'>(optional)</span>":""}</span><select data-act="imMap" data-k="${k}">${opts(I.map[k])}</select></label>`).join("")}</div>
   ${rest.length&&type!=="guests"?`<label class="row small"><input type="checkbox" data-act="imKeep" ${I.keep?"checked":""}> Keep the other columns in the notes (${esc(rest.slice(0,4).join(", "))}${rest.length>4?` and ${rest.length-4} more`:""})</label>`:""}
-  <div class="row"><button class="btn primary" data-act="imStep" data-k="preview">Preview</button><button class="btn" data-act="imCancel">Start over</button></div>`}
+  <div class="row"><button class="btn primary" data-act="imStep" data-k="preview">Preview</button>${(L.imQ||[]).length?`<button class="btn" data-act="imNextTab">Skip this tab</button>`:""}<button class="btn" data-act="imCancel">Start over</button></div>`}
  if(I.step==="preview"){
   if(type==="guests"&&I.have==null){imLoadHave();body=`<p class="small muted m0">Checking who's already on the guest list…</p>`}
-  else{const recs=imBuild(),sk=recs.filter(r=>r.skip).length,dup=recs.filter(r=>!r.skip&&r.dup).length,wn=recs.filter(r=>!r.skip&&r.warn.length).length,go=recs.filter(r=>!r.skip&&!(r.dup&&I.dup==="skip")).length;
+  else{const recs=imBuild(),sk=recs.filter(r=>r.skip).length,dup=recs.filter(r=>!r.skip&&r.dup).length,wn=recs.filter(r=>!r.skip&&r.warn.length).length,go=recs.filter(r=>!r.skip&&!(r.dup&&(I.dup==="skip"||(I.dup==="update"&&!r.ex)))).length,nsp=I.type==="bookings"?Object.values(I.newSpaces||{}):[];
    const bad=recs.filter(r=>r.skip||r.dup||r.warn.length),good=recs.filter(r=>!(r.skip||r.dup||r.warn.length)),show=bad.slice(0,30).concat(good.slice(0,Math.max(0,8-Math.min(bad.length,8))));
-   const dupWhy=type==="clients"?"Clients already in Host Mode (same email, or same name and date)":type==="vendors"?"Vendors this client already has":"Guests already on this event's list";
+   const dupWhy=type==="clients"?"Clients already in Host Mode (same email, or same name and date)":type==="vendors"?"Vendors this client already has":type==="guests"?"Guests already on this event's list":`${T.l} already in Host Mode`;
    body=`<div class="row">${imPill(go,"ready to import","ok")}${imPill(wn,"with something to check","warn")}${imPill(dup,"already there","gold")}${imPill(sk,"will be skipped","")}</div>
-   ${dup?`<label class="stack tight"><span class="small">${dupWhy}</span><select data-act="imDup"><option value="skip" ${I.dup==="skip"?"selected":""}>Skip them</option><option value="add" ${I.dup==="add"?"selected":""}>Add them anyway</option></select></label>`:""}
+   ${dup?`<label class="stack tight"><span class="small">${dupWhy}</span><select data-act="imDup"><option value="skip" ${I.dup==="skip"?"selected":""}>Skip them</option>${T.upd?`<option value="update" ${I.dup==="update"?"selected":""}>Update them with the new details</option>`:""}<option value="add" ${I.dup==="add"?"selected":""}>Add them anyway</option></select></label>`:""}
+   ${nsp.length?`<span class="small">New spaces will be added for: <b>${nsp.map(esc).join(", ")}</b></span>`:""}
+   ${sk||wn?`<div class="row"><span class="small muted">Rows with a problem can be skipped one by one below, or downloaded, fixed and uploaded again.</span><button class="btn xs" data-act="imProblems">Download the problem rows</button></div>`:""}
    ${type==="clients"?`<label class="stack tight"><span class="small">Give each new client a checklist (optional)</span><select data-draft="im_tpl">${clTplSelect(dv("im_tpl",""))}</select></label>`:""}
    <div class="stack tight">${show.map(imRow).join("")}</div>${recs.length>show.length?`<span class="small muted">and ${recs.length-show.length} more rows that look fine</span>`:""}
    ${type!=="guests"?`<span class="small muted">Fields we couldn't read are left blank. You can fill them in later.</span>`:""}
-   <div class="row"><button class="btn primary" data-act="imGo" ${go&&!I.busy?"":"disabled"}>${I.busy?"Importing…":`Import ${go} ${go===1?T.one:T.many}`}</button><button class="btn" data-act="imStep" data-k="map">Back</button><button class="btn" data-act="imCancel">Cancel</button></div>`}}
+   <div class="row"><button class="btn primary" data-act="imGo" ${go&&!I.busy?"":"disabled"}>${I.busy?"Importing…":`${I.dup==="update"&&dup&&go===dup?"Update":"Import"} ${go} ${go===1?T.one:T.many}`}</button><button class="btn" data-act="imStep" data-k="map">Back</button><button class="btn" data-act="imCancel">Cancel</button></div>`}}
  if(I.step==="done"){const r=I.result||{};
-  body=`<p class="m0"><b>${r.n||0} ${r.n===1?T.one:T.many} imported${r.where?" to "+esc(r.where):""}.</b>${r.nt?` ${r.nt} checklist items added.`:""}</p>
-  <div class="row">${imPill(r.dup,"duplicates skipped","gold")}${imPill(r.skip,"rows skipped","")}${imPill(r.warn,"with a blank field to fill in","warn")}</div>
+  body=`${I.tabs>1?`<span class="pill">Tab ${I.tabN} of ${I.tabs}</span>`:""}<p class="m0"><b>${r.n||0} ${r.n===1?T.one:T.many} ${r.up&&r.up===r.n?"updated":"imported"}${r.where?" to "+esc(r.where):""}.</b>${r.nt?` ${r.nt} checklist items added.`:""}</p>
+  <div class="row">${r.up&&r.up!==r.n?imPill(r.up,"updated","ok"):""}${imPill(r.dup,"duplicates skipped","gold")}${imPill(r.skip,"rows skipped","")}${imPill(r.warn,"with a blank field to fill in","warn")}</div>
   ${r.err?`<p class="small bad m0">The import stopped partway through. You can undo what was saved below and try again.</p>`:""}
   <span class="small muted">Your column matches are saved, so the next file like this one is quicker. Undo removes this whole import for the next 24 hours.</span>
-  <div class="row"><button class="btn primary" data-act="imCancel">Done</button></div>`}
+  <div class="row">${(L.imQ||[]).length?`<button class="btn primary" data-act="imNextTab">Next tab: ${esc(L.imQ[0].sheet||"")}</button><button class="btn" data-act="imCancel">Stop here</button>`:`<button class="btn primary" data-act="imCancel">Done</button>`}</div>`}
  return `<section class="card stack">${head}${body}${undoBox}</section>`}
 const clInfo=c=>{const p=[c.pkg?c.pkg.name:"",c.evType,c.venue,c.guests?c.guests+" guests":"",c.budget?clMoney(c.budget)+" budget":"",c.status,c.email,c.phone].filter(Boolean);return p.length?`<div class="small muted">${p.map(esc).join(" · ")}</div>`:""};
 const IM_CL_PATHS=["clientTasks","clientMsgs","clientFiles","clientBlobs","clientApprovals","clientPayments","clientDates","clientVendors","clientInvoices","clients"];
@@ -5022,25 +5040,31 @@ Object.assign(ACT,{
  imFile:async el=>{const f=el.files&&el.files[0];el.value="";if(!f)return;const ext=(f.name.split(".").pop()||"").toLowerCase();
   if(ext==="xls"||ext==="numbers")return toast("Save it as .xlsx or CSV first, then upload it");
   if(f.size>CL_MAX)return toast("That file is over 10 MB");toast("Reading the file…");
-  if(ext==="pdf"){try{return await imLoadRows(f.name,await imPdfRows(f))}catch(e){const w=e&&e.message;return toast(w==="scan"?"That PDF is a scanned picture, so there's no text to read. Export a CSV or Excel file instead.":w==="notable"?"We couldn't find a table in that PDF. Export a CSV or Excel file instead.":w==="net"?"Reading PDFs needs a connection. Try again in a moment.":"Couldn't read that PDF. Try a CSV or Excel file.")}}
+  L.imQ=[];L.imTabs=1;
+  if(ext==="xlsx"){let sh;try{sh=await clXlsxSheets(f)}catch(e){return toast("Couldn't read that file. Try saving it as CSV.")}if(!sh.length)return toast("That file looks empty");
+   /* tabs from Download everything that are for reading only */
+   const ro=sh.filter(x=>/^(pull lists|invoices|leads)$/i.test(String(x.name).trim()));if(ro.length&&sh.length>ro.length){sh=sh.filter(x=>!ro.includes(x));toast(`Skipping ${ro.map(x=>x.name).join(", ")}: those tabs are for reading only.`)}
+   L.imTabs=sh.length;L.imQ=sh.slice(1).map(x=>({file:f.name+" · "+x.name,rows:x.rows,sheet:x.name}));if(sh.length>1)toast(`Found ${sh.length} tabs. We'll go through them one at a time.`);
+   return await imLoadRows(f.name+(sh.length>1?" · "+sh[0].name:""),sh[0].rows,sh[0].name)}
+  if(ext==="pdf"){try{return await imLoadRows(f.name,await imPdfRows(f),f.name)}catch(e){const w=e&&e.message;return toast(w==="scan"?"That PDF is a scanned picture, so there's no text to read. Export a CSV or Excel file instead.":w==="notable"?"We couldn't find a table in that PDF. Export a CSV or Excel file instead.":w==="net"?"Reading PDFs needs a connection. Try again in a moment.":"Couldn't read that PDF. Try a CSV or Excel file.")}}
   let txt="";try{txt=ext==="xlsx"?await clXlsxToCsv(f):await f.text()}catch(e){return toast("Couldn't read that file. Try saving it as CSV.")}
-  await imLoadRows(f.name,csvRows(String(txt).replace(/^﻿/,"")))},
+  await imLoadRows(f.name,csvRows(String(txt).replace(/^﻿/,"")),f.name)},
  imSheet:async()=>{const u=dv("im_url","").trim(),m=u.match(/\/spreadsheets\/d\/([\w-]{20,})/);if(!m)return toast("Paste the link to a Google Sheet");
   const gid=(u.match(/[#&?]gid=(\d+)/)||[])[1]||"0";toast("Opening the sheet…");
   try{const r=await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&headers=1&gid=${gid}`);const t=await r.text();if(!r.ok||/^\s*<(!doctype|html)/i.test(t))throw new Error("closed");
-   delete L.drafts.im_url;await imLoadRows("Google Sheet",csvRows(t))}catch(e){toast('Couldn\'t open it. Share the sheet as "Anyone with the link", or download it as CSV.')}},
- imMap:el=>{const I=L.im;if(!I)return;I.map[el.dataset.k]=el.value;if(el.dataset.k==="client"){if(el.value!==""&&!I.target)I.target="col";if(el.value===""&&I.target==="col")I.target=""}render(true)},
+   delete L.drafts.im_url;L.imQ=[];L.imTabs=1;await imLoadRows("Google Sheet",csvRows(t),"")}catch(e){toast('Couldn\'t open it. Share the sheet as "Anyone with the link", or download it as CSV.')}},
+ imMap:el=>{const I=L.im;if(!I)return;I.map[el.dataset.k]=el.value;if(el.dataset.k==="client"||el.dataset.k==="payclient"){if(el.value!==""&&!I.target)I.target="col";if(el.value===""&&I.target==="col")I.target=""}render(true)},
  imTarget:el=>{const I=L.im;if(!I)return;I.target=el.value;render(true)},
  imKeep:el=>{if(L.im){L.im.keep=el.checked;render(true)}},
  imDup:el=>{if(L.im){L.im.dup=el.value;render(true)}},
  imStep:el=>{const I=L.im;if(!I)return;const k=el.dataset.k,T=IM_T[I.type],has=x=>I.map[x]!=null&&I.map[x]!=="";
   if(k==="preview"){if(!T.need.some(has))return toast(`Pick the column with the ${T.one}'s name`);
-   if(I.type!=="clients"&&!I.target)return toast(I.type==="vendors"?"Pick which client these vendors are for":"Pick which event these guests are for");
+   if(["vendors","guests","payments"].includes(I.type)&&!I.target)return toast(I.type==="vendors"?"Pick which client these vendors are for":I.type==="payments"?"Pick which client these payments are for":"Pick which event these guests are for");
    if(I.type==="guests"&&I.haveFor!==I.target)I.have=null}
   I.step=k;render(true)},
- imCancel:()=>{L.im=null;delete L.drafts.im_tpl;render(true)},
- imGo:async()=>{const I=L.im;if(!I||I.busy)return;const all=imBuild(),recs=all.filter(r=>!r.skip&&!(r.dup&&I.dup==="skip"));if(!recs.length)return toast("Nothing to import");
-  I.busy=true;render(true);const tm=Date.now(),batch="i"+tm.toString(36),tk=dv("im_tpl",""),keys={};let n=0,nt=0,err=0,where="";
+ imCancel:()=>{L.im=null;L.imQ=[];L.imTabs=1;delete L.drafts.im_tpl;render(true)},
+ imGo:async()=>{const I=L.im;if(!I||I.busy)return;const all=imBuild(),upd=I.dup==="update",ok=all.filter(r=>!r.skip&&!(r.dup&&(I.dup==="skip"||(upd&&!r.ex)))),toUpd=upd?ok.filter(r=>r.dup&&r.ex):[],recs=IM2.includes(I.type)?ok:ok.filter(r=>!(upd&&r.dup));if(!ok.length)return toast("Nothing to import");
+  I.busy=true;render(true);const tm=Date.now(),batch="i"+tm.toString(36),tk=dv("im_tpl",""),keys={};let n=0,nt=0,err=0,where="",paths={},prev={},up=0;
   const ev=D.events||{},cs=D.clients||{};
   try{
    if(I.type==="clients"){for(let s=0;s<recs.length;s+=300){const u={},ks=[];
@@ -5048,25 +5072,242 @@ Object.assign(ACT,{
       ["email","phone","evTitle","evType","venue","guests","budget","status","notes"].forEach(f=>{if(r[f]!=null&&r[f]!=="")o[f]=r[f]});u[k]=o;ks.push([k,o.date])});
      await RT(PSP+"clients").update(u);ks.forEach(([k])=>keys[k]=1);n+=ks.length;if(tk)for(const [k,d] of ks)nt+=(await clApplyTpl(k,tk,d))||0}}
    if(I.type==="vendors"){const by={};recs.forEach((r,j)=>{const k=RT(PSP+"clientVendors/"+r.cid).push().key,o={name:r.name,role:r.role||"",phone:r.phone||"",email:r.email||"",arrive:r.arrive||"",delivers:r.delivers||"",show:true,team:true,t:tm+j,imp:batch};if(r.note)o.note=r.note;(by[r.cid]=by[r.cid]||{})[k]=o});
-     for(const cid of Object.keys(by)){await RT(PSP+"clientVendors/"+cid).update(by[cid]);Object.keys(by[cid]).forEach(k=>keys[cid+"/"+k]=1);n+=Object.keys(by[cid]).length}
+     for(const cid of Object.keys(by)){await RT(PSP+"clientVendors/"+cid).update(by[cid]);Object.keys(by[cid]).forEach(k=>keys[cid+"~"+k]=1);n+=Object.keys(by[cid]).length}
      const ids=Object.keys(by);where=ids.length===1?(cs[ids[0]]||{}).name||"":ids.length+" clients"}
    if(I.type==="guests"){where=(ev[I.target]||{}).name||I.target;for(let s=0;s<recs.length;s+=500){const u={};
      recs.slice(s,s+500).forEach((r,j)=>{const o={name:r.name,t:tm+s+j,imp:batch};if(r.rsvp)o.rsvp=r.rsvp;if(r.invited!=null)o.invited=r.invited;if(r.plusOf)o.plusOf=r.plusOf;u["g"+tm.toString(36)+(s+j)]=o});
      await ER("guests",I.target).update(u);Object.keys(u).forEach(k=>keys[k]=1);n+=Object.keys(u).length}}
+   if(IM2.includes(I.type)){const res=await imSave2(I,ok,batch,tm);n=res.n;where=res.where;paths=res.paths;prev=res.prev;up=Object.keys(prev).length}
+   if(toUpd.length&&(I.type==="clients"||I.type==="vendors")){const u={};
+    toUpd.forEach(r=>{if(I.type==="clients"){const old=(D.clients||{})[r.ex];if(!old)return;const nw=Object.assign({},old);["email","phone","date","ev","evName","evTitle","evType","venue","guests","budget","status","notes"].forEach(f=>{if(r[f]!=null&&r[f]!=="")nw[f]=r[f]});u["clients/"+r.ex]=nw;prev[imPath("clients/"+r.ex)]=old}
+     else{const old=((D.cven||{})[r.cid]||{})[r.ex];if(!old)return;const nw=Object.assign({},old);["role","phone","email","arrive","delivers","note"].forEach(f=>{if(r[f]!=null&&r[f]!=="")nw[f]=r[f]});u[`clientVendors/${r.cid}/${r.ex}`]=nw;prev[imPath(`clientVendors/${r.cid}/${r.ex}`)]=old}});
+    if(Object.keys(u).length){await RT(PSP.replace(/\/$/,"")).update(u);up=Object.keys(u).length;n+=up}}
   }catch(e){err=1}
-  if(n){try{await RT(PSP+"imports/"+batch).set(Object.assign({type:I.type,t:tm,n,file:I.file,keys},where?{where:String(where).slice(0,60)}:{},I.type==="guests"?{ev:I.target}:{}))}catch(e){}
+  if(n){try{await RT(PSP+"imports/"+batch).set(Object.assign({type:I.type,t:tm,n,file:I.file,keys,paths,prev},where?{where:String(where).slice(0,60)}:{},I.type==="guests"?{ev:I.target}:{}))}catch(e){}
    try{await RT(PSP+"imMaps/"+I.sig).set(I.map)}catch(e){}}
-  I.result={n,nt,err,where,dup:I.dup==="skip"?all.filter(r=>!r.skip&&r.dup).length:0,skip:all.filter(r=>r.skip).length,warn:recs.filter(r=>r.warn.length).length};
+  I.result={n,nt,err,where,up,dup:all.filter(r=>!r.skip&&r.dup&&(I.dup==="skip"||(upd&&!r.ex))).length,skip:all.filter(r=>r.skip).length,warn:recs.filter(r=>r.warn.length).length};
   I.busy=false;I.step="done";delete L.drafts.im_tpl;const T=IM_T[I.type];toast(err?"The import stopped partway":`${n} ${n===1?T.one:T.many} imported`);render(true)},
  imUndo:async el=>{const id=el.dataset.k;if(L.confirm!=="iu"+id){L.confirm="iu"+id;return render(true)}L.confirm=null;
   const x=(D.imLog||{})[id];if(!x)return toast("That import is already gone");const ks=Object.keys(x.keys||{});let refs=[];
   if(x.type==="clients"){if(ks.includes(L.cliOpen))L.cliOpen=null;refs=ks.flatMap(k=>IM_CL_PATHS.map(p=>RT(PSP+p+"/"+k)))}
-  else if(x.type==="vendors")refs=ks.map(k=>RT(PSP+"clientVendors/"+k));
+  else if(x.type==="vendors")refs=ks.map(k=>RT(PSP+"clientVendors/"+imUnpath(k)));
   else if(x.type==="guests"&&x.ev)refs=ks.map(k=>ER("guests/"+k,x.ev));
+  refs=refs.concat(Object.keys(x.paths||{}).map(p=>RT(PSP+imUnpath(p))));
   toast("Undoing…");for(let i=0;i<refs.length;i+=200)await Promise.all(refs.slice(i,i+200).map(r=>r.remove()));
-  await RT(PSP+"imports/"+id).remove();const T=IM_T[x.type]||IM_T.clients;toast(`Removed ${x.n} imported ${x.n===1?T.one:T.many}`);render(true)},
- imTemplate:()=>{const type=(L.im&&L.im.type)||L.imType||"clients",T=IM_T[type];
+  for(const p of Object.keys(x.prev||{}))await RT(PSP+imUnpath(p)).set(x.prev[p]||null);
+  await RT(PSP+"imports/"+id).remove();const T=IM_T[x.type]||IM_T.clients;toast(Object.keys(x.prev||{}).length?`Undid that import of ${x.n} ${x.n===1?T.one:T.many}`:`Removed ${x.n} imported ${x.n===1?T.one:T.many}`);render(true)},
+ imTemplate:()=>{const type=(L.im&&L.im.type)||L.imType||"clients",T=IM_T[type];if(!T)return;
   download(`Host Mode ${T.one} import template.csv`,new Blob([T.tpl.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c).join(",")).join("\r\n")],{type:"text/csv"}))}
+});
+
+/* ---- importer, part 2: inventory, venue, packages and payments; whole workbooks; updating duplicates ----
+   A workbook with several tabs is read tab by tab. Each tab's kind is worked out from its name and headers
+   ("Figure it out for me"), and the planner can change it before anything saves.
+   Duplicates can be skipped, updated with the new details, or added again. Updates keep the old record in the
+   import log (prev), so Undo puts it back. Log paths are stored with "~" for "/" because database keys can't hold "/". */
+Object.assign(IM_FIELDS,{
+ iname:{l:"Item",re:/item|product|description|name|article|sku/},
+ iqty:{l:"How many you own",re:/qty|quant|on ?hand|in ?stock|owned|stock|count|total|units|#/},
+ icat:{l:"Category",re:/categ|type|group|kind|class/},
+ icolor:{l:"Color, size or style",re:/colou?r|size|style|finish|dimension|shape|variant/},
+ ispot:{l:"Where it's stored",re:/stor|shelf|bin|location|where|warehouse|rack|spot/},
+ icost:{l:"Replacement cost each",re:/cost|price|value|replace/},
+ irep:{l:"In repair or cleaning",re:/repair|damag|clean|broken|out of service/},
+ ilow:{l:"Warn me when fewer than",re:/reorder|min|low|par/},
+ inote:{l:"Notes",re:/note|comment|memo|detail/},
+ sname:{l:"Space name",re:/space|room|hall|area|name/},
+ scap:{l:"Holds up to (guests)",re:/capac|max|seat|guest|holds|occupan/},
+ srate:{l:"Usual fee",re:/rate|fee|price|cost|rent/},
+ snote:{l:"Notes",re:/note|feature|detail|descr|amenit/},
+ bname:{l:"Event or client name",re:/event|client|name|booked by|customer|party|couple|title/},
+ bdate:{l:"Date",re:/date|day|when/,not:/creat|book(ed|ing) on|added|paid|due|hold/},
+ bstart:{l:"Starts",re:/start|from|begin|arriv|time in|load.?in/},
+ bend:{l:"Ends",re:/end|until|finish|to\b|out|depart/},
+ bspace:{l:"Space",re:/space|room|hall|area|venue/},
+ bkind:{l:"Type of event",re:/type|kind|occasion|category/},
+ bguests:{l:"Guests",re:/guest|head ?count|attend|pax|people/},
+ bstatus:{l:"Status",re:/status|stage|confirm|hold/},
+ bprice:{l:"Rental fee",re:/fee|price|rent|total|amount|cost/,not:/deposit/},
+ bdep:{l:"Deposit",re:/deposit|retainer/},
+ bdepPaid:{l:"Deposit paid",re:/deposit.*(paid|rec)|paid/},
+ bphone:{l:"Phone",re:/phone|mobile|cell|\btel/},
+ bemail:{l:"Email",re:/e-?mail/},
+ bnote:{l:"Notes",re:/note|comment|detail|memo/},
+ kfrom:{l:"First day",re:/from|start|begin|date|first/},
+ kto:{l:"Last day",re:/to\b|until|end|through|thru|last/},
+ kspace:{l:"Space",re:/space|room|hall|area/},
+ kreason:{l:"Reason",re:/reason|why|note|descr|what/},
+ pname:{l:"Package name",re:/package|tier|plan|service|name|title/},
+ pprice:{l:"Price",re:/price|cost|fee|rate|total|amount/,not:/deposit/},
+ pdep:{l:"Deposit",re:/deposit|retainer|down/},
+ pitems:{l:"What's included",re:/includ|item|feature|descr|detail|what/},
+ payclient:{l:"Client",re:/client|customer|couple|name|event/},
+ paytitle:{l:"What it's for",re:/for|descr|title|item|memo|invoice|payment/,not:/date|due|paid|amount/},
+ payamt:{l:"Amount",re:/amount|total|price|sum|\$|value/},
+ paydue:{l:"Due date",re:/due|date/,not:/paid/},
+ paypaid:{l:"Paid?",re:/paid|status|received|settled/}
+});
+Object.assign(IM_T,{
+ gear:{l:"Inventory",one:"item",many:"items",nm:/invent|stock|item|rental|equip|linen|decor|chair|table|light|centerp/,sig:[/qty|quant|on ?hand|in ?stock|owned|units/,/item|product|sku/,/stor|shelf|bin|warehouse|rack/,/colou?r|size/],
+  guess:["iqty","irep","ilow","icost","ispot","icolor","icat","inote","iname"],show:["iname","icat","iqty","icolor","ispot","irep","icost","ilow","inote"],need:["iname"],upd:true,
+  about:"Tablecloths, centerpieces, chairs, tables, lights and anything else you own, added to Inventory.",
+  tpl:[["Item","Category","How many","Color or size","Where it's stored","In repair","Cost each","Reorder below","Notes"],["Ivory 120\" round tablecloth","Linens","40","Ivory","Shelf A","2","22","30","Steam before use"]]},
+ spaces:{l:"Venue spaces",one:"space",many:"spaces",nm:/space|room|hall|area/,sig:[/capac|max guest|occupan|seat/,/room|space|hall/,/rate|rent/],
+  guess:["scap","srate","snote","sname"],show:["sname","scap","srate","snote"],need:["sname"],upd:true,
+  about:"The rooms and areas of your venue, with how many guests each holds.",
+  tpl:[["Space","Capacity","Fee","Notes"],["Grand Ballroom","250","4500","Dance floor and stage"]]},
+ bookings:{l:"Venue bookings",one:"booking",many:"bookings",nm:/book|reserv|calendar|schedule|venue/,sig:[/room|space|hall/,/start|begin/,/end|until|finish/,/deposit/,/hold|confirm/],
+  guess:["bemail","bphone","bdepPaid","bdep","bprice","bguests","bstatus","bstart","bend","bspace","bkind","bdate","bnote","bname"],show:["bname","bdate","bstart","bend","bspace","bkind","bguests","bstatus","bprice","bdep","bdepPaid","bphone","bemail","bnote"],need:["bname"],upd:true,
+  about:"Holds and confirmed bookings for your venue, added to the Venue calendar.",
+  tpl:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Deposit","Deposit paid","Phone","Email","Notes"],["Patel wedding","2027-05-22","2:00 PM","11:00 PM","Grand Ballroom","Wedding","200","Confirmed","9500","3000","Yes","704-555-0177","anika@example.com",""]]},
+ blocks:{l:"Blocked days",one:"blocked period",many:"blocked periods",nm:/block|closed|blackout|unavail|holiday/,sig:[/block|closed|blackout|unavail/,/reason|why/,/from|through|thru|until/],
+  guess:["kreason","kspace","kto","kfrom"],show:["kfrom","kto","kspace","kreason"],need:["kfrom"],
+  about:"Days your venue, or one space in it, can't be booked.",
+  tpl:[["From","Through","Space","Reason"],["2027-12-24","2027-12-26","","Closed for the holiday"]]},
+ packages:{l:"Packages",one:"package",many:"packages",nm:/package|pricing|service|offer|menu/,sig:[/package|tier|plan/,/includ/,/deposit|retainer/],
+  guess:["pdep","pitems","pprice","pname"],show:["pname","pprice","pdep","pitems"],need:["pname"],upd:true,
+  about:"Your standard offers and prices, added to Packages.",
+  tpl:[["Package","Price","Deposit","What's included"],["Wedding Signature","3800","1200","Partial planning; Vendor booking; Day-of coordination"]]},
+ payments:{l:"Payments",one:"payment",many:"payments",nm:/pay|invoice|billing|money|ledger|transact/,sig:[/paid|payment|received/,/due/,/amount/,/client|customer/],
+  guess:["paypaid","paydue","payamt","paytitle","payclient"],show:["payclient","paytitle","payamt","paydue","paypaid"],need:["payamt"],upd:true,
+  about:"Payment history and what clients still owe, added to each client's Money tab.",
+  tpl:[["Client","What it's for","Amount","Due date","Paid"],["Maya and Jordan","Deposit","1500","2027-01-15","Yes"]]}
+});
+IM_T.clients.upd=true;IM_T.vendors.upd=true;
+IM_T.clients.nm=/client|customer|lead|contact|couple|crm/;IM_T.clients.sig=[/client|customer|couple|lead/,/e-?mail/,/budget/,/event date|wedding date/];
+IM_T.vendors.nm=/vendor|supplier|partner/;IM_T.vendors.sig=[/vendor|supplier/,/arriv|load.?in/,/role|service|trade/];
+IM_T.guests.nm=/guest|rsvp|attend|invite/;IM_T.guests.sig=[/rsvp|attending/,/plus|guest of/,/invit/,/meal|table|dietary/];
+/* which kind of data a tab holds: its name counts most, then how many of its headers look like that kind's columns */
+function imDetect(head,sheet){const h=head.map(x=>String(x||"").toLowerCase().trim()).filter(Boolean),sn=String(sheet||"").toLowerCase();let best="clients",bs=0;
+ Object.keys(IM_T).forEach(k=>{const T=IM_T[k];let s=0;if(T.nm&&sn&&T.nm.test(sn))s+=4;(T.sig||[]).forEach(re=>{if(h.some(x=>re.test(x)))s+=2});
+  T.guess.forEach(f=>{const F=IM_FIELDS[f];if(h.some(x=>F.re.test(x)&&!(F.not&&F.not.test(x))))s+=0.5});if(s>bs){bs=s;best=k}});
+ return best}
+const imPath=p=>String(p).replace(/\//g,"~"),imUnpath=p=>String(p).replace(/~/g,"/");
+const imYes=v=>/^(y|yes|true|paid|x|✓|1|done|received|settled|complete)/i.test(String(v||"").trim());
+function imGearCat(v){const s=normName(v);if(!s)return "";const hit=GEAR_CATS.find(c=>s.includes(c.toLowerCase().replace(/s$/,"")));if(hit)return hit;
+ return /cloth|napkin|runner|overlay/.test(s)?"Linens":/vase|centre|floral|arrangement/.test(s)?"Centerpieces":/seat|stool|bench/.test(s)?"Chairs":/light|lamp|candle|bulb/.test(s)?"Lighting":/drape|curtain|backdrop/.test(s)?"Draping":/plate|glass|cutlery|flatware|charger|dish/.test(s)?"Tableware":/sign|easel|board/.test(s)?"Signs":"Other"}
+/* builds the rows for the new kinds; same shape as imBuild: {line,name,warn,skip,dup,ex} */
+function imBuild2(I,g,extras){const seen={},type=I.type;
+ const money=(o,raw,k,l)=>{const n=imNum(raw);if(n===null)o.warn.push(`couldn't read the ${l} "${String(raw).slice(0,20)}"`);else if(n!==""&&n>=0)o[k]=Math.round(n*100)/100};
+ const count=(o,raw,k,l)=>{const n=imNum(raw);if(n===null)o.warn.push(`couldn't read the ${l} "${String(raw).slice(0,20)}"`);else if(n!==""&&n>=0)o[k]=Math.round(n)};
+ const note=(r,k,sep)=>[g(r,k)].concat(extras(r)).filter(Boolean).join(sep||"; ");
+ if(type==="gear"){const byN={};gearList().forEach(it=>(byN[normName(it.name)]=byN[normName(it.name)]||[]).push(it));
+  /* same item: same name, and the colors match, or one of them has no color, or only one item has that name */
+  const match=(nm,co)=>{const l=byN[nm]||[],c=normName(co);if(!l.length)return "";const exact=l.find(it=>normName(it.color)===c);if(exact)return exact.k;if(!c||l.length===1)return l.length===1?l[0].k:"";const near=l.filter(it=>{const ic=normName(it.color);return !ic||ic.includes(c)||c.includes(ic)});return near.length===1?near[0].k:""};
+  return I.rows.map((r,i)=>{const name=g(r,"iname"),o={line:I.start+i+2,name:name.slice(0,80),warn:[],skip:""};if(!name){o.skip="no item name";return o}
+   count(o,g(r,"iqty"),"qty","count");if(o.qty==null&&!o.warn.length)o.warn.push("no count given, saved as 0");
+   const c=g(r,"icat");o.cat=imGearCat(c)||"Other";const co=g(r,"icolor");if(co)o.color=co.slice(0,80);const sp=g(r,"ispot");if(sp)o.spot=sp.slice(0,80);
+   count(o,g(r,"irep"),"rep","repair count");count(o,g(r,"ilow"),"low","reorder level");money(o,g(r,"icost"),"cost","cost");
+   if(o.rep>(o.qty||0)){o.warn.push("more in repair than owned, repair count set to 0");o.rep=0}
+   const nt=note(r,"inote");if(nt)o.note=nt.slice(0,300);
+   const dk=normName(o.name)+"|"+normName(o.color),ex=match(normName(o.name),o.color);if(ex){o.dup=true;o.ex=ex}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
+ if(type==="spaces"){const have={};spaceList().forEach(s=>have[normName(s.name)]=s.k);
+  return I.rows.map((r,i)=>{const name=g(r,"sname"),o={line:I.start+i+2,name:name.slice(0,60),warn:[],skip:""};if(!name){o.skip="no space name";return o}
+   count(o,g(r,"scap"),"cap","capacity");money(o,g(r,"srate"),"rate","fee");const nt=note(r,"snote");if(nt)o.note=nt.slice(0,200);
+   const dk=normName(o.name);if(have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
+ if(type==="bookings"){const sp={};spaceList().forEach(s=>sp[normName(s.name)]=s.k);const have={};bkList().forEach(b=>have[b.date+"|"+(b.space||"")+"|"+normName(b.name)]=b.k);I.newSpaces={};
+  return I.rows.map((r,i)=>{const name=g(r,"bname"),o={line:I.start+i+2,name:name.slice(0,80),warn:[],skip:""};if(!name){o.skip="no event or client name";return o}
+   const dr=g(r,"bdate"),d=imDate(dr);if(!d){o.skip=d===null?`couldn't read the date "${dr.slice(0,20)}"`:"no date";return o}o.date=d;
+   [["bstart","start"],["bend","end"]].forEach(([k,f])=>{const raw=g(r,k),t=imTime(raw);if(t)o[f]=t;else if(t===null)o.warn.push(`couldn't read the time "${raw.slice(0,20)}"`)});
+   const sn=g(r,"bspace");o.space="";if(sn&&!/^(whole|all|entire|full)\b/i.test(sn)){const k=sp[normName(sn)];if(k)o.space=k;else{o.spaceNew=sn.slice(0,60);I.newSpaces[normName(sn)]=sn.slice(0,60)}}o.sname=sn&&!o.space&&!o.spaceNew?"Whole venue":(o.spaceNew||spaceName(o.space));
+   const kd=g(r,"bkind");o.kind=BK_KINDS.find(x=>normName(x)===normName(kd))||BK_KINDS.find(x=>kd&&normName(kd).includes(normName(x).split(" ")[0]))||(kd?"Other":"Other");
+   count(o,g(r,"bguests"),"guests","guest count");money(o,g(r,"bprice"),"price","fee");money(o,g(r,"bdep"),"deposit","deposit");
+   const st=g(r,"bstatus");o.status=/cancel/i.test(st)?"cancelled":/hold|tentat|pencil|pending|inquir/i.test(st)?"hold":"confirmed";
+   if(I.map.bdepPaid!=null&&I.map.bdepPaid!=="")o.depPaid=imYes(g(r,"bdepPaid"));
+   const ph=g(r,"bphone");if(ph)o.phone=ph.slice(0,30);const em=g(r,"bemail").toLowerCase();if(em){if(imOkEmail(em))o.email=em.slice(0,120);else o.warn.push("email doesn't look right")}
+   const nt=note(r,"bnote");if(nt)o.note=nt.slice(0,400);
+   const dk=o.date+"|"+(o.space||normName(o.spaceNew||""))+"|"+normName(o.name);if(have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;
+   if(o.status!=="cancelled"&&!o.dup&&o.space){const cl=bkClashes(Object.assign({},o),null);if(cl.length)o.warn.push("overlaps "+cl.map(x=>x.name).join(", "))}
+   return o})}
+ if(type==="blocks"){const sp={};spaceList().forEach(s=>sp[normName(s.name)]=s.k);const have={};blkList().forEach(b=>have[b.from+"|"+blkTo(b)+"|"+(b.space||"")]=1);
+  return I.rows.map((r,i)=>{const fr=g(r,"kfrom"),f=imDate(fr),o={line:I.start+i+2,name:"",warn:[],skip:""};if(!f){o.name=fr||"(no date)";o.skip=f===null?`couldn't read the date "${fr.slice(0,20)}"`:"no date";return o}
+   const tr=g(r,"kto"),t=imDate(tr);o.from=f;o.to=t&&t>=f?t:f;if(t===null)o.warn.push(`couldn't read the last day "${tr.slice(0,20)}", blocked one day`);
+   const sn=g(r,"kspace");o.space="";if(sn&&!/^(whole|all|entire|full)\b/i.test(sn)){const k=sp[normName(sn)];if(k)o.space=k;else o.warn.push(`no space named "${sn.slice(0,30)}", blocked the whole venue`)}
+   o.reason=note(r,"kreason").slice(0,80);o.name=clFmtDate(o.from)+(o.to>o.from?" to "+clFmtDate(o.to):"");
+   const dk=o.from+"|"+o.to+"|"+o.space;if(have[dk]||seen[dk])o.dup=true;seen[dk]=1;return o})}
+ if(type==="packages"){const have={};pkList().forEach(p=>have[normName(p.name)]=p.k);
+  return I.rows.map((r,i)=>{const name=g(r,"pname"),o={line:I.start+i+2,name:name.slice(0,60),warn:[],skip:""};if(!name){o.skip="no package name";return o}
+   money(o,g(r,"pprice"),"price","price");if(o.price==null){o.skip="no price";return o}money(o,g(r,"pdep"),"deposit","deposit");if(o.deposit>o.price){o.warn.push("deposit was more than the price, set to 0");o.deposit=0}
+   const it=note(r,"pitems","\n");if(it)o.items=it.split(/\n|;|•|\|/).map(x=>x.trim()).filter(Boolean).join("\n").slice(0,1500);
+   const dk=normName(o.name);if(have[dk]){o.dup=true;o.ex=have[dk]}else if(seen[dk])o.dup=true;seen[dk]=1;return o})}
+ if(type==="payments"){const cs=D.clients||{},cBy={};Object.keys(cs).forEach(id=>{cBy[normName(cs[id].name)]=id;if(cs[id].evName)cBy[normName(cs[id].evName)]=cBy[normName(cs[id].evName)]||id});const have={};
+  return I.rows.map((r,i)=>{const amt=imNum(g(r,"payamt")),o={line:I.start+i+2,name:"",warn:[],skip:""};
+   let cid=I.target;if(cid==="col"){const cn=g(r,"payclient");cid=cBy[normName(cn)];if(!cid){o.name=cn||"(no client)";o.skip=cn?`no client named "${cn.slice(0,30)}"`:"no client given";return o}}
+   if(!cs[cid]){o.skip="pick a client";return o}o.cid=cid;o.cname=cs[cid].name;
+   if(amt===null||amt===""){o.name=g(r,"paytitle")||"Payment";o.skip=amt===null?`couldn't read the amount "${g(r,"payamt").slice(0,20)}"`:"no amount";return o}o.amount=Math.round(amt*100)/100;
+   o.title=(g(r,"paytitle")||"Payment").slice(0,80);o.name=o.title;const dr=g(r,"paydue"),d=imDate(dr);if(d)o.due=d;else if(d===null)o.warn.push(`couldn't read the date "${dr.slice(0,20)}"`);
+   const pv=g(r,"paypaid"),pd=imDate(pv);o.paid=!!pv&&(imYes(pv)||!!pd);if(pd)o.paidOn=pd;
+   if(!have[cid]){have[cid]={};clPays(cid).forEach(p=>have[cid][normName(p.title)+"|"+(+p.amount||0)+"|"+(p.due||"")]=p.k)}
+   const dk=normName(o.title)+"|"+o.amount+"|"+(o.due||"");if(have[cid][dk]){o.dup=true;o.ex=have[cid][dk]}else if(seen[cid+dk])o.dup=true;seen[cid+dk]=1;return o})}
+ return []}
+/* what one row looks like in the preview, for the new kinds */
+function imDet2(r,I){const fd=d=>d?clFmtDate(d):"";
+ if(I.type==="gear")return [r.cat,r.qty!=null?r.qty+" owned":"",r.color,r.spot?"stored: "+r.spot:"",r.rep?r.rep+" in repair":"",r.cost?clMoney(r.cost)+" each":""];
+ if(I.type==="spaces")return [r.cap?"up to "+r.cap:"",r.rate?clMoney(r.rate):"",r.note];
+ if(I.type==="bookings")return [fd(r.date),r.start||r.end?bkTimes(r):"",r.sname+(r.spaceNew?" (new space)":""),r.kind,r.guests?r.guests+" guests":"",BK_ST[r.status][0],r.price?clMoney(r.price):"",r.deposit?clMoney(r.deposit)+" deposit"+(r.depPaid?" paid":""):""];
+ if(I.type==="blocks")return [r.space?spaceName(r.space):"Whole venue",r.reason];
+ if(I.type==="packages")return [r.price!=null?clMoney(r.price):"",r.deposit?clMoney(r.deposit)+" deposit":"",r.items?r.items.split("\n").length+" things included":""];
+ if(I.type==="payments")return [r.amount!=null?clMoney(r.amount):"",r.due?"due "+fd(r.due):"",r.paid?"paid"+(r.paidOn?" "+fd(r.paidOn):""):"not paid yet",I.target==="col"&&r.cname?"for "+r.cname:""];
+ return []}
+/* saves the new kinds. Returns {n, paths, prev, where}. Updates keep the old record in prev so Undo can restore it. */
+async function imSave2(I,recs,batch,tm){const out={n:0,paths:{},prev:{},where:""},u={},upd=I.dup==="update";
+ const put=(path,obj)=>{u[path]=obj;out.paths[imPath(path)]=1};
+ const change=(path,old,obj)=>{u[path]=obj;out.prev[imPath(path)]=old==null?null:old};
+ if(I.type==="gear")recs.forEach((r,j)=>{const o={name:r.name,cat:r.cat||"Other",qty:r.qty||0,rep:r.rep||0,cost:r.cost||0,low:r.low!=null?r.low:"",color:r.color||"",spot:r.spot||"",note:r.note||"",t:tm+j,imp:batch};
+  if(r.dup&&upd&&r.ex){const old=(D.gear||{})[r.ex]||{},n={};Object.keys(o).forEach(f=>{if(f!=="t"&&f!=="imp"&&(r[f]!=null&&r[f]!==""||f==="name"||f==="cat"))n[f]=o[f]});change("gear/"+r.ex,old,Object.assign({},old,n))}else put("gear/"+RT(PSP+"gear").push().key,o)});
+ if(I.type==="spaces")recs.forEach((r,j)=>{const o={name:r.name,cap:r.cap||0,rate:r.rate||0,note:r.note||"",t:tm+j,imp:batch};
+  if(r.dup&&upd&&r.ex){const old=(D.spaces||{})[r.ex]||{};change("spaces/"+r.ex,old,Object.assign({},old,{name:r.name},r.cap!=null?{cap:r.cap}:{},r.rate!=null?{rate:r.rate}:{},r.note?{note:r.note}:{}))}else put("spaces/"+RT(PSP+"spaces").push().key,o)});
+ if(I.type==="bookings"){const made={};Object.keys(I.newSpaces||{}).forEach((nk,j)=>{if(!recs.some(r=>r.spaceNew&&normName(r.spaceNew)===nk))return;const k=RT(PSP+"spaces").push().key;made[nk]=k;put("spaces/"+k,{name:I.newSpaces[nk],cap:0,rate:0,note:"Added by an import",t:tm+j,imp:batch})});
+  recs.forEach((r,j)=>{const o={name:r.name,date:r.date,space:r.spaceNew?made[normName(r.spaceNew)]||"":r.space||"",start:r.start||"",end:r.end||"",kind:r.kind||"Other",guests:r.guests||0,status:r.status,holdUntil:r.status==="hold"?dayAdd(mateToday(),7):"",price:r.price||0,deposit:r.deposit||0,depPaid:!!r.depPaid,phone:r.phone||"",email:r.email||"",ref:"",note:r.note||"",t:tm+j,imp:batch};
+   if(r.dup&&upd&&r.ex){const old=(D.bks||{})[r.ex]||{},n={};Object.keys(o).forEach(f=>{if(!["t","imp","ref","holdUntil"].includes(f)&&(r[f]!=null&&r[f]!==""))n[f]=o[f]});change("bookings/"+r.ex,old,Object.assign({},old,n))}else put("bookings/"+RT(PSP+"bookings").push().key,o)})}
+ if(I.type==="blocks")recs.forEach((r,j)=>put("blocks/"+RT(PSP+"blocks").push().key,{from:r.from,to:r.to,space:r.space||"",reason:r.reason||"",t:tm+j,imp:batch}));
+ if(I.type==="packages")recs.forEach((r,j)=>{const o={name:r.name,price:r.price,deposit:r.deposit||0,items:r.items||"",t:tm+j,imp:batch};
+  if(r.dup&&upd&&r.ex){const old=(D.pkgs||{})[r.ex]||{};change("packages/"+r.ex,old,Object.assign({},old,{price:r.price},r.deposit!=null?{deposit:r.deposit}:{},r.items?{items:r.items}:{}))}else put("packages/"+RT(PSP+"packages").push().key,o)});
+ if(I.type==="payments"){const ids={};recs.forEach((r,j)=>{ids[r.cid]=1;const o={title:r.title,amount:r.amount,due:r.due||"",paid:!!r.paid,t:tm+j,imp:batch};if(r.paid)o.paidAt=r.paidOn?Date.parse(r.paidOn+"T12:00:00"):tm;
+   if(r.dup&&upd&&r.ex){const old=((D.cpay||{})[r.cid]||{})[r.ex]||{};change(`clientPayments/${r.cid}/${r.ex}`,old,Object.assign({},old,{amount:r.amount,paid:!!r.paid},r.due?{due:r.due}:{},r.paid?{paidAt:o.paidAt}:{}))}else put(`clientPayments/${r.cid}/${RT(PSP+"clientPayments/"+r.cid).push().key}`,o)});
+  const k=Object.keys(ids);out.where=k.length===1?((D.clients||{})[k[0]]||{}).name||"":k.length+" clients"}
+ if(["spaces","bookings","blocks"].includes(I.type)&&!venueOn())u["venue/on"]=true;
+ const ks=Object.keys(u);for(let i=0;i<ks.length;i+=400){const part={};ks.slice(i,i+400).forEach(k=>part[k]=u[k]);await RT(PSP.replace(/\/$/,"")).update(part)}
+ out.n=recs.length;return out}
+/* reads every tab of an .xlsx file: [{name, rows}] */
+async function clXlsxSheets(file){if(!window.JSZip)throw new Error("nozip");const z=await JSZip.loadAsync(await file.arrayBuffer()),strs=[],ss=z.file("xl/sharedStrings.xml");
+ if(ss){const x=await ss.async("string");(x.match(/<si[\s\S]*?<\/si>/g)||[]).forEach(si=>strs.push(clUnesc((si.match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).map(t=>t.replace(/<[^>]+>/g,"")).join(""))))}
+ const wb=z.file("xl/workbook.xml")?await z.file("xl/workbook.xml").async("string"):"",rel=z.file("xl/_rels/workbook.xml.rels")?await z.file("xl/_rels/workbook.xml.rels").async("string"):"",tg={};
+ (rel.match(/<Relationship [^>]*>/g)||[]).forEach(r=>{const id=(r.match(/Id="([^"]+)"/)||[])[1],t=(r.match(/Target="([^"]+)"/)||[])[1];if(id&&t)tg[id]=t.replace(/^\/?(xl\/)?/,"xl/")});
+ let list=(wb.match(/<sheet [^>]*\/?>/g)||[]).map(s=>({name:clUnesc((s.match(/name="([^"]*)"/)||[])[1]||"Sheet"),path:tg[(s.match(/r:id="([^"]+)"/)||[])[1]]})).filter(s=>s.path&&z.file(s.path));
+ if(!list.length)list=Object.keys(z.files).filter(f=>/^xl\/worksheets\/sheet\d+\.xml$/.test(f)).sort().map((p,i)=>({name:"Sheet "+(i+1),path:p}));
+ const out=[];for(const s of list){const x=await z.file(s.path).async("string"),rows=[];
+  (x.match(/<row[\s\S]*?<\/row>/g)||[]).forEach(r=>{const cells=[];(r.match(/<c [^>]*?(?:\/>|>[\s\S]*?<\/c>)/g)||[]).forEach(c=>{const ref=(c.match(/ r="([A-Z]+)\d+"/)||[])[1]||"A",col=ref.split("").reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0)-1;
+   const t=(c.match(/ t="(\w+)"/)||[])[1],v=(c.match(/<v>([\s\S]*?)<\/v>/)||[])[1],is=(c.match(/<is>[\s\S]*?<\/is>/)||[])[0];cells[col]=t==="s"?strs[+v]||"":is?clUnesc(is.replace(/<[^>]+>/g,"")):clUnesc(v||"")});rows.push(Array.from(cells,c=>c==null?"":c))});
+  if(rows.some(r=>r.some(c=>String(c).trim())))out.push({name:s.name,rows})}
+ return out}
+/* problem rows, as a spreadsheet the planner can fix and upload again */
+function imProblemCsv(){const I=L.im;if(!I)return;const recs=imBuild(),bad=recs.filter(r=>r.skip||r.warn.length);if(!bad.length)return toast("No problem rows");
+ const q=c=>/[",\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':String(c),rows=[I.head.concat(["Problem"])].concat(bad.map(r=>(I.rows[r.line-I.start-2]||[]).concat([[r.skip?"skipped: "+r.skip:""].concat(r.warn).filter(Boolean).join("; ")])));
+ download(xFile(I.file)+" - rows to fix.csv",new Blob([rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"}))}
+/* export everything: one workbook, one tab per kind, with headers the importer reads back */
+function exAllSheets(){const cs=D.clients||{},cn=id=>(cs[id]||{}).name||"",sh=[];
+ sh.push({name:"Clients",rows:clExportAllRows()});
+ const ven=[["Vendor name","Role","Phone","Email","Arrival time","What they bring","Notes","Client"]];Object.keys(cs).forEach(id=>clVendors(id).forEach(v=>ven.push([v.name,v.role||"",v.phone||"",v.email||"",v.arrive?clFmtTime(v.arrive):"",v.delivers||"",v.note||"",cn(id)])));sh.push({name:"Vendors",rows:ven});
+ sh.push({name:"Inventory",rows:[["Item","Category","How many","Color or size","Where it's stored","In repair","Cost each","Reorder below","Notes"]].concat(gearList().map(it=>[it.name,it.cat||"",+it.qty||0,it.color||"",it.spot||"",+it.rep||0,+it.cost||0,it.low===""||it.low==null?"":+it.low,it.note||""]))});
+ sh.push({name:"Pull lists",rows:[["Pull list","Goes out","Comes back","Status","Items","Notes"]].concat(gresList().map(r=>[r.label||"",r.from||"",gresTo(r)||"",GR_ST[r.status||"held"][0],gresWhat(r).join("; "),r.note||""]))});
+ sh.push({name:"Venue spaces",rows:[["Space","Capacity","Fee","Notes"]].concat(spaceList().map(s=>[s.name,+s.cap||0,+s.rate||0,s.note||""]))});
+ sh.push({name:"Venue bookings",rows:[["Event","Date","Start","End","Space","Type","Guests","Status","Fee","Deposit","Deposit paid","Phone","Email","Notes"]].concat(bkList().map(b=>[b.name||"",b.date||"",b.start?clFmtTime(b.start):"",b.end?clFmtTime(b.end):"",spaceName(b.space),b.kind||"",+b.guests||0,BK_ST[b.status||"hold"][0],+b.price||0,+b.deposit||0,b.depPaid?"Yes":"No",b.phone||"",b.email||"",b.note||""]))});
+ sh.push({name:"Blocked days",rows:[["From","Through","Space","Reason"]].concat(blkList().map(x=>[x.from,blkTo(x),x.space?spaceName(x.space):"Whole venue",x.reason||""]))});
+ sh.push({name:"Packages",rows:[["Package","Price","Deposit","What's included"]].concat(pkList().map(p=>[p.name,+p.price||0,+p.deposit||0,pkLines(p).join("; ")]))});
+ const pay=[["Client","What it's for","Amount","Due date","Paid"]];Object.keys(cs).forEach(id=>clPays(id).forEach(p=>pay.push([cn(id),p.title||"",+p.amount||0,p.due||"",p.paid?"Yes":"No"])));sh.push({name:"Payments",rows:pay});
+ const inv=[["Invoice","Client","Total","Due","Status"]];Object.keys(cs).forEach(id=>invList(id).forEach(x=>inv.push([x.no||"",cn(id),+x.total||0,x.due||"",invStatus(id,x)])));sh.push({name:"Invoices",rows:inv});
+ const ld=[["Name","Email","Phone","Event type","Event date","Guests","Budget","Status","Message"]].concat(inqList().map(x=>[x.name||"",x.email||"",x.phone||"",x.type||"",x.date||"",x.guests||"",x.budget||"",(LEAD_ST[x.status||"new"]||["New"])[0],x.msg||""]));sh.push({name:"Leads",rows:ld});
+ return sh}
+Object.assign(ACT,{
+ imRetype:el=>{const I=L.im;if(!I)return;const type=el.value;if(!IM_T[type])return;I.type=type;I.auto=false;I.map=imGuess(type,I.head);I.sig=imSig(type,I.head);I.saved=false;I.dup="skip";I.off={};
+  I.target=(type==="vendors"&&I.map.client!=null&&I.map.client!=="")||(type==="payments"&&I.map.payclient!=null&&I.map.payclient!=="")?"col":type==="guests"?((L.cliOpen&&(D.clients[L.cliOpen]||{}).ev)||""):"";
+  RT(PSP+"imMaps/"+I.sig).once("value").then(s=>{const sv=s.val();if(L.im===I&&sv&&typeof sv==="object"&&Object.values(sv).every(v=>v===""||(+v>=0&&+v<I.head.length))){I.map=Object.assign({},sv);I.saved=true;render(true)}}).catch(()=>{});render(true)},
+ imOff:el=>{const I=L.im;if(!I)return;I.off=I.off||{};const k=el.dataset.k;if(I.off[k])delete I.off[k];else I.off[k]=1;render(true)},
+ imProblems:()=>imProblemCsv(),
+ imNextTab:async()=>{const q=L.imQ||[];if(!q.length){L.im=null;return render(true)}const nx=q.shift();L.im=null;await imLoadRows(nx.file,nx.rows,nx.sheet)},
+ exAll:async()=>{if(!window.JSZip)return toast("Exports need a connection. Try again in a moment.");
+  try{download(xFile((D.plMe||{}).biz||"Host Mode")+" - everything.xlsx",await xlsxBlob(exAllSheets()));toast("Downloaded")}catch(e){toast("Couldn't make the export: "+e.message)}}
 });
 
 /* ---- packages and invoices ----
@@ -5503,7 +5744,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=8;
+const PDEMO_V=9;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -5615,7 +5856,18 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
  pl.blocks={b1:{from:day(26),to:day(28),space:"s1",reason:"Floor refinishing",t:1},b2:{from:day(52),to:day(52),space:"",reason:"Closed for the holiday",t:2}};
  const evs=pl.events_;delete pl.events_;const idx=pl._idx;delete pl._idx;
  pl.tv={DUBLIN:{}};Object.keys(pl.clientVendors.dublin).forEach(k=>{const v=pl.clientVendors.dublin[k];if(v.team)pl.tv.DUBLIN["dublin_"+k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}});
- const pg={admin:{},index:idx,events:evs,planners:{northlight:pl}};
+ const pg={admin:{},index:idx,events:evs,planners:{northlight:pl},plist:{northlight:{name:"Claire Moran",biz:"Northlight Events",email:"claire@northlight.example",t:ago(2000)}}};
+ const dev="iPhone/iPad · Safari · screen 390×844 · online · en-US";
+ pg.staff={roy:{name:"Roy",role:"owner",t:ago(3000),active:ago(0.01)},icee:{name:"Icee",role:"support",code:"SUP-DEMO1",t:ago(200),active:ago(2.5)}};
+ pg.sinvites={"SUP-DEMO1":{label:"Icee",active:true,by:"icee",name:"Icee",usedAt:ago(200),t:ago(210)}};
+ pg.tickets={tk1:{msg:"The trivia question on my phone is stuck on question 4. Everyone else moved on to question 5.",who:"guest",name:"Tasha",contact:"",ev:"DUBLIN",page:"games.html?e=DUBLIN",device:dev,errs:"",status:"new",t:ago(0.3),last:ago(0.3),lastFrom:"reporter"},
+  tk2:{msg:"I uploaded my vendor spreadsheet but two of the vendors didn't show up under Vendors.",who:"planner",name:"Claire Moran",contact:"claire@northlight.example",p:"northlight",page:"games.html#planner",device:"Mac · Chrome · screen 1512×982 · online · en-US",status:"working",seen:{roy:ago(5),icee:ago(4)},by:{uid:"icee",name:"Icee",t:ago(4)},t:ago(6),last:ago(1),lastFrom:"reporter"},
+  tk3:{msg:"The big screen went black for a few seconds during the slideshow.",who:"moderator",name:"Margaret",contact:"704-555-0119",ev:"OCONNOR",page:"games.html?e=OCONNOR#moderator",device:"Windows · Edge · screen 1920×1080 · online · en-US",errs:"Unfinished task: NetworkError when attempting to fetch resource.",status:"new",seen:{roy:ago(2)},t:ago(3),last:ago(3),lastFrom:"reporter"},
+  tk4:{msg:"¿Cómo cambio mi nombre en el juego?",who:"guest",name:"Luis",ev:"WHELAN",page:"games.html?e=WHELAN",device:dev,lang:"es",status:"solved",seen:{roy:ago(30)},by:{uid:"roy",name:"Roy",t:ago(30)},solved:{uid:"roy",name:"Roy",t:ago(29)},t:ago(31),last:ago(29),lastFrom:"staff"}};
+ pg.ticketReplies={tk2:{r1:{from:"staff",name:"Icee",text:"Hi Claire, thanks for letting us know! Could you tell me the names of the two vendors that are missing?",t:ago(3)},r2:{from:"reporter",name:"Claire Moran",text:"Bloom & Vine Florals and DJ Marcus.",t:ago(1)}},
+  tk4:{r1:{from:"staff",name:"Roy",text:"¡Hola Luis! Toca tu nombre arriba de la pantalla y escribe el nuevo.",t:ago(29.5)}}};
+ pg.ticketNotes={tk2:{n1:{kind:"take",name:"Icee",text:"took it",t:ago(4)},n2:{kind:"reply",name:"Icee",text:"replied to them",t:ago(3)},n3:{kind:"note",name:"Icee",text:"Their sheet has the vendors on a second tab. Checking whether the importer reads every tab.",t:ago(2.8)}},
+  tk4:{n1:{kind:"take",name:"Roy",text:"took it",t:ago(30)},n2:{kind:"solve",name:"Roy",text:"marked it solved",t:ago(29)}}};
  localStorage.setItem("hm_pdemo_db",JSON.stringify({pdemoV:PDEMO_V,partygames:pg}));try{firebase.database().ref("pdemoV").set(PDEMO_V)}catch(e){}}
 function pdemoReset(){try{localStorage.removeItem("hm_pdemo_db");["mateSeen_liam","mateSeen_niamh","clSeen_dublin"].forEach(k=>store.set(k,0));Object.keys(localStorage).filter(k=>/fbDone_|hm_theme_(DUBLIN|WHELAN|OCONNOR)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(e){}if(VIEW==="planner")location.reload();else location.href="games.html?pdemo=1#planner"}
 if(pdemoOn()){
@@ -5684,7 +5936,7 @@ let ownerSubbed=false;
 function ownerSubs(){if(ownerSubbed||!db)return;ownerSubbed=true;
  RT("invites").on("value",s=>{D.invites=s.val()||{};renderSoon()});RT("index").on("value",s=>{D.events=s.val()||{};L.loaded=true;plAutoAttach();renderSoon()},()=>{L.loaded=true;renderSoon()});
  RT("themes").on("value",s=>{D.themes=s.val()||{};renderSoon()});RT("library").on("value",s=>{D.library=s.val()||{};renderSoon()});
- RT("leads").on("value",s=>{D.leads=s.val()||{};renderSoon()});RT("pinvites").on("value",s=>{D.pinvites=s.val()||{};plAutoAttach();renderSoon()});RT("plist").on("value",s=>{D.plist=s.val()||{};renderSoon()});
+ supSubs();RT("leads").on("value",s=>{D.leads=s.val()||{};renderSoon()});RT("pinvites").on("value",s=>{D.pinvites=s.val()||{};plAutoAttach();renderSoon()});RT("plist").on("value",s=>{D.plist=s.val()||{};renderSoon()});
  Promise.all(["clients","mates"].map(n=>RT(n).once("value").then(x=>Object.keys(x.val()||{}).length).catch(()=>0))).then(([c,m])=>{L.legacy={c,m};renderSoon()})}
 function hostConnect(){RT("owner").on("value",s=>{D.owner=s.val()||null;checkAuth();if(L.hostOK)ownerSubs();else L.loaded=true;renderSoon()});
  const a=AUTH();if(!a){/* no sign-in available (offline test copy): fall back to the PIN */L.authReady=true;ownerSubs();return}
@@ -5805,8 +6057,9 @@ const HELP={
   ["Book your venue","Venue → turn on venue bookings, add your spaces, then save holds and confirmed bookings. Overlaps and blocked days are flagged.","venue","venue booking book hold rooms spaces ballroom calendar availability deposit"],
   ["Block off days at your venue","Venue → Block off days marks days the whole venue or one space can't be booked, like maintenance or holidays.","venue","block blackout blocked closed holiday maintenance unavailable day off"],
   ["Add a booking link","Branding → Booking link. Paste your Calendly or Google booking link to show a Book a meeting button.","brand","booking meeting calendly consultation tasting appointment schedule zoom call"],
-  ["Bring in your data","Import & export takes spreadsheets, Google Sheets and PDFs and puts clients, events and vendors in place.","data","import upload spreadsheet excel csv google sheets pdf honeybook dubsado move switch data"],
-  ["Download a backup","Import & export lets you download your clients as a spreadsheet for Excel, Google Sheets or Numbers.","data","export download backup spreadsheet copy save excel"],
+  ["Bring in your data","Import & export takes spreadsheets, whole workbooks, Google Sheets and PDFs, works out what each tab holds, and puts clients, vendors, guests, inventory, venue bookings, packages and payments where they belong.","data","import upload spreadsheet workbook tabs excel csv google sheets pdf honeybook dubsado move switch data inventory bookings packages payments"],
+  ["Fix or undo an import","Before saving, rows with a problem can be skipped or downloaded to fix. Duplicates can be skipped or updated. Any import can be undone for 24 hours.","data","undo duplicate duplicates update problem rows fix skip wrong mistake"],
+  ["Download a backup","Import & export → Download everything gives you one spreadsheet with every part of your business, which you can also upload back.","data","export download backup spreadsheet copy save excel everything"],
   ["See how your business is doing","Reports shows money collected and new clients by month, best-selling packages and where leads come from.","rep","report reports revenue income money made stats numbers sales"],
   ["Collect reviews and feedback","Feedback gathers ratings from guests and clients. Feature the best ones as testimonials.","fb","feedback review reviews testimonial rating survey stars"],
   ["Change your profile or password","Settings has your profile, account email, password and sign out.","set","settings profile password account email sign out log out name"]],
@@ -5849,7 +6102,7 @@ function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who
  <div class="row small">${chips.map(c=>`<button class="btn xs" data-act="helpChip" data-v="${who}" data-k="${esc(c)}">${esc(c)}</button>`).join("")}</div>
  <div class="stack tight" data-hlist="${who}">${shown.map(r=>r.h).join("")}</div>
  <p class="small muted m0" data-hnone="${who}"${!helpNorm(q)||rows.some(r=>r.sc)?" hidden":""}>Nothing matched. Try other words, like ${who==="pl"?"“client”, “money” or “calendar”":"“games”, “guests” or “screen”"}.</p>
- <p class="small muted m0">${who==="pl"?"Still stuck? Contact Host Mode and we'll help.":"Still stuck? Ask your planner or whoever gave you your event code."}</p></section>`}
+ <p class="small muted m0">${who==="pl"?"Still stuck? Tell Host Mode and we'll help.":"Still stuck? Ask your planner or whoever gave you your event code, or tell Host Mode."}</p><button class="btn sm as" data-act="supOpen" data-k="new">Report a problem</button></section>`}
 function helpFilter(who,q){const box=document.querySelector(`[data-hlist="${who}"]`);if(!box)return;const list=HELP[who]||[],rows=[...box.querySelectorAll("[data-hrow]")];
  const sc=rows.map(r=>({r,i:+r.dataset.hrow,s:helpScore(list[+r.dataset.hrow],q)}));const has=!!helpNorm(q);
  sc.sort((a,b)=>has?(b.s-a.s||a.i-b.i):a.i-b.i).forEach(x=>{x.r.hidden=!x.s;box.appendChild(x.r)});
@@ -5871,7 +6124,7 @@ function plSubs(){if(plSubbed||!db)return;plSubbed=true;
  [["clients","clients"],["clientTasks","ctasks"],["clientMsgs","cmsgs"],["clientFiles","cfiles"],["clientTemplates","ctpl"],["clientApprovals","caps"],["clientPayments","cpay"],["clientDates","cdates"],["clientVendors","cven"],["clientInvoices","cinv"],["packages","pkgs"],["inquiries","inq"],["showcase","show"],["showImg","showImg"],["gear","gear"],["gearRes","gres"],["venue","vset"],["spaces","spaces"],["bookings","bks"],["blocks","vblk"]].forEach(([p,k])=>RT(PSP+p).on("value",s=>{D[k]=s.val()||{};if(k==="cven"||k==="clients")tvSyncSoon();renderSoon()}))}
 /* teammates can't list a planner's clients, so the vendors marked "teammates see" are copied per event into tv/{EV} */
 let tvT=null;function tvSyncSoon(){clearTimeout(tvT);tvT=setTimeout(tvSync,600)}
-function tvSync(){if(!PSP||VIEW!=="planner")return;const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
+function tvSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
  const j=JSON.stringify(out);if(j===L.tvLast)return;L.tvLast=j;RT(PSP+"tv").set(out)}
 function plConnect(){
  if(window.__HMPDEMO){PSP="planners/northlight/";L.plOK=true;L.authReady=true;plSubs();return}
@@ -5881,7 +6134,8 @@ function plConnect(){
   if(!u){L.plOK=false;L.loaded=true;renderSoon();return}
   const asU=QS.get("as")||"";
   if(/^[A-Za-z0-9_-]{1,64}$/.test(asU)){const ow=(await RT("owner").once("value").catch(()=>null));
-   if(ow&&ow.val()===u.uid){const ap=(await RT("planners/"+asU+"/profile").once("value").catch(()=>null));const apv=ap&&ap.val();
+   const sf=ow&&ow.val()!==u.uid?(await RT("staff/"+u.uid).once("value").catch(()=>null)):null,isSt=!!(sf&&sf.val());
+   if(ow&&(ow.val()===u.uid||isSt)){if(isSt)L.viewOnly=true;const ap=(await RT("planners/"+asU+"/profile").once("value").catch(()=>null));const apv=ap&&ap.val();
     if(apv){PSP="planners/"+asU+"/";D.plMe=apv;L.plOK=true;L.viewAs=true;plSubs();renderSoon();return}}}
   const prof=(await RT("planners/"+u.uid+"/profile").once("value").catch(()=>null));const pv=prof&&prof.val();
   if(pv){PSP="planners/"+u.uid+"/";D.plMe=pv;L.plOK=true;plSubs()}else{L.plOK=false;L.loaded=true}
@@ -5894,7 +6148,7 @@ function plannerView(){
   return card(mode==="new"?"Create your planner account":"Sign in",`${mode==="new"?`<p class="small muted m0">You'll need the planner code Host Mode sent you.</p>${acctForm("planner")}<button class="btn xs as" data-act="acMode" data-k="signin">I already have an account</button>`:`${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="new">New planner? Create your account</button>`}`)}
  const cur=PL_TABS.some(([k])=>k===L.plTab)?L.plTab:"home",tab=(k,l)=>`<button data-act="plTab" data-k="${k}" aria-pressed="${cur===k}">${l}${plTabBadge(k)}</button>`;
  const body=plTabBody(cur);const me=D.plMe||{};
- return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s planner portal as the admin. Changes you make save to their account.</span><a class="btn sm" href="${esc(baseURL())}#host">Back to admin console</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="Planner sections">${PL_TABS.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
+ return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s planner portal ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="Planner sections">${PL_TABS.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
 function plEvents(){const ev=D.events||{},ks=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0));
  const nu=baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+(L.viewAs?"as="+encodeURIComponent(PLID())+"&":"")+"planner=1#new";
  return `<section class="card stack"><div class="row between"><h2>Your events</h2><a class="btn primary" href="${esc(nu)}">New event</a></div><p class="small muted m0">Each event gets its own code, games, big screen and guest check-in. Link an event to a client in the Clients tab.</p>
@@ -5962,7 +6216,7 @@ function plTplTab(){const nu=baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"pla
   <div><b>${esc(t.name)}</b> <span class="pill">${esc(EVENT_TYPES[t.type].label)}</span></div><div class="small muted">${esc(t.about)}</div><div class="small muted">${t.moments.length} moments · ${g} games · ${t.ros.length}-step run of show</div>
   <a class="btn xs as" href="${esc(nu+"&tpl="+k+"#new")}">Create an event from this</a></div>`}).join("")}</div></section>`+clTplCard()}
 function plDataTab(){const n=Object.keys(D.clients||{}).length;
- return imCard()+`<section class="card stack"><h2>Export</h2><p class="small muted m0">Download your clients as a spreadsheet you can open in Excel, Google Sheets or Numbers. To export one client with their files, open them in Clients and tap Export.</p>${n?`<button class="btn primary as" data-act="clExportAll">Export all ${n} client${n===1?"":"s"}</button>`:'<p class="small muted m0">No clients yet.</p>'}</section>`}
+ return imCard()+`<section class="card stack"><h2>Export</h2><p class="small muted m0">Download everything in Host Mode as one spreadsheet, with a tab each for clients, vendors, inventory, pull lists, venue spaces, bookings, blocked days, packages, payments, invoices and leads. It opens in Excel, Google Sheets or Numbers, and you can upload it back here. To export one client with their files, open them in Clients and tap Export.</p><div class="row"><button class="btn primary" data-act="exAll">Download everything</button>${n?`<button class="btn" data-act="clExportAll">Just the ${n} client${n===1?"":"s"}</button>`:""}</div></section>`}
 function plSettings(){const me=D.plMe||{},st=D.invSet||{},fld=(k,l,v,ph,tp,mx)=>`<label class="stack tight"><span class="small">${l}</span><input type="${tp||"text"}" data-draft="${k}" maxlength="${mx||80}" value="${esc(dv(k,v||""))}" placeholder="${esc(ph||"")}"></label>`;
  return `<section class="card stack"><h2>Your profile</h2><div class="grid2 g8">${fld("se_name","Your name",me.name,"Claire Moran","text",40)}${fld("se_biz","Business name",me.biz,"Northlight Events","text",60)}${fld("se_email","Your email",me.email,"you@yourbusiness.com","email",120)}${fld("se_phone","Your phone",me.phone,"704-555-0100","tel",30)}</div>
  <button class="btn primary as" data-act="seSave">Save profile</button><span class="small muted">What clients see (logo, colors, contact details) is set in Branding.</span></section>
@@ -6283,6 +6537,188 @@ Object.assign(ACT,{
 
 function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:plSettings,help:plHelp}[k]||plHome)()}
 function plTabBadge(k){const n=k==="home"?0:k==="leads"?inqNew():k==="clients"?clAttention():k==="team"?mateBehind():k==="inv"?gearIssues():k==="venue"?(venueOn()?holdsDue().length:0):k==="pkg"?Object.keys(D.clients||{}).reduce((s,id)=>s+invList(id).filter(x=>invStatus(id,x)==="Overdue").length,0):0;return n?` <span class="pill warn">${n}</span>`:""}
+/* ================= SUPPORT DEPARTMENT =================
+   Anyone (guests, hosts, planners, clients, teammates) reports a problem from the "Report a problem" link at the bottom of every screen.
+   Roy (owner) and support teammates like Icee share one inbox: the Support tab of the admin console, or games.html#support.
+   partygames/tickets/{id}           = {msg, who (the screen), name, contact, ev, p, client, mate, page, device, errs, lang, uid,
+                                        status: new|working|solved, seen:{uid:t}, by:{uid,name,t}, solved:{uid,name,t}, t, last, lastFrom}
+                                        anyone holding the id can read it (the reporter's device keeps the id); only staff can list them
+   partygames/ticketReplies/{id}/{k} = {from: reporter|staff, name, text, t}     what the reporter sees
+   partygames/ticketNotes/{id}/{k}   = {kind: note|take|handoff|release|solve|reopen, name, text, t}   staff only (the history)
+   partygames/staff/{uid}            = {name, role: owner|support, code, t, active}
+   partygames/sinvites/{CODE}        = {label, active, by, name, usedAt, t}   one-time codes Roy makes so a support teammate can create a login
+   Support teammates can read tickets and accounts and answer tickets. They can't delete, touch money or make invite codes. */
+D.tix={};D.staff={};D.sinvites={};D.tkReplies={};D.tkNotes={};D.myTk={};D.supIdx={};
+L.errs=[];
+addEventListener("error",e=>{try{L.errs.push((String(e.message||"Error").slice(0,180))+(e.lineno?" (line "+e.lineno+")":""));L.errs=L.errs.slice(-5)}catch(x){}});
+addEventListener("unhandledrejection",e=>{try{const r=e.reason;L.errs.push("Unfinished task: "+String(r&&r.message||r||"").slice(0,180));L.errs=L.errs.slice(-5)}catch(x){}});
+Object.assign(ES,{"Something not working?":"¿Algo no funciona?","Report a problem":"Reportar un problema","Your reports":"Tus reportes","new reply":"respuesta nueva","new replies":"respuestas nuevas",
+ "What went wrong?":"¿Qué salió mal?","Tell us what you were trying to do and what happened.":"Cuéntanos qué intentabas hacer y qué pasó.","Your name (optional)":"Tu nombre (opcional)",
+ "Email or phone, so we can reach you (optional)":"Correo o teléfono para contactarte (opcional)","We'll also send the page you're on and the kind of device you're using, so we can find the problem faster.":"También enviaremos la página en la que estás y el tipo de dispositivo, para encontrar el problema más rápido.",
+ "Send report":"Enviar reporte","Thanks! Your report was sent.":"¡Gracias! Tu reporte fue enviado.","Our support team will look at it soon. Replies show up here, under Your reports.":"Nuestro equipo de soporte lo revisará pronto. Las respuestas aparecen aquí, en Tus reportes.",
+ "Received":"Recibido","Being worked on":"En proceso","Solved":"Resuelto","You":"Tú","Support":"Soporte","Write back":"Responder","Send":"Enviar","No reports yet.":"Aún no hay reportes.","New report":"Nuevo reporte","Tell us a little more first.":"Cuéntanos un poco más primero.",
+ "You've sent a lot of reports. Please wait a little and try again.":"Has enviado muchos reportes. Espera un poco e inténtalo de nuevo.","Couldn't send it. Check your connection and try again.":"No se pudo enviar. Revisa tu conexión e inténtalo de nuevo."});
+const SUP_WHO={guest:"Guest",album:"Guest",moderator:"Host running an event",new:"Host creating an event",planner:"Planner",client:"Planner's client",mate:"Planner's teammate",fb:"Guest giving feedback",show:"Visitor to a planner's page",host:"Admin",support:"Support"};
+const TK_ST={new:["New","warn"],working:["Being worked on","gold"],solved:["Solved","ok"]};
+const supAgo=t=>{if(!t)return "";const s=Math.max(0,(Date.now()-t)/1000);return s<60?"just now":s<3600?Math.floor(s/60)+" min ago":s<86400?Math.floor(s/3600)+" hr ago":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"})};
+const supTime=t=>t?new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+function supDevice(){const u=navigator.userAgent||"",os=/iPhone|iPad/.test(u)?"iPhone/iPad":/Android/.test(u)?"Android":/Mac OS X/.test(u)?"Mac":/Windows/.test(u)?"Windows":/CrOS/.test(u)?"Chromebook":/Linux/.test(u)?"Linux":"Other";
+ const br=/Edg\//.test(u)?"Edge":/CriOS|Chrome\//.test(u)?"Chrome":/FxiOS|Firefox\//.test(u)?"Firefox":/Safari\//.test(u)?"Safari":"Other browser";
+ return `${os} · ${br} · screen ${screen.width}×${screen.height} · ${navigator.onLine?"online":"offline"} · ${(navigator.language||"").slice(0,10)}`}
+/* ---- the reporter's side ---- */
+const myTix=()=>store.get("myTix",[]).filter(x=>x&&/^[A-Za-z0-9_-]{6,40}$/.test(x.id)).slice(-12);
+const tkUnreadFor=id=>{const r=(D.myTk[id]||{}).replies||{},seen=store.get("tkSeen_"+id,0);return Object.values(r).filter(x=>x&&x.from==="staff"&&x.t>seen).length};
+const myUnread=()=>myTix().reduce((n,x)=>n+tkUnreadFor(x.id),0);
+let supMineOn={};
+function supMineSubs(){if(!db)return;myTix().forEach(({id})=>{if(supMineOn[id])return;supMineOn[id]=1;D.myTk[id]=D.myTk[id]||{};
+ RT("tickets/"+id).on("value",s=>{const v=s.val();if(v)Object.assign(D.myTk[id],{status:v.status,msg:v.msg,t:v.t});else D.myTk[id].gone=true;renderSoon()},()=>{});
+ RT("ticketReplies/"+id).on("value",s=>{D.myTk[id].replies=s.val()||{};renderSoon()},()=>{})})}
+const supShow=()=>!L.offline&&SUP_WHO[VIEW]!=null&&VIEW!=="host"&&VIEW!=="support";
+function supFoot(){if(!supShow())return "";const n=myUnread(),has=myTix().length;
+ return `<div class="supfoot small"><span class="muted">${t("Something not working?")}</span> <button class="linkbtn" data-act="supOpen" data-k="new">${t("Report a problem")}</button>${has?` · <button class="linkbtn" data-act="supOpen" data-k="mine">${t("Your reports")}</button>${n?` <span class="pill warn">${n} ${t(n===1?"new reply":"new replies")}</span>`:""}`:""}</div>`}
+function supSheet(){const mode=L.report,mine=myTix().slice().reverse(),pl=VIEW==="planner"&&D.plMe?D.plMe:null;
+ const head=`<div class="row between"><div class="row small">${mine.length?`<button class="btn xs ${mode==="mine"?"primary":""}" data-act="supOpen" data-k="mine">${t("Your reports")}</button><button class="btn xs ${mode==="new"?"primary":""}" data-act="supOpen" data-k="new">${t("New report")}</button>`:""}</div><button class="btn sm" data-act="supClose">${t("Close")}</button></div>`;
+ let body;
+ if(String(mode).startsWith("sent:"))body=`<h2>${t("Thanks! Your report was sent.")}</h2><p class="small muted m0">${t("Our support team will look at it soon. Replies show up here, under Your reports.")}</p><button class="btn as" data-act="supOpen" data-k="mine">${t("Your reports")}</button>`;
+ else if(mode==="mine")body=mine.length?`<h2>${t("Your reports")}</h2><div class="stack tight">${mine.map(({id})=>{const k=D.myTk[id]||{},st=k.status||"new",rs=Object.keys(k.replies||{}).map(r=>k.replies[r]).sort((a,b)=>a.t-b.t),un=tkUnreadFor(id);
+   if(k.gone)return "";return `<div class="mrow2 small"><div class="row between"><span class="mw0"><b>${esc(String(k.msg||"").slice(0,90))}${String(k.msg||"").length>90?"…":""}</b><span class="db muted">${esc(supTime(k.t))}</span></span><span class="pill ${TK_ST[st][1]}">${t(st==="new"?"Received":TK_ST[st][0])}</span></div>
+   ${rs.length?`<div class="stack tight tkthread">${rs.map(r=>`<div class="tkmsg ${r.from==="staff"?"them":"me"}"><b>${esc(r.from==="staff"?(r.name||t("Support"))+" · "+t("Support"):t("You"))}</b> <span class="muted">${esc(supAgo(r.t))}</span><div>${esc(r.text)}</div></div>`).join("")}</div>`:""}
+   <div class="row"><input type="text" class="grow" data-draft="rpr_${esc(id)}" maxlength="2000" value="${esc(dv("rpr_"+id,""))}" placeholder="${t("Write back")}" aria-label="${t("Write back")}"><button class="btn xs" data-act="supReply" data-k="${esc(id)}">${t("Send")}</button></div>${un?`<span class="small warn">${un} ${t(un===1?"new reply":"new replies")}</span>`:""}</div>`}).join("")}</div>`:`<p class="small muted m0">${t("No reports yet.")}</p>`;
+ else body=`<h2>${t("Report a problem")}</h2><label class="stack tight"><span class="small">${t("What went wrong?")}</span><textarea rows="5" data-draft="rp_msg" maxlength="2000" placeholder="${t("Tell us what you were trying to do and what happened.")}">${esc(dv("rp_msg",""))}</textarea></label>
+  <label class="stack tight"><span class="small">${t("Your name (optional)")}</span><input type="text" data-draft="rp_name" maxlength="60" value="${esc(dv("rp_name",pl?pl.name||"":store.get("rpName","")))}" autocomplete="name"></label>
+  <label class="stack tight"><span class="small">${t("Email or phone, so we can reach you (optional)")}</span><input type="text" data-draft="rp_contact" maxlength="120" value="${esc(dv("rp_contact",pl?pl.email||"":store.get("rpContact","")))}" autocomplete="email"></label>
+  <p class="small muted m0">${t("We'll also send the page you're on and the kind of device you're using, so we can find the problem faster.")}</p><button class="btn primary" data-act="supSend">${t("Send report")}</button>`;
+ return `<div class="sheet-bg" data-act="supClose"></div><div class="sheet" role="dialog" aria-label="${t("Report a problem")}"><div class="stack">${head}${body}</div></div>`}
+Object.assign(ACT,{
+ supOpen:el=>{L.report=el.dataset.k;if(L.report==="mine")myTix().forEach(({id})=>{const r=(D.myTk[id]||{}).replies||{},mx=Math.max(0,...Object.values(r).map(x=>x.t||0));if(mx)store.set("tkSeen_"+id,mx)});render(true)},
+ supClose:()=>{L.report=null;render(true)},
+ supSend:async()=>{const msg=String(dv("rp_msg","")).trim();if(msg.length<5)return toast(t("Tell us a little more first."));
+  const recent=store.get("tkSent",[]).filter(x=>Date.now()-x<36e5);if(recent.length>=5)return toast(t("You've sent a lot of reports. Please wait a little and try again."));
+  const pl=VIEW==="planner"&&D.plMe?D.plMe:null,name=String(dv("rp_name",pl?pl.name||"":store.get("rpName",""))).trim().slice(0,60),contact=String(dv("rp_contact",pl?pl.email||"":store.get("rpContact",""))).trim().slice(0,120),now=Date.now();
+  const page=(location.pathname.split("/").pop()+location.search.replace(/([?&](pw|pin)=)[^&]*/gi,"$1…")+location.hash).slice(0,300);
+  const rec={msg:msg.slice(0,2000),who:VIEW,name,contact,ev:EV||"",p:PLID()||"",client:(QS.get("client")||"").slice(0,64),mate:(QS.get("mate")||"").slice(0,64),page,device:supDevice(),errs:L.errs.join("\n").slice(0,1000),lang:L.lang||"en",status:"new",t:now,last:now,lastFrom:"reporter"};
+  if(L.user&&L.user.uid)rec.uid=L.user.uid;if(window.__HMPDEMO||window.__HMDEMO)rec.demo=true;
+  try{const r=RT("tickets").push();await r.set(rec);store.set("myTix",myTix().concat([{id:r.key,t:now}]));store.set("tkSent",recent.concat([now]));if(name)store.set("rpName",name);if(contact)store.set("rpContact",contact);
+   ["rp_msg"].forEach(k=>delete L.drafts[k]);L.report="sent:"+r.key;supMineSubs();render(true)}catch(e){toast(t("Couldn't send it. Check your connection and try again."))}},
+ supReply:async el=>{const id=el.dataset.k,text=String(dv("rpr_"+id,"")).trim();if(!text)return;
+  try{const now=Date.now();await RT("ticketReplies/"+id).push().set({from:"reporter",name:store.get("rpName",""),text:text.slice(0,2000),t:now});await RT("tickets/"+id).update({last:now,lastFrom:"reporter"});delete L.drafts["rpr_"+id];render(true)}catch(e){toast(t("Couldn't send it. Check your connection and try again."))}}
+});
+
+/* ---- the support team's side ---- */
+const supDemo=()=>!!window.__HMPDEMO;
+function supMe(){if(supDemo()){const k=L.supAs||"roy",s=(D.staff||{})[k]||{};return {uid:k,name:s.name||(k==="roy"?"Roy":"Icee"),role:k==="roy"?"owner":"support"}}
+ const u=L.user;if(!u)return null;const s=(D.staff||{})[u.uid];if(D.owner&&u.uid===D.owner)return {uid:u.uid,name:(s&&s.name)||"Roy",role:"owner"};return s?{uid:u.uid,name:s.name||"Support",role:"support"}:null}
+const supIsOwner=()=>{const m=supMe();return !!(m&&m.role==="owner")};
+const tkList=()=>Object.keys(D.tix||{}).map(k=>Object.assign({k},D.tix[k])).sort((a,b)=>(b.last||b.t||0)-(a.last||a.t||0));
+const tkNewCount=()=>tkList().filter(x=>(x.status||"new")==="new").length;
+const tkWaiting=(x,me)=>x.status!=="solved"&&x.lastFrom==="reporter"&&me&&(x.last||0)>(x.t||0)&&(x.last||0)>(((x.seen||{})[me.uid])||0);
+function tkLine(x){const st=x.status||"new",seen=Object.keys(x.seen||{}).map(u=>((D.staff||{})[u]||{}).name||"someone");
+ if(st==="solved")return `Solved by ${esc((x.solved||{}).name||"support")} · ${esc(supTime((x.solved||{}).t))}`;
+ if(st==="working"&&x.by)return `Being worked on by <b>${esc(x.by.name)}</b> since ${esc(supTime(x.by.t))}`;
+ return seen.length?`Seen by ${esc(seen.join(", "))} · nobody has taken it yet`:"Nobody has opened it yet"}
+let supSubbed=false,supBeat=null;
+function supSubs(){if(supSubbed||!db)return;supSubbed=true;
+ RT("tickets").on("value",s=>{D.tix=s.val()||{};L.supLoaded=true;renderSoon()},()=>{L.supLoaded=true;L.supDenied=true;renderSoon()});
+ RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
+ if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
+ RT("plist").once("value").then(s=>{D.plist=Object.assign({},D.plist||{},s.val()||{});renderSoon()}).catch(()=>{});
+ RT("index").once("value").then(s=>{D.supIdx=s.val()||{};renderSoon()}).catch(()=>{});
+ const beat=()=>{const m=supMe();if(m&&(VIEW==="support"||(VIEW==="host"&&L.hostTab==="support")))RT("staff/"+m.uid+"/active").set(Date.now()).catch(()=>{})};
+ if(!supBeat){beat();supBeat=setInterval(beat,60000)}}
+function supEnsureOwner(){if(supDemo())return;const u=L.user;if(u&&D.owner&&u.uid===D.owner&&!(D.staff||{})[u.uid])RT("staff/"+u.uid).set({name:"Roy",role:"owner",t:Date.now(),active:Date.now()}).catch(()=>{})}
+let tkOn={};function tkSub(id){if(tkOn[id]||!db)return;tkOn[id]=1;
+ RT("ticketReplies/"+id).on("value",s=>{D.tkReplies[id]=s.val()||{};renderSoon()},()=>{});RT("ticketNotes/"+id).on("value",s=>{D.tkNotes[id]=s.val()||{};renderSoon()},()=>{})}
+const tkNote=(id,kind,text)=>{const m=supMe();return RT("ticketNotes/"+id).push().set({kind,name:m?m.name:"",text:String(text||"").slice(0,2000),t:Date.now()})};
+const TK_KIND={note:"📝",take:"🙋",handoff:"🔁",release:"↩️",solve:"✅",reopen:"🔓",reply:"💬"};
+function tkDetail(x){const id=x.k,me=supMe(),st=x.status||"new",mine=x.by&&me&&x.by.uid===me.uid,rs=Object.keys(D.tkReplies[id]||{}).map(k=>D.tkReplies[id][k]).sort((a,b)=>a.t-b.t),ns=Object.keys(D.tkNotes[id]||{}).map(k=>D.tkNotes[id][k]).sort((a,b)=>a.t-b.t);
+ const pl=x.p&&(D.plist||{})[x.p],asLink=x.p?baseURL()+"?"+(supDemo()?"pdemo=1&":"")+"as="+encodeURIComponent(x.p)+"#planner":"";
+ const info=[["From",(SUP_WHO[x.who]||x.who||"Someone")+(x.name?" · "+x.name:"")],["Contact",x.contact],["Event code",x.ev],["Planner",pl?(pl.name||"")+(pl.biz?" · "+pl.biz:""):x.p],["Page",x.page],["Device",x.device],["Language",x.lang&&x.lang!=="en"?x.lang:""]].filter(r=>r[1]);
+ return `<div class="tkdetail stack tight"><div class="tkbody">${esc(x.msg||"")}</div>
+ <div class="small stack tight">${info.map(([k,v])=>`<div><span class="muted">${k}:</span> ${esc(v)}</div>`).join("")}${x.errs?`<details><summary class="small">Errors the app noticed on their device</summary><pre class="tkerr">${esc(x.errs)}</pre></details>`:""}</div>
+ <div class="row small">${x.ev?`<a class="btn xs" href="${esc(eventURL(x.ev))}" target="_blank" rel="noopener">Open their event (guest view)</a>`:""}${asLink?`<a class="btn xs" href="${esc(asLink)}" target="_blank" rel="noopener">Look at their planner portal</a>`:""}${/@/.test(x.contact||"")?`<a class="btn xs" href="mailto:${esc(x.contact)}?subject=${encodeURIComponent("Your Host Mode report")}">Email them</a>`:""}</div>
+ <div class="row">${st!=="solved"?(!x.by?`<button class="btn sm primary" data-act="tkTake" data-k="${esc(id)}">I'll take it</button>`:mine?`<button class="btn sm" data-act="tkRelease" data-k="${esc(id)}">Let it go</button>`:`<button class="btn sm primary" data-act="tkTake" data-k="${esc(id)}">Take over from ${esc(x.by.name)}</button>`)+`<button class="btn sm" data-act="tkSolve" data-k="${esc(id)}">Mark solved</button>`:`<button class="btn sm" data-act="tkReopen" data-k="${esc(id)}">Reopen</button>`}
+ ${supIsOwner()?`<button class="btn sm" data-act="tkDel" data-k="${esc(id)}">${L.confirm==="tkx"+id?"Tap again to delete":"Delete"}</button>`:""}</div>
+ <div class="stack tight"><b class="small">Conversation with them</b>${rs.length?`<div class="stack tight tkthread">${rs.map(r=>`<div class="tkmsg ${r.from==="staff"?"me":"them"}"><b>${esc(r.from==="staff"?(r.name||"Support"):(r.name||x.name||"Them"))}</b> <span class="muted">${esc(supAgo(r.t))}</span><div>${esc(r.text)}</div></div>`).join("")}</div>`:'<span class="small muted">No replies yet.</span>'}
+ <textarea rows="2" data-draft="tkr_${esc(id)}" maxlength="2000" placeholder="Reply to them. They see it under Your reports in the app.">${esc(dv("tkr_"+id,""))}</textarea><button class="btn sm as" data-act="tkReply" data-k="${esc(id)}">Send reply</button></div>
+ <div class="stack tight"><b class="small">Team notes and history</b><span class="small muted">Only Roy and support can see these.</span>${ns.length?`<div class="stack tight">${ns.map(n=>`<div class="small">${TK_KIND[n.kind]||"•"} <b>${esc(n.name||"")}</b> ${esc(n.text||"")} <span class="muted">${esc(supTime(n.t))}</span></div>`).join("")}</div>`:""}
+ <div class="row"><input type="text" class="grow" data-draft="tkn_${esc(id)}" maxlength="2000" value="${esc(dv("tkn_"+id,""))}" placeholder="Add a private note" aria-label="Private note"><button class="btn xs" data-act="tkNoteAdd" data-k="${esc(id)}">Add note</button></div></div></div>`}
+function supportBody(){const me=supMe();if(!me)return `<section class="card stack"><p class="m0">This account doesn't have support access.</p></section>`;
+ if(!L.supLoaded&&!supDemo())return loadingView();
+ if(L.supDenied)return `<section class="card stack"><h2>Support isn't switched on yet</h2><p class="small muted m0">The database rules need updating before tickets can load. Roy: publish the latest database.rules.json in the Firebase console, then reload.</p></section>`;
+ const all=tkList(),today=new Date();today.setHours(0,0,0,0);const f=L.tkF||"open",q=String(dv("tk_q","")).toLowerCase().trim();
+ const nNew=all.filter(x=>(x.status||"new")==="new").length,nWork=all.filter(x=>x.status==="working").length,nSolvedToday=all.filter(x=>x.status==="solved"&&((x.solved||{}).t||0)>=today.getTime()).length,nWait=all.filter(x=>tkWaiting(x,me)).length;
+ const team=Object.keys(D.staff||{}).map(u=>Object.assign({uid:u},D.staff[u])).sort((a,b)=>(a.role==="owner"?0:1)-(b.role==="owner"?0:1)||String(a.name).localeCompare(String(b.name)));
+ const shown=all.filter(x=>{const st=x.status||"new";if(f==="open"&&st==="solved")return false;if(f==="new"&&st!=="new")return false;if(f==="mine"&&!(x.by&&x.by.uid===me.uid&&st!=="solved"))return false;if(f==="solved"&&st!=="solved")return false;if(f==="reply"&&!tkWaiting(x,me))return false;
+  return !q||[x.msg,x.name,x.contact,x.ev,x.page,SUP_WHO[x.who]].join(" ").toLowerCase().includes(q)});
+ const meter=`<div class="stats"><button class="stat ${nNew?"hot":""}" data-act="tkFilter" data-k="new"><b>${nNew}</b><span>New, nobody has taken it</span></button><button class="stat" data-act="tkFilter" data-k="open"><b>${nWork}</b><span>Being worked on</span></button><button class="stat ${nWait?"hot":""}" data-act="tkFilter" data-k="reply"><b>${nWait}</b><span>They wrote back</span></button><button class="stat" data-act="tkFilter" data-k="solved"><b>${nSolvedToday}</b><span>Solved today</span></button></div>
+ <div class="supteam">${team.map(s=>{const has=all.filter(x=>x.status==="working"&&x.by&&x.by.uid===s.uid).length,on=s.active&&Date.now()-s.active<3*60000;
+  return `<div class="row between small clrow"><span><span class="dot ${on?"on":""}"></span> <b>${esc(s.name||"Support")}</b>${s.uid===me.uid?" (you)":""} <span class="muted">· ${on?"active now":s.active?"last active "+supAgo(s.active):"hasn't signed in yet"}</span></span><span>${has} in progress</span></div>`}).join("")||'<span class="small muted">The team list shows up once support logins are set up.</span>'}</div>`;
+ return `<section class="card stack"><div class="row between"><h2 class="m0">Support</h2>${supDemo()?`<button class="btn xs" data-act="supAs">Demo: switch to ${L.supAs==="icee"?"Roy":"Icee"}</button>`:""}</div>
+ <p class="small muted m0">Every report comes to both ${team.length>1?esc(team.map(s=>s.name).join(" and ")):"of you"}. Take a ticket so the other person knows you've got it. If someone isn't around, the other can take it over.</p>${meter}</section>
+ <section class="card stack"><div class="row small">${[["open","Open"],["new","New"],["mine","Mine"],["reply","They wrote back"],["solved","Solved"],["all","All"]].map(([k,l])=>`<button class="btn xs ${f===k?"primary":""}" data-act="tkFilter" data-k="${k}">${l}</button>`).join("")}</div>
+ <div class="row"><input type="search" class="grow" data-draft="tk_q" value="${esc(dv("tk_q",""))}" placeholder="Search reports" aria-label="Search reports"><button class="btn xs" data-act="tkFind">Search</button></div>
+ ${shown.length?`<div class="stack tight">${shown.slice(0,60).map(x=>{const st=x.status||"new",open=L.tkOpen===x.k,wait=tkWaiting(x,me),unseen=!((x.seen||{})[me.uid]);
+  return `<div class="mrow2 tkrow ${open?"open":""}"><button class="tkhead" data-act="tkOpen" data-k="${esc(x.k)}" aria-expanded="${open}"><span class="row between small"><span class="mw0"><span class="pill ${TK_ST[st][1]}">${TK_ST[st][0]}</span>${wait?' <span class="pill warn">They wrote back</span>':""}${unseen&&st!=="solved"?' <span class="pill">Unread</span>':""} <b>${esc(SUP_WHO[x.who]||"Someone")}</b>${x.name?" · "+esc(x.name):""}${x.ev?` · <span class="muted">${esc(x.ev)}</span>`:""}</span><span class="muted">${esc(supAgo(x.last||x.t))}</span></span>
+  <span class="db small tkmsgline">${esc(String(x.msg||"").slice(0,160))}${String(x.msg||"").length>160?"…":""}</span><span class="db small muted">${tkLine(x)}</span></button>${open?tkDetail(x):""}</div>`}).join("")}</div>`:'<p class="small muted m0">Nothing here.</p>'}</section>
+ ${supAccounts()}${supIsOwner()?supTeamCard():""}`}
+function supAccounts(){const pl=D.plist||{},ev=Object.assign({},D.supIdx||{},VIEW==="host"?D.events||{}:{}),q=String(dv("sa_q","")).toLowerCase().trim(),open=L.saOpen;
+ const pk=Object.keys(pl).filter(u=>!q||[pl[u].name,pl[u].biz,pl[u].email].join(" ").toLowerCase().includes(q)).slice(0,30),ek=Object.keys(ev).filter(k=>!q||[k,ev[k].name].join(" ").toLowerCase().includes(q)).slice(0,30);
+ return `<section class="card stack"><div class="row between"><h3>Look up an account</h3><button class="btn xs" data-act="saToggle">${open?"Hide":"Show"}</button></div><p class="small muted m0">See a planner's portal or an event the way they see it. This view is read-only, so nothing you tap changes their data.</p>
+ ${open?`<div class="row"><input type="search" class="grow" data-draft="sa_q" value="${esc(dv("sa_q",""))}" placeholder="Name, business, email or event code" aria-label="Search accounts"><button class="btn xs" data-act="tkFind">Search</button></div>
+ <b class="small">Planners</b>${pk.length?`<div class="stack tight">${pk.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(pl[u].name||"Planner")}</b><span class="db muted">${esc([pl[u].biz,pl[u].email].filter(Boolean).join(" · "))}</span></span><a class="btn xs" href="${esc(baseURL()+"?"+(supDemo()?"pdemo=1&":"")+"as="+encodeURIComponent(u)+"#planner")}" target="_blank" rel="noopener">Look at their portal</a></div>`).join("")}</div>`:'<span class="small muted">No planners found.</span>'}
+ <b class="small">Events</b>${ek.length?`<div class="stack tight">${ek.map(k=>`<div class="row between small clrow"><span class="mw0"><b>${esc(ev[k].name||k)}</b><span class="db muted">Code ${esc(k)}</span></span><a class="btn xs" href="${esc(eventURL(k))}" target="_blank" rel="noopener">Guest view</a></div>`).join("")}</div>`:'<span class="small muted">No events found.</span>'}`:""}</section>`}
+function supTeamCard(){const codes=Object.keys(D.sinvites||{}).map(k=>Object.assign({k},D.sinvites[k])).sort((a,b)=>(b.t||0)-(a.t||0)),me=supMe(),team=Object.keys(D.staff||{}).filter(u=>D.staff[u].role!=="owner"),link=baseURL()+"#support";
+ return `<section class="card stack"><h3>Support team</h3><p class="small muted m0">Make a one-time code for each person who helps with support. They open the support page, enter the code and create their own login. Support logins can answer tickets and look at accounts, but can't delete anything, change money or make invite codes.</p>
+ <div class="row"><input type="text" class="grow" data-draft="si_label" maxlength="40" value="${esc(dv("si_label",""))}" placeholder="Who it's for, like Icee" aria-label="Who the code is for"><button class="btn sm primary" data-act="siMake">Make a support code</button></div>
+ <div class="small">Support page: <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div>
+ ${codes.length?`<div class="stack tight">${codes.map(c=>`<div class="row between small clrow"><span class="mw0"><b class="mono">${esc(c.k)}</b> · ${esc(c.label||"")}<span class="db muted">${c.by?"Used by "+esc(c.name||"someone")+" · "+esc(supTime(c.usedAt)):c.active?"Not used yet":"Turned off"}</span></span>${!c.by&&c.active?`<button class="btn xs" data-act="siOff" data-k="${esc(c.k)}">Turn off</button>`:""}</div>`).join("")}</div>`:""}
+ ${team.length?`<b class="small">People with support logins</b><div class="stack tight">${team.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.staff[u].name||"Support")}</b><span class="db muted">Support · joined ${esc(supTime(D.staff[u].t))}</span></span><button class="btn xs" data-act="stRemove" data-k="${esc(u)}">${L.confirm==="stx"+u?"Tap again to remove":"Remove access"}</button></div>`).join("")}</div>`:""}
+ <label class="stack tight"><span class="small">Your name on tickets</span><span class="row"><input type="text" class="grow" data-draft="st_me" maxlength="40" value="${esc(dv("st_me",(me&&me.name)||"Roy"))}"><button class="btn xs" data-act="stName">Save</button></span></label></section>`}
+async function tkSet(id,u){await RT("tickets/"+id).update(u)}
+Object.assign(ACT,{
+ tkFilter:el=>{L.tkF=el.dataset.k;render(true)},
+ tkFind:()=>render(true),
+ saToggle:()=>{L.saOpen=!L.saOpen;render(true)},
+ supAs:()=>{L.supAs=L.supAs==="icee"?"roy":"icee";render(true)},
+ tkOpen:el=>{const id=el.dataset.k;L.tkOpen=L.tkOpen===id?null:id;L.confirm=null;if(L.tkOpen){tkSub(id);const me=supMe();if(me)RT("tickets/"+id+"/seen/"+me.uid).set(Date.now()).catch(()=>{})}render(true)},
+ tkTake:async el=>{const id=el.dataset.k,x=(D.tix||{})[id],me=supMe();if(!x||!me)return;const prev=x.by&&x.by.uid!==me.uid?x.by.name:"";
+  await tkSet(id,{status:"working",by:{uid:me.uid,name:me.name,t:Date.now()}});await tkNote(id,prev?"handoff":"take",prev?`took it over from ${prev}`:"took it");toast(prev?"It's yours now. "+prev+" will see the handoff.":"It's yours")},
+ tkRelease:async el=>{const id=el.dataset.k;await tkSet(id,{status:"new",by:null});await tkNote(id,"release","let it go so someone else can take it");toast("Released")},
+ tkSolve:async el=>{const id=el.dataset.k,me=supMe();if(!me)return;await tkSet(id,{status:"solved",solved:{uid:me.uid,name:me.name,t:Date.now()}});await tkNote(id,"solve","marked it solved");toast("Marked solved")},
+ tkReopen:async el=>{const id=el.dataset.k;await tkSet(id,{status:"new",by:null,solved:null});await tkNote(id,"reopen","reopened it");toast("Reopened")},
+ tkReply:async el=>{const id=el.dataset.k,me=supMe(),text=String(dv("tkr_"+id,"")).trim();if(!text)return toast("Type a reply first");if(!me)return;const now=Date.now(),x=(D.tix||{})[id]||{};
+  await RT("ticketReplies/"+id).push().set({from:"staff",name:me.name,text:text.slice(0,2000),t:now});const u={last:now,lastFrom:"staff"};if(!x.by&&x.status!=="solved"){u.status="working";u.by={uid:me.uid,name:me.name,t:now}}u["seen/"+me.uid]=now;await tkSet(id,u);
+  await tkNote(id,"reply","replied to them");delete L.drafts["tkr_"+id];toast("Reply sent. They'll see it in the app.");render(true)},
+ tkNoteAdd:async el=>{const id=el.dataset.k,text=String(dv("tkn_"+id,"")).trim();if(!text)return;await tkNote(id,"note",text);delete L.drafts["tkn_"+id];render(true)},
+ tkDel:async el=>{const id=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="tkx"+id){L.confirm="tkx"+id;return render(true)}L.confirm=null;
+  await Promise.all([RT("ticketReplies/"+id).remove(),RT("ticketNotes/"+id).remove()]);await RT("tickets/"+id).remove();L.tkOpen=null;toast("Report deleted")},
+ siMake:async()=>{if(!supIsOwner())return;const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c="SUP-";const r=crypto.getRandomValues(new Uint32Array(6));r.forEach(x=>c+=a[x%a.length]);
+  await RT("sinvites/"+c).set({label:String(dv("si_label","")).trim().slice(0,40),active:true,t:Date.now()});delete L.drafts.si_label;toast("Code made: "+c);render(true)},
+ siOff:async el=>{if(!supIsOwner())return;await RT("sinvites/"+el.dataset.k+"/active").set(false);toast("Code turned off")},
+ stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;await RT("staff/"+u).remove();toast("Support access removed")},
+ stName:async()=>{const me=supMe(),n=String(dv("st_me","")).trim().slice(0,40);if(!me||!n)return;await RT("staff/"+me.uid+"/name").set(n);toast("Saved")},
+ supJoin:async()=>{const a=AUTH();if(!a)return;const code=String(dv("sj_code","")).toUpperCase().replace(/[^A-Z0-9-]/g,""),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
+  if(!code)return toast("Type the support code Roy gave you");if(!name)return toast("Type your name");
+  const v=(await RT("sinvites/"+code).once("value").catch(()=>null));const vv=v&&v.val();if(!vv||!vv.active)return toast("That support code isn't valid. Ask Roy for a new one.");if(vv.by)return toast("That support code has already been used.");
+  try{let u=a.currentUser;if(!u){if(pw.length<8)return toast("Use a password with at least 8 characters");u=(await a.createUserWithEmailAndPassword(em,pw)).user}
+   await RT("sinvites/"+code).update({by:u.uid,usedAt:Date.now(),name});await RT("staff/"+u.uid).set({name,role:"support",code,t:Date.now(),active:Date.now()});
+   ["sj_code","sj_name","ac_pw"].forEach(k=>delete L.drafts[k]);toast("Welcome to Host Mode support, "+name+"!");location.reload()}catch(e){toast(authErr(e))}}
+});
+function supConnect(){if(supDemo()){L.authReady=true;L.supLoaded=true;supSubs();return}
+ const a=AUTH();if(!a){L.authReady=true;return}
+ RT("owner").on("value",s=>{D.owner=s.val()||null;renderSoon()});
+ a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;if(!u){renderSoon();return}
+  const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid;D.owner=ow?ow.val():D.owner;
+  const sf=(await RT("staff/"+u.uid).once("value").catch(()=>null)),sv=sf&&sf.val();if(sv)D.staff=Object.assign({},D.staff,{[u.uid]:sv});
+  if(own||sv)supSubs();renderSoon()})}
+function supportView(){if(supDemo())return supportBody();
+ if(!L.authReady)return loadingView();
+ const card=(h,b)=>`<section class="card stack narrow"><div class="eyebrow">Host Mode support</div><h2>${h}</h2>${b}<a class="btn xs as" href="index.html">Home</a></section>`;
+ if(!L.user)return card(L.acMode==="join"?"Create your support login":"Sign in",L.acMode==="join"?`<p class="small muted m0">Use the one-time support code Roy gave you.</p><label class="stack tight"><span class="small">Support code</span><input type="text" data-draft="sj_code" value="${esc(dv("sj_code",""))}" autocapitalize="characters" autocomplete="off"></label><label class="stack tight"><span class="small">Your name</span><input type="text" data-draft="sj_name" value="${esc(dv("sj_name",""))}" autocomplete="name"></label><label class="stack tight"><span class="small">Email</span><input type="email" data-draft="ac_email" value="${esc(dv("ac_email",""))}" autocomplete="email"></label><label class="stack tight"><span class="small">Choose a password (8+ characters)</span><input type="password" data-draft="ac_pw" autocomplete="new-password"></label><button class="btn primary" data-act="supJoin">Create my support login</button><button class="btn xs as" data-act="acMode" data-k="signin">I already have a login</button>`
+  :`<p class="small muted m0">For the Host Mode support team.</p>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="join">I have a support code</button>`);
+ const me=supMe();if(!me)return card("No support access",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, which doesn't have a support login. If Roy gave you a support code, sign out and tap "I have a support code."</p><button class="btn" data-act="acOut">Sign out</button>`);
+ return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+supportBody()}
+
 /* ================= LEADS, SHOWCASE, REPORTS =================
    planners/{uid}/inquiries/{id} = {name, email, phone, type, date, guests, budget, msg, src, t, status: new|contacted|booked|lost, cid}
      anyone can add one (that is the inquiry form); only the planner reads or changes them

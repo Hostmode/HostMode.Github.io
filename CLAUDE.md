@@ -25,6 +25,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - "Host" means a customer running their own event, not Roy.
 - Helpers are now called "teammates."
 - New hosts and planners join with one-time invite PINs that Roy issues.
+- Icee is the support teammate. Her support login opens only the support area (tickets and read-only account views). It never gets access to money, invite PINs or deleting things.
 
 ## Brand
 
@@ -44,6 +45,8 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 6. Add Help desk entries for the new feature.
 7. Planner-only data needs no rule change (the planner already owns `planners/{uid}`). Only edit database.rules.json when clients, teammates or guests must read or write the new data.
 8. Add sample data to the planner demo and raise PDEMO_V by one.
+9. Plug it into the importer and the export: the importer must recognize the new data, skip or update duplicates instead of copying them, and be undoable. Planners are told "upload once and it goes where it belongs," so this must stay true.
+10. Every new screen includes the "Report a problem" button.
 
 ## Look and wording
 
@@ -56,7 +59,8 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 1. Check every script block in games.html for syntax errors.
 2. Open the planner demo at games.html?pdemo=1#planner in a headless browser and click through the new feature.
 3. Check that there are no page errors.
-4. Commit with a short plain-English summary of what changed, then push to main.
+4. Commit with a short plain-English summary of what changed.
+5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval.
 
 ## On hold until the current build is tested
 

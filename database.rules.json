@@ -10,7 +10,7 @@
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
       },
       "index": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
         "$ev": {
           ".read": true,
           ".write": "!data.exists() || $ev.endsWith('-P') || (auth != null && (auth.uid === root.child('partygames/owner').val() || auth.uid === data.child('planner').val()))"
@@ -33,7 +33,7 @@
         }
       },
       "plist": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
           ".write": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val())"
         }
@@ -45,9 +45,9 @@
         }
       },
       "planners": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val())",
+          ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
           ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (auth.uid === $uid && newData.child('profile').exists()))",
           "profile": {
             ".validate": "newData.child('name').isString() && (root.child('partygames/pinvites/' + newData.child('code').val() + '/by').val() === $uid || newData.child('code').val() === 'OWNER' && $uid === root.child('partygames/owner').val())"
@@ -271,6 +271,53 @@
       "profile": {
         ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+      },
+      "staff": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && (data.exists() ? (newData.exists() && newData.child('role').val() === data.child('role').val()) : (newData.child('role').val() === 'support' && root.child('partygames/sinvites/' + newData.child('code').val() + '/by').val() === $uid))",
+          ".validate": "newData.hasChildren(['name','role']) && newData.child('name').isString() && newData.child('name').val().length <= 40"
+        }
+      },
+      "sinvites": {
+        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        "$code": {
+          ".read": true,
+          ".write": "auth != null && data.exists() && !data.child('by').exists() && data.child('active').val() === true && newData.child('by').val() === auth.uid"
+        }
+      },
+      "tickets": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$id": {
+          ".read": true,
+          ".write": "(!data.exists() && newData.child('status').val() === 'new') || (auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && data.exists() && newData.exists())))",
+          ".validate": "newData.hasChildren(['msg','t','status']) && newData.child('msg').isString() && newData.child('msg').val().length <= 2000 && newData.child('t').isNumber()",
+          "last": {
+            ".write": "data.parent().exists()",
+            ".validate": "newData.isNumber()"
+          },
+          "lastFrom": {
+            ".write": "data.parent().exists()",
+            ".validate": "newData.val() === 'reporter' || newData.val() === 'staff'"
+          }
+        }
+      },
+      "ticketReplies": {
+        "$id": {
+          ".read": true,
+          "$r": {
+            ".write": "!data.exists() && root.child('partygames/tickets/' + $id).exists() && (newData.child('from').val() === 'reporter' || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())))",
+            ".validate": "newData.hasChildren(['text','t','from']) && newData.child('text').isString() && newData.child('text').val().length <= 2000 && (newData.child('from').val() === 'reporter' || newData.child('from').val() === 'staff')"
+          }
+        }
+      },
+      "ticketNotes": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        "$id": {
+          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
+        }
       }
     },
     "menu": {
