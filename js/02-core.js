@@ -20,7 +20,7 @@ const QS=new URLSearchParams(location.search);
 const EV=((QS.get("e")||"").toUpperCase().replace(/[^A-Z0-9-]/g,""))||null;
 /* planner space: client, teammate and feedback links carry ?p=<planner id>; the planner portal sets it after sign-in */
 let PSP=/^[A-Za-z0-9_-]{1,64}$/.test(QS.get("p")||"")?"planners/"+QS.get("p")+"/":"";
-const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("vendor"))return "vendor";if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","support","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
+const VIEW=(()=>{const h=location.hash.slice(1);if(new URLSearchParams(location.search).has("vendor"))return "vendor";if(new URLSearchParams(location.search).has("mate"))return "mate";if(new URLSearchParams(location.search).has("client"))return "client";if(new URLSearchParams(location.search).has("fb"))return "fb";{const q=new URLSearchParams(location.search);if(q.has("p")&&(q.has("show")||q.has("inquire")))return "show"}return ["host","planner","support","signin","moderator","screen","album","print","keepsake","new"].includes(h)?h:"guest"})();
 const baseURL=()=>location.origin+location.pathname;
 const eventURL=(code,hash)=>baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"e="+encodeURIComponent(code)+(hash?"#"+hash:"");
 
@@ -198,6 +198,7 @@ function connect(){
  if(VIEW==="show"){shConnect();return}
  if(VIEW==="planner"){plConnect();return}
  if(VIEW==="support"){supConnect();return}
+ if(VIEW==="signin"){signinConnect();return}
  if(VIEW==="vendor"){vendorConnect();return}
  if(VIEW==="host"){hostConnect();return}
  if(!EV){routeWithoutCode();return}
@@ -308,6 +309,7 @@ function render(force){
  else if(VIEW==="planner")html=plannerView();
  else if(VIEW==="show")html=showView();
  else if(VIEW==="support")html=supportView();
+ else if(VIEW==="signin")html=signinView();
  else if(VIEW==="vendor")html=vendorView();
  else if(!EV)html=L.loaded?landing():loadingView();
  else if(L.missing)html=landing(true);
@@ -343,8 +345,8 @@ document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.datase
 document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest("#rv");if(r){const s=st().reveal;if(s&&now()>s.at+1500){r.classList.remove("on");r.innerHTML=""}}});
 
 function headerView(){
- const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
- const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Staff area":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
+ const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="signin"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
+ const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Staff area":VIEW==="signin"?"Sign in":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
  const showAa=VIEW==="guest"||VIEW==="album"||VIEW==="keepsake";
  return `<div class="brand"><h1>${esc(title)}</h1>${sub?`<p>${esc(sub)}</p>`:""}</div>${showAa?`<button class="btn sm aa" data-act="settings" aria-label="${t("Settings")}">Aa</button>`:""}${VIEW==="moderator"&&L.modOK?`<span class="row"><span class="pill ${D.meta&&D.meta.practice?"warn":"live"}">${D.meta&&D.meta.practice?"Practice run":L.isAdmin?"Administrator":"Moderator"} · ${esc(EV)}</span><span class="small muted">${esc(L.isAdmin?"":L.modName||"")}</span>${modBackLinks()}<button class="btn xs" data-act="modSignOut">Sign out</button></span>`:""}`}
 /* back buttons from an event console to the admin console and the planner portal */
@@ -353,7 +355,7 @@ function modBackLinks(){if(window.__HMDEMO||window.__HMPDEMO)return "";const pl=
 function loadingView(){return `<div class="card muted">${t("Loading…")}</div>`}
 const status=()=>L.connected||!db||!L.everConnected||VIEW==="guest"?"":`<div class="banner soft"><span>Weak signal. Changes are saved on this device and send when the signal is back.</span></div>`;
 function landing(notFound){return `<section class="card stack narrow"><div class="eyebrow">${t("Welcome")}</div><h2>${t("Enter your event code")}</h2>${notFound?`<p class="small" style="color:var(--bad);margin:0">${t("We couldn't find that event. Check the code and try again.")}</p>`:""}
- <input type="text" id="evCode" data-draft="evCode" value="${esc(dv("evCode",""))}" autocapitalize="characters" autocomplete="off" aria-label="${t("Event code")}" placeholder="${t("Event code")}"><button class="btn primary" data-act="goCode">${t("Go")}</button><a class="small muted" href="${esc(baseURL())}#host">Host sign in</a></section>`}
+ <input type="text" id="evCode" data-draft="evCode" value="${esc(dv("evCode",""))}" autocapitalize="characters" autocomplete="off" aria-label="${t("Event code")}" placeholder="${t("Event code")}"><button class="btn primary" data-act="goCode">${t("Go")}</button><a class="small muted" href="${esc(baseURL())}#signin">Sign in</a></section>`}
 function settingsSheet(){const row=(k,label,on)=>`<button class="toggle" data-act="setToggle" data-k="${k}" aria-pressed="${!!on}"><span>${label}</span><i></i></button>`;
  return `<div class="sheet-bg" data-act-bg="1"></div><div class="sheet" role="dialog" aria-label="${t("Settings")}"><div class="row between"><h2>${t("Settings")}</h2><button class="btn sm" data-act="settings">${t("Close")}</button></div>
  ${row("large",t("Large text"),L.large)}${row("hc",t("High contrast"),L.hc)}${row("lang","Español",L.lang==="es")}${row("sound",t("Sounds"),L.sound)}${row("vib",t("Vibration"),L.vib)}</div>`}

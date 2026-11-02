@@ -37,6 +37,32 @@ Object.assign(ACT,{
    ["ac_code","ac_name","ac_biz","ac_pw"].forEach(k=>delete L.drafts[k]);toast("Welcome to your planner portal!");location.reload()}catch(e){toast(authErr(e))}}
 });
 
+
+/* ---- one sign-in for everyone with an account (games.html#signin) ----
+   Roy goes to the admin console, support staff to the staff area, planners to their portal.
+   Someone with more than one role picks where to go, and the other pages show links to switch (roleLinks).
+   Guests, clients, teammates and vendors don't sign in: they use event codes and private links. */
+const ROLE_LBL={host:["Admin console","Events, support, sales and settings for Host Mode"],planner:["Planner portal","Your clients, events, venue and inventory"],support:["Staff area","Support tickets, sales and resources"]};
+async function acctRoles(u){if(!u)return [];const get=p=>RT(p).once("value").then(s=>s.val()).catch(()=>null);
+ const [ow,pl,st]=await Promise.all([get("owner"),get("planners/"+u.uid+"/profile"),get("staff/"+u.uid)]);D.owner=ow||D.owner;
+ const r=[];if(ow&&ow===u.uid)r.push("host");if(pl)r.push("planner");if(st&&ow!==u.uid)r.push("support");
+ store.set("hmRoles",{uid:u.uid,roles:r});return r}
+const goRole=role=>{location.hash=role;location.reload()};
+function roleLinks(cur){const c=store.get("hmRoles",null);if(!c||!L.user||c.uid!==L.user.uid)return "";
+ return c.roles.filter(r=>r!==cur&&!(cur==="host"&&r==="planner")&&!(cur==="planner"&&r==="host")).map(r=>`<a class="btn xs" href="${esc(baseURL())}#${r}">${esc(ROLE_LBL[r][0])}</a>`).join("")}
+function signinConnect(){const a=AUTH();if(!a){L.authReady=true;renderSoon();return}
+ a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;L.roles=null;renderSoon();if(!u)return;
+  L.roles=await acctRoles(u);if(L.roles.length===1)return goRole(L.roles[0]);renderSoon()})}
+function signinView(){
+ const card=(h,b)=>`<section class="card stack narrow"><div class="eyebrow">Host Mode</div><h2>${h}</h2>${b}</section>`;
+ if(window.__HMPDEMO||window.__HMDEMO)return card("Sign in",`<p class="small muted m0">The demos don't need a sign-in.</p><a class="btn primary" href="games.html?pdemo=1#planner">Planner demo</a><a class="btn" href="games.html?pdemo=1#support">Staff area demo</a>`);
+ if(!L.authReady||(L.user&&!L.roles))return loadingView();
+ if(!L.user)return card("Sign in",`<p class="small muted m0">For planners, venues and the Host Mode team. One sign-in takes you to the right place.</p>${acctForm("signin")}
+  <div class="stack tight small"><a href="${esc(baseURL())}#planner">New planner with an invite code? Create your account</a><a href="${esc(baseURL())}#support">Have a support code? Create your staff login</a><a href="index.html">Hosting one event? Use your event code on the home page</a></div>`);
+ if(!L.roles.length)return card("This account isn't set up yet",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, but it isn't linked to a planner portal or a staff login yet.</p><div class="stack tight"><a class="btn primary" href="${esc(baseURL())}#planner">I have a planner invite code</a><a class="btn" href="${esc(baseURL())}#support">I have a support code</a><button class="btn xs as" data-act="acOut">Sign out</button></div>`);
+ return card("Where to?",`<p class="small muted m0">Signed in as ${esc(L.user.email||"")}.</p><div class="stack tight">${L.roles.map(r=>`<button class="btn ${r===L.roles[0]?"primary":""} as" data-act="goRole" data-k="${r}"><b>${esc(ROLE_LBL[r][0])}</b></button><span class="small muted">${esc(ROLE_LBL[r][1])}</span>`).join("")}</div><button class="btn xs as" data-act="acOut">Sign out</button>`)}
+ACT.goRole=el=>goRole(el.dataset.k);
+
 /* ---- owner console gate ---- */
 const _checkAuthOwner=checkAuth;
 checkAuth=function(){_checkAuthOwner();if(VIEW==="host"&&AUTH()&&!window.__HMPDEMO)L.hostOK=!!(L.user&&D.owner&&L.user.uid===D.owner)};
@@ -257,7 +283,7 @@ function plannerView(){
   return card(mode==="new"?"Create your planner account":"Sign in",`${mode==="new"?`<p class="small muted m0">You'll need the planner code Host Mode sent you.</p>${acctForm("planner")}<button class="btn xs as" data-act="acMode" data-k="signin">I already have an account</button>`:`${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="new">New planner? Create your account</button>`}`)}
  const cur=PL_TABS.some(([k])=>k===L.plTab)?L.plTab:"home",tab=(k,l)=>`<button data-act="plTab" data-k="${k}" aria-pressed="${cur===k}">${l}${plTabBadge(k)}</button>`;
  const body=plTabBody(cur);const me=D.plMe||{};
- return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s planner portal ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="Planner sections">${PL_TABS.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
+ return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s planner portal ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="Planner sections">${PL_TABS.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}${roleLinks("planner")}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
 function plEvents(){const ev=D.events||{},ks=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0));
  const nu=baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+(L.viewAs?"as="+encodeURIComponent(PLID())+"&":"")+"planner=1#new";
  return `<section class="card stack"><div class="row between"><h2>Your events</h2><a class="btn primary" href="${esc(nu)}">New event</a></div><p class="small muted m0">Each event gets its own code, games, big screen and guest check-in. Link an event to a client in the Clients tab.</p>
