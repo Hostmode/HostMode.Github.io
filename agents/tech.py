@@ -20,7 +20,8 @@ from common import ROOT, AGENT_NAME, CHEAP_MODEL, Run, DB, Stop, claude, json_of
 MAX_TICKETS = int(os.environ.get("AGENT_MAX_TICKETS", "8"))
 MAX_FIXES = int(os.environ.get("AGENT_MAX_FIXES", "2"))
 SIGN = f"\n\n— {AGENT_NAME}, Host Mode's automated helper. Reply here if you need a person."
-FILES = ["games.html", "index.html", "hosts.html", "planners.html", "drinks.html", "demo.js", "pdemo.js", "agents/regressions.json"]
+FILES = (["games.html", "index.html", "hosts.html", "planners.html", "drinks.html", "demo.js", "pdemo.js", "css/games.css", "agents/regressions.json"]
+         + sorted("js/" + f for f in os.listdir(os.path.join(ROOT, "js")) if f.endswith(".js")))  # the app's code is split across js/
 CLEAN_ENV = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "PLAYWRIGHT_BROWSERS_PATH", "TEST_CHROME") if k in os.environ}  # no secrets
 
 
@@ -131,9 +132,9 @@ def t_replace(file, old, new):
 
 def run_checks():
     """Syntax check, then the scripted checks, with no secrets in the environment."""
-    r = subprocess.run(["node", os.path.join(ROOT, "agents", "syntax_check.js"), os.path.join(ROOT, "games.html")], capture_output=True, text=True, timeout=120, env=CLEAN_ENV)
+    r = subprocess.run(["node", os.path.join(ROOT, "agents", "syntax_check.js")], capture_output=True, text=True, timeout=120, env=CLEAN_ENV)
     if r.returncode:
-        return False, "Syntax error in games.html: " + (r.stdout + r.stderr)[-600:]
+        return False, "Syntax error: " + (r.stdout + r.stderr)[-600:]
     r = subprocess.run([sys.executable, os.path.join(ROOT, "agents", "tester.py"), "--scripted-only"], cwd=ROOT, capture_output=True, text=True, timeout=900, env=CLEAN_ENV)
     return r.returncode == 0, (r.stdout + r.stderr)[-2500:]
 

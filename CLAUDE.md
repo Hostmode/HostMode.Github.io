@@ -11,7 +11,10 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 
 ## Map of the code
 
-- games.html: the main app. It holds the games, admin console, planner portal, client portal, teammate portal, big screen and demos. It's very large, so search for a function by name instead of reading the whole file.
+- games.html: the main app's page, now a small shell. Its look is in css/games.css and its code is in js/, one file per part of the app. The page fetches the js/ files in the order listed in HM_FILES (inside games.html), joins them and runs them as ONE script, so all files share the same names and nothing breaks from load order.
+  - Because the files run as one script, it's as if they were still one file: functions work from any file, and a top-level const or let is ready once its line has run. Keep code in its part's file. A new file must be added to HM_FILES in games.html AND to the APP list in sw.js (the offline copy).
+  - Search for a function by name (grep js/) instead of reading whole files. Error line numbers in the browser refer to the joined script; each file starts with a "===== js/NAME.js =====" comment.
+- js/ files: 00-constants (the custom-game frame and big shared constants) · 01-content (games and Spanish words) · 02-core (state, helpers, connecting, render) · 03-guest · 04-moderator (moderator console, host console, big screen, gallery, printables) · 05-custom-games · 06-event-types (starter content, moments, legal, keepsake) · 07-actions (game logic) · 08-admin (admin, moderators, invite codes, new-event page, themes) · 09-menu (drinks menu) · 10-party-games (wiring, two-player and party games) · 11-tonight (run of show, raffle, gifts, design, reveal, presentations) · 12-planning (planning workstation, demo gate) · 13-teammates · 14-client-portals (client portals, the Clients tab, the importer, packages and invoices) · 15-client-tools (templates, approvals, payments, calendar, branding, feedback, the planner demo data in pdemoSeed) · 16-planner-portal (accounts, Help desk, the portal and its tabs) · 17-inventory-venue · 18-support-staff (support, vendor pages, sales, resources) · 19-leads-boot (leads, showcase, reports, exports, weak signal, and the start-up lines at the very end).
 - index.html: the front page, which opens the create-event page in the Host Mode look.
 - hosts.html and planners.html: the landing pages (single-event hosts and professional planners and venues).
 - drinks.html: the drink-ordering app, locked behind the admin console PIN.
@@ -21,7 +24,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Support: the admin console's Support tab, and games.html#support for support staff. Tickets live at partygames/tickets, with ticketReplies (what the reporter sees), ticketNotes (staff-only history and agent drafts), staff, sinvites (support codes), agents (pause switch), agentRuns (overnight reports) and backupStatus.
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). .github/workflows: nightly agents and nightly backup. ops/BACKUPS.md: how backups work and how to restore one.
-- Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in games.html, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
+- Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
 - Skills in .claude/skills: test-as-customer and answer-support-ticket (used by the nightly agents) and pitch-email (sales outreach).
 
 ## Where things go
@@ -77,7 +80,7 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 
 ## Testing and publishing
 
-1. Check every script block in games.html for syntax errors.
+1. Check for syntax errors: `node agents/syntax_check.js` (checks every js/ file, the joined code, and that HM_FILES matches the folder).
 2. Open the planner demo at games.html?pdemo=1#planner in a headless browser and click through the new feature.
 3. Check that there are no page errors. The quickest full check: serve the repo on port 8765 and run `python agents/tester.py --scripted-only` (set TEST_CHROME to a local Chrome if Playwright's own browser isn't installed). Every fixed bug gets a check in agents/regressions.json.
    - In this sandbox the internet CDNs are blocked: route jszip.min.js to /opt/npm-tools/node_modules/jszip/dist/jszip.min.js in Playwright to test Excel imports, and expect plain (non-demo) views to show "offline".

@@ -185,7 +185,8 @@ def read_skill(name):
 
 
 def help_library():
-    """The Help desk articles from games.html, as the answer library."""
-    s = open(os.path.join(ROOT, "games.html"), encoding="utf-8").read()
+    """The Help desk articles from the app's code (js/), as the answer library."""
+    jsdir = os.path.join(ROOT, "js")
+    s = "\n".join(open(os.path.join(jsdir, f), encoding="utf-8").read() for f in sorted(os.listdir(jsdir)) if f.endswith(".js"))
     rows = re.findall(r'\[\s*"([^"]{3,80})"\s*,\s*"((?:[^"\\]|\\.){10,400})"\s*,\s*"([a-z]+)"\s*,\s*"[^"]*"\s*\]', s)
     return "\n".join(f"- {t}: {d}" for t, d, _ in rows)
