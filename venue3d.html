@@ -89,9 +89,8 @@ textarea{width:100%;min-height:70px;resize:vertical}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<!-- Firebase (for saving to the account) loads only outside the demo; the demo saves on the device -->
+<script>if(!/[?&]demo=1(&|$)/.test(location.search))["app","auth","database"].forEach(n=>document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-'+n+'-compat.js"><\/script>'))</script>
 <script type="module" src="3d/app.js"></script>
 </body>
 </html>

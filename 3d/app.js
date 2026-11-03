@@ -229,7 +229,8 @@ ed.store.onStatus = () => render();
 // Start: open the last venue on this device, or the sample.
 (async () => {
   if (!ed.r) return;
-  ed.store.connect(FIREBASE_CONFIG).then(refreshProjects);
+  /* ?demo=1 (the planner demo's 3D designer tab): designs stay on this device, never in a real account */
+  if (new URLSearchParams(location.search).get("demo") === "1") ed.store.setStatus("local"); else ed.store.connect(FIREBASE_CONFIG).then(refreshProjects);
   const want = new URLSearchParams(location.search).get("v"), last = ed.store.list()[0];
   const s = (want && await ed.store.open(want)) || (last && await ed.store.open(last.id)) || S.sampleVenue();
   ed.load(s); if (!last) ed.store.save(ed.s, true);
