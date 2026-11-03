@@ -14,7 +14,7 @@ Run this on every change that adds or moves data. The code is public, and anyone
    - Each new path: who can read it, who can write it? Planner data under `planners/{uid}` is private by default; good.
    - Anything with `.read: true` is public to anyone who knows the key. Only allow that for data meant for a link holder (vendor pages, teammate shifts, showcase) and keep the key unguessable.
    - Writes from the public (inquiries, tickets, vendor check-ins) need `.validate` limits on fields and sizes.
-   - Support staff (Icee) never get money, invite PINs or delete rights.
+   - Support logins never get money, invite PINs or delete rights. Admins (partygames/admins, like Icee since Nov 3, 2026) pass every owner check; only Roy can make admins. A new owner-only rule must use the same owner-or-admin check, unless it's about making admins.
 3. **Public pages** (showcase, vendor page, teammate page, client portal): show only what that person needs. A vendor sees their event, not the client's payments. A teammate sees their own tasks and shifts only.
 4. **Copies:** anything copied to a public spot (like `tv/` for teammates or `showcase/busy`) holds the minimum: "booked" or "open", never who.
 5. **Exports and logs:** Download everything stays with the planner. Usage counts are numbers only, no names. Agent reports never quote private customer data.

@@ -75,6 +75,16 @@ debugging, accessibility and wording. If a plugin and CLAUDE.md disagree, CLAUDE
 Spending: builders and the reviewer use the same API key as the nightly agents. The $100 monthly limit in the Anthropic Console
 is the hard stop for all of them together.
 
+## The tap-everything check (nightly, free)
+
+After the test customer and technical agent, `crawl.py` opens every demo screen and every tab of the planner portal and admin
+console, taps every button, fills every box and checks every link inside the site. It first proves itself with `--self-test`
+(a planted broken button, dead button and missing link must all be caught). `file_crawl_issues.py` then files each new problem
+as one GitHub issue (never twice), labeled by risk, at most 5 a night, and starts the builder queue:
+- planner, client, teammate, vendor, support and public pages: **queue** + **low risk** (fixed and possibly merged on their own)
+- admin console: **queue** (Roy merges)
+- guest, moderator, big screen, new event and sign-in screens: **needs Roy** + **high risk** (not queued)
+
 ## Files
 
 - `common.py`: the agent's login, the database, Claude, the nightly spending limit and the run report

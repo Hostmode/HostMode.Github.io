@@ -272,7 +272,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=14;
+const PDEMO_V=18;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -389,9 +389,46 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   pl.vpages[tok]=vpBuild(Object.assign({k:vk},v),"dublin",pl.clients.dublin,pl.brand,pl.profile)});
  pl.vcheck={demoVendor2x:{here:ago(0.5),issues:{i1:{text:"Our van is 10 minutes out, traffic on the quays.",t:ago(0.6)}}}};
  pl.tv={DUBLIN:{}};Object.keys(pl.clientVendors.dublin).forEach(k=>{const v=pl.clientVendors.dublin[k];if(v.team)pl.tv.DUBLIN["dublin_"+k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}});
- const pg={admin:{},index:idx,events:evs,planners:{northlight:pl},plist:{northlight:{name:"Claire Moran",biz:"Northlight Events",email:"claire@northlight.example",t:ago(2000)}}};
+ /* Stay & Go sample trip (made-up people and money; the tab shows a "Sample data" banner in the demo) */
+ {const F=day(18),T=day(21),who=o=>Object.fromEntries(o.map(k=>[k,1])),rc="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><rect width="200" height="260" fill="#fff"/><text x="20" y="40" font-size="16">Harris Teeter</text><text x="20" y="80" font-size="13">Groceries   $186.40</text><text x="20" y="110" font-size="11">SAMPLE RECEIPT</text></svg>');
+  pl.stay={trips:{tw:{name:"Whelan wedding weekend",client:"whelan",place:"Asheville, NC",cur:"USD",from:F,to:T,note:"Guests arrive Friday, wedding Saturday.",t:ago(200)}},
+   mem:{m1:{trip:"tw",name:"Aoife Whelan",email:"aoife.whelan@example.com",phone:"704-555-0181",room:"312",group:"Bride's family",from:F,to:T,t:ago(190)},
+    m2:{trip:"tw",name:"Liam Whelan",email:"liam.whelan@example.com",phone:"704-555-0182",room:"312",group:"Bride's family",from:F,to:T,t:ago(190)},
+    m3:{trip:"tw",name:"Priya Shah",email:"priya.shah@example.com",phone:"",room:"",group:"Wedding party",from:F,to:T,t:ago(180)},
+    m4:{trip:"tw",name:"Marcus Reed",email:"",phone:"980-555-0144",room:"",group:"Wedding party",from:F,to:T,noEmail:true,t:ago(180)},
+    m5:{trip:"tw",name:"Grace Doyle",email:"grace.doyle@example.com",phone:"704-555-0190",room:"",group:"Wedding party",from:day(19),to:T,t:ago(170)}},
+   res:{r1:{trip:"tw",cat:"stay",prov:"booking",name:"The Grove Park Inn",conf:"BK-48213",booked:day(-40),start:F,end:T,inT:"16:00",outT:"11:00",addr:"290 Macon Ave, Asheville, NC",phone:"828-555-0100",email:"",total:126000,due:day(10),status:"confirmed",who:who(["m1","m2"]),split:"even",owe:{m1:63000,m2:63000},oweDue:day(-3),gnote:"Ask for the Whelan wedding group at the front desk. Parking is free.",note:"Group rate expires if we drop below 10 rooms.",ppay:{pp1:{amt:30000,date:day(-40),note:"Deposit"}},t:ago(160)},
+    r2:{trip:"tw",cat:"rental",prov:"airbnb",name:"Montford cottage",conf:"HM9X2KQ",booked:day(-20),start:F,end:T,inT:"15:00",outT:"10:00",addr:"Montford Ave, Asheville, NC",phone:"",email:"",total:98400,due:day(4),status:"pending",who:who(["m3","m4","m5"]),split:"even",owe:{m3:32800,m4:32800,m5:32800},oweDue:day(12),gnote:"Door code comes the day before.",note:"",t:ago(120)},
+    r3:{trip:"tw",cat:"car",prov:"enterprise",name:"Enterprise, minivan",conf:"ENT-77120",booked:day(-15),start:F,end:T,inT:"12:00",outT:"12:00",addr:"Asheville Regional Airport",phone:"828-555-0170",email:"",total:41250,due:"",status:"confirmed",who:who(["m3","m4"]),split:"custom",owe:{m3:20625,m4:20625},oweDue:day(12),gnote:"Pick up at the airport counter. Marcus is the driver.",note:"",ppay:{pp1:{amt:41250,date:day(-15),note:"Paid in full by card"}},t:ago(100)}},
+   exp:{e1:{trip:"tw",title:"Groceries for the cottage",amt:18640,date:day(-2),who:who(["m3","m4","m5"]),split:"even",owe:{m3:6214,m4:6213,m5:6213},oweDue:day(12),note:"",t:ago(40)}},
+   pay:{p1:{trip:"tw",mid:"m1",amt:63000,date:day(-10),method:"Zelle",ref:"ZL-1042",note:"",alloc:{"r:r1":63000},rc:"",t:ago(230)},
+    p2:{trip:"tw",mid:"m2",amt:25000,date:day(-8),method:"Venmo",ref:"",note:"Will send the rest after payday.",alloc:{"r:r1":25000},rc:"",t:ago(190)},
+    p3:{trip:"tw",mid:"m3",amt:59639,date:day(-1),method:"Cash App",ref:"",note:"",alloc:{"r:r2":32800,"r:r3":20625,"e:e1":6214},rc:"rc1",t:ago(20)},
+    p4:{trip:"tw",mid:"m4",amt:10000,date:day(-1),method:"Cash",ref:"",note:"",alloc:{"r:r2":10000},rc:"",t:ago(18)}},
+   rc:{rc1:{trip:"tw",name:"cottage-groceries.svg",type:"image/svg+xml",size:300,hash:"demo1",merchant:"",date:"",amt:0,ref:"",cost:"",pay:"p3",ok:false,t:ago(30)}},
+   rcBlob:{rc1:rc},
+   msg:{g1:{trip:"tw",mid:"m1",ch:"email",kind:"stay",subj:"Whelan wedding weekend: Lodging details",body:"(sample)",t:ago(48),by:"Claire Moran",status:"sent"}},
+   act:{a1:{trip:"tw",ref:"trip",text:"Created the trip Whelan wedding weekend",t:ago(200),by:"Claire Moran"},a2:{trip:"tw",ref:"r:r1",text:"Added hotel or lodging The Grove Park Inn (Confirmed, $1,260.00)",t:ago(160),by:"Claire Moran"},
+    a3:{trip:"tw",ref:"r:r2",text:"Added vacation rental Montford cottage (Pending, $984.00)",t:ago(120),by:"Claire Moran"},a4:{trip:"tw",ref:"p:p3",text:"Recorded payment: Priya Shah paid $596.39 by Cash App",t:ago(20),by:"Claire Moran"},
+    a5:{trip:"tw",ref:"m:m1",text:"Opened an email (Lodging details) to Aoife Whelan",t:ago(48),by:"Claire Moran"}}}}
+ /* a sample host: Jordan runs one event of their own (made with an invite code), with Plan and Stay & Go in the event dashboard */
+ const jd=day(30),jt=day(33),jc=Object.assign(templateFor("birthday","Jordan's 40th"),{title:"Jordan's 40th",honorees:"Jordan",date:jd,tagline:"Forty at the beach"});
+ evs.JORDAN={meta:{name:"Jordan's 40th",created:ago(120),planner:"jordan",host:true},mods:{m1:{name:"Jordan",pinHash:"demo",owner:true}},content:jc};
+ idx.JORDAN={name:"Jordan's 40th",created:ago(120),planner:"jordan",by:"Jordan"};
+ const jw=o=>Object.fromEntries(o.map(k=>[k,1]));
+ const jordan={profile:{kind:"host",name:"Jordan Ellis",email:"jordan@example.com",phone:"704-555-0133",code:"DEMOHOST",t:ago(120)},events:{JORDAN:{name:"Jordan's 40th",created:ago(120)}},
+  stay:{trips:{jt:{name:"Jordan's 40th beach weekend",client:"",place:"Myrtle Beach, SC",cur:"USD",from:jd,to:jt,note:"",t:ago(110)}},
+   mem:{j1:{trip:"jt",name:"Jordan Ellis",email:"jordan@example.com",phone:"704-555-0133",room:"",group:"Birthday crew",from:jd,to:jt,t:ago(110)},
+    j2:{trip:"jt",name:"Keisha Ellis",email:"keisha@example.com",phone:"704-555-0134",room:"",group:"Birthday crew",from:jd,to:jt,t:ago(110)},
+    j3:{trip:"jt",name:"Andre Ward",email:"",phone:"980-555-0177",room:"",group:"Birthday crew",from:jd,to:jt,t:ago(100)}},
+   res:{h1:{trip:"jt",cat:"rental",prov:"airbnb",name:"Ocean Blvd beach house",conf:"HMJ4R8T2",booked:day(-5),start:jd,end:jt,inT:"16:00",outT:"10:00",addr:"Ocean Blvd, Myrtle Beach, SC",phone:"",email:"",total:150000,due:day(20),status:"confirmed",who:jw(["j1","j2","j3"]),split:"even",owe:{j1:50000,j2:50000,j3:50000},oweDue:day(14),gnote:"Door code comes the day before.",note:"",ppay:{pp1:{amt:50000,date:day(-5),note:"Deposit"}},t:ago(90)}},
+   exp:{},pay:{q1:{trip:"jt",mid:"j2",amt:50000,date:day(-2),method:"Zelle",ref:"",note:"",alloc:{"r:h1":50000},rc:"",t:ago(40)}},rc:{},rcBlob:{},msg:{},
+   act:{a1:{trip:"jt",ref:"trip",text:"Created the trip Jordan's 40th beach weekend",t:ago(110),by:"Jordan Ellis"},a2:{trip:"jt",ref:"r:h1",text:"Added vacation rental Ocean Blvd beach house (Confirmed, $1,500.00)",t:ago(90),by:"Jordan Ellis"}}}};
+ const pg={admin:{},index:idx,events:evs,planners:{northlight:pl,jordan},plist:{northlight:{name:"Claire Moran",biz:"Northlight Events",email:"claire@northlight.example",t:ago(2000)},jordan:{name:"Jordan Ellis",biz:"",email:"jordan@example.com",kind:"host",t:ago(120)}}};
+ pg.invites={DEMOHOST:{label:"Jordan",max:1,used:1,active:true,host:"jordan",event:"JORDAN",eventName:"Jordan's 40th",usedAt:ago(120),t:ago(130)}};
  const dev="iPhone/iPad · Safari · screen 390×844 · online · en-US";
  pg.staff={roy:{name:"Roy",role:"owner",t:ago(3000),active:ago(0.01)},icee:{name:"Icee",role:"support",code:"SUP-DEMO1",t:ago(200),active:ago(2.5)}};
+ pg.admins={icee:true};
  pg.sinvites={"SUP-DEMO1":{label:"Icee",active:true,by:"icee",name:"Icee",usedAt:ago(200),t:ago(210)}};
  pg.tickets={tk1:{msg:"The trivia question on my phone is stuck on question 4. Everyone else moved on to question 5.",who:"guest",name:"Tasha",contact:"",ev:"DUBLIN",page:"games.html?e=DUBLIN",device:dev,errs:"",status:"new",t:ago(0.3),last:ago(0.3),lastFrom:"reporter"},
   tk2:{msg:"I uploaded my vendor spreadsheet but two of the vendors didn't show up under Vendors.",who:"planner",name:"Claire Moran",contact:"claire@northlight.example",p:"northlight",page:"games.html#planner",device:"Mac · Chrome · screen 1512×982 · online · en-US",status:"working",seen:{roy:ago(5),icee:ago(4)},by:{uid:"icee",name:"Icee",t:ago(4)},t:ago(6),last:ago(1),lastFrom:"reporter"},
@@ -402,6 +439,9 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
  pg.sales={s1:{biz:"Queen City Events",name:"Dana Brooks",kind:"planner",city:"Charlotte",email:"dana@queencity.example",phone:"704-555-0190",src:"Wedding expo",stage:"talking",next:day(0),nextWhat:"Send the demo link",owner:{uid:"icee",name:"Icee"},notes:"Does about 30 weddings a year. Uses three apps and a rentals spreadsheet.",t:ago(80),last:ago(20)},
   s2:{biz:"The Mill at Rock Hill",name:"Marcus Hale",kind:"venue",city:"Rock Hill",web:"themill.example",src:"Instagram",stage:"idea",next:day(2),nextWhat:"First call",owner:{uid:"icee",name:"Icee"},notes:"Two event rooms and a garden. Books by phone and a paper calendar.",t:ago(30),last:ago(30)},
   s3:{biz:"Bloom & Vine Florals",name:"Tara Nguyen",kind:"decor",city:"Charlotte",email:"tara@bloomvine.example",src:"Referral from Claire",stage:"trial",next:day(5),nextWhat:"Check in on the inventory import",owner:{uid:"roy",name:"Roy"},t:ago(200),last:ago(48)}};
+ pg.team={general:{m1:{text:"Welcome to the team, Icee! Your onboarding checklist is in the Onboarding tab.",uid:"roy",name:"Roy",t:ago(26)},m2:{text:"Thanks! Starting on Blender today.",uid:"icee",name:"Icee",t:ago(25)}},approvals:{m1:{text:"Pricing proposal draft is in Resources. Ready for your review when you have a minute.",uid:"icee",name:"Icee",t:ago(3)}}};
+ pg.teamSeen={roy:{general:ago(25)},icee:{general:ago(25),approvals:ago(3)}};
+ pg.onboard={icee:{login:ago(200),claude:ago(190),team:ago(25)}};
  pg.salesLog={s1:{l1:{text:"Met at the Charlotte wedding expo. Loved the big screen games.",name:"Icee",t:ago(80)},l2:{text:"Called. She wants to see the planner portal.",name:"Icee",t:ago(20)}},s3:{l1:{text:"Moved to Trying it",name:"Roy",t:ago(48)}}};
  pg.agents={paused:false};pg.backupStatus={t:ago(4),mb:3.1,ok:true};
  pg.agentRuns={r1:{t:ago(6),done:ago(5.6),usage:{in:182000,out:9100,usd:0.45},
@@ -417,7 +457,7 @@ if(pdemoOn()){
  try{pdemoSeed()}catch(e){console.warn("planner demo seed",e)}
  if(VIEW==="planner"){if(L.cliOpen===undefined)L.cliOpen="dublin";if(!L.cliTab)L.cliTab="list"}
  if(VIEW==="host")location.replace("games.html?pdemo=1#planner");
- ["DUBLIN","WHELAN","OCONNOR"].forEach(k=>{if(!store.get("mod_"+k,null))store.set("mod_"+k,{h:"demo",id:"m1",r:"mod"})});
+ ["DUBLIN","WHELAN","OCONNOR","JORDAN"].forEach(k=>{if(!store.get("mod_"+k,null))store.set("mod_"+k,{h:"demo",id:"m1",r:"mod"})});
  /* every link the app hands out stays inside the demo */
  const pdq=u=>u.replace(/games\.html\?/,"games.html?pdemo=1&");
  const _clL=clLink,_mtL=mateLink,_fbL=fbLink;clLink=id=>pdq(_clL(id));mateLink=id=>pdq(_mtL(id));fbLink=k=>pdq(_fbL(k));
@@ -425,8 +465,8 @@ if(pdemoOn()){
  ACT.pdemoReset=()=>pdemoReset();
  if(window.top===window){addEventListener("scroll",demoFloat,{passive:true});addEventListener("resize",demoFloat);setInterval(demoFloat,400)}
 }
-function pdemoBar(){if(!pdemoOn()||window.top!==window)return "";const on=VIEW;const a=(href,l,v)=>`<a class="${on===v?"on":""}" href="${href}">${l}</a>`;
- return `<div class="demoslot"><div class="demobar"><div class="dbrow"><span class="dbt">Planner demo</span><span class="dbkeys"><a href="index.html">Home</a><button data-act="pdemoReset">Start over</button></span></div><div class="dbscreens">${a("games.html?pdemo=1#planner","Planner","planner")}${a("games.html?pdemo=1&p=northlight&client=dublin","Client","client")}${a("games.html?pdemo=1&p=northlight&mate=liam","Teammate","mate")}</div>${pdemoEvRow()}</div></div>`}
+function pdemoBar(){if(!pdemoOn()||window.top!==window)return "";const on=VIEW==="planner"&&QS.get("host")==="1"?"hostdemo":VIEW;const a=(href,l,v)=>`<a class="${on===v?"on":""}" href="${href}">${l}</a>`;
+ return `<div class="demoslot"><div class="demobar"><div class="dbrow"><span class="dbt">Planner demo</span><span class="dbkeys"><a href="index.html">Home</a><button data-act="pdemoReset">Start over</button></span></div><div class="dbscreens">${a("games.html?pdemo=1#planner","Planner","planner")}${a("games.html?pdemo=1&p=northlight&client=dublin","Client","client")}${a("games.html?pdemo=1&p=northlight&mate=liam","Teammate","mate")}${a("games.html?pdemo=1&host=1#planner","Host","hostdemo")}</div>${pdemoEvRow()}</div></div>`}
 /* inside an event, a second row flips between that event's three screens */
 function pdemoEvRow(){if(!EV||!["moderator","guest","screen"].includes(VIEW))return "";const nm=(D.meta&&D.meta.name)||(C()&&C().title)||EV;
  const e=(h,l,v)=>`<a class="${VIEW===v?"on":""}" href="${esc(eventURL(EV,h))}">${l}</a>`;

@@ -25,7 +25,7 @@
 /* Host Mode's code lives in the js/ folder, one file per part of the app (see CLAUDE.md for the map).
    The files are joined here, in this order, and run as ONE script, exactly as when the code was written inline in this page.
    So: the order below matters, every file shares the same names, and a new file must be added to this list. */
-const HM_FILES=["00-constants", "01-content", "02-core", "03-guest", "04-moderator", "05-custom-games", "06-event-types", "07-actions", "08-admin", "09-menu", "10-party-games", "11-tonight", "12-planning", "13-teammates", "14-client-portals", "15-client-tools", "16-planner-portal", "17-inventory-venue", "18-support-staff", "19-leads-boot"];
+const HM_FILES=["00-constants", "01-content", "02-core", "03-guest", "04-moderator", "05-custom-games", "06-event-types", "07-actions", "08-admin", "09-menu", "10-party-games", "11-tonight", "12-planning", "13-teammates", "14-client-portals", "15-client-tools", "16-planner-portal", "17-inventory-venue", "17a-stay-go", "18-support-staff", "18a-team", "19-leads-boot"];
 (function(){const app=document.getElementById("app");
  Promise.all(HM_FILES.map(f=>fetch("js/"+f+".js",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error(f);return r.text()})))
   .then(parts=>{const s=document.createElement("script");s.text=parts.map((p,k)=>"/* ===== js/"+HM_FILES[k]+".js ===== */\n"+p).join("\n");document.body.appendChild(s)})

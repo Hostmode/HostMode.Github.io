@@ -331,7 +331,7 @@ Object.assign(ACT,{
   L.imQ=[];L.imTabs=1;
   if(ext==="xlsx"){let sh;try{sh=await clXlsxSheets(f)}catch(e){return toast("Couldn't read that file. Try saving it as CSV.")}if(!sh.length)return toast("That file looks empty");
    /* tabs from Download everything that are for reading only */
-   const ro=sh.filter(x=>/^(pull lists|invoices|leads)$/i.test(String(x.name).trim()));if(ro.length&&sh.length>ro.length){sh=sh.filter(x=>!ro.includes(x));toast(`Skipping ${ro.map(x=>x.name).join(", ")}: those tabs are for reading only.`)}
+   const ro=sh.filter(x=>/^(pull lists|invoices|leads|travel .+)$/i.test(String(x.name).trim()));if(ro.length&&sh.length>ro.length){sh=sh.filter(x=>!ro.includes(x));toast(`Skipping ${ro.map(x=>x.name).join(", ")}: those tabs are for reading only.`)}
    L.imTabs=sh.length;L.imQ=sh.slice(1).map(x=>({file:f.name+" · "+x.name,rows:x.rows,sheet:x.name}));if(sh.length>1)toast(`Found ${sh.length} tabs. We'll go through them one at a time.`);
    return await imLoadRows(f.name+(sh.length>1?" · "+sh[0].name:""),sh[0].rows,sh[0].name)}
   if(ext==="pdf"){try{return await imLoadRows(f.name,await imPdfRows(f),f.name)}catch(e){const w=e&&e.message;return toast(w==="scan"?"That PDF is a scanned picture, so there's no text to read. Export a CSV or Excel file instead.":w==="notable"?"We couldn't find a table in that PDF. Export a CSV or Excel file instead.":w==="net"?"Reading PDFs needs a connection. Try again in a moment.":"Couldn't read that PDF. Try a CSV or Excel file.")}}
@@ -614,6 +614,7 @@ function exAllSheets(){const cs=D.clients||{},cn=id=>(cs[id]||{}).name||"",sh=[]
  const pay=[["Client","What it's for","Amount","Due date","Paid"]];Object.keys(cs).forEach(id=>clPays(id).forEach(p=>pay.push([cn(id),p.title||"",+p.amount||0,p.due||"",p.paid?"Yes":"No"])));sh.push({name:"Payments",rows:pay});
  const inv=[["Invoice","Client","Total","Due","Status"]];Object.keys(cs).forEach(id=>invList(id).forEach(x=>inv.push([x.no||"",cn(id),+x.total||0,x.due||"",invStatus(id,x)])));sh.push({name:"Invoices",rows:inv});
  const ld=[["Name","Email","Phone","Event type","Event date","Guests","Budget","Status","Message"]].concat(inqList().map(x=>[x.name||"",x.email||"",x.phone||"",x.type||"",x.date||"",x.guests||"",x.budget||"",(LEAD_ST[x.status||"new"]||["New"])[0],x.msg||""]));sh.push({name:"Leads",rows:ld});
+ try{sgAllSheets().forEach(x=>sh.push(x))}catch(e){}
  return sh}
 Object.assign(ACT,{
  imRetype:el=>{const I=L.im;if(!I)return;const type=el.value;if(!IM_T[type])return;I.type=type;I.auto=false;I.map=imGuess(type,I.head);I.sig=imSig(type,I.head);I.saved=false;I.dup="skip";I.off={};

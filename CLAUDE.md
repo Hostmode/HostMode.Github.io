@@ -1,6 +1,6 @@
 # CLAUDE.md for Host Mode
 
-Notes Claude reads at the start of every coding session. Keep this under about 200 lines. When one section grows past 30 to 40 lines and only matters for certain jobs, move it into a Skill.
+Notes Claude reads at the start of every coding session. This is also the project brief for Icee's Claude, so anyone can pick up where the last session left off. **When you finish a piece of work, update this file if anything here changed, and add one line to CHANGELOG.md** (date, who, what changed). Keep this under about 200 lines. When one section grows past 30 to 40 lines and only matters for certain jobs, move it into a Skill.
 
 ## What Host Mode is
 
@@ -14,7 +14,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - games.html: the main app's page, now a small shell. Its look is in css/games.css and its code is in js/, one file per part of the app. The page fetches the js/ files in the order listed in HM_FILES (inside games.html), joins them and runs them as ONE script, so all files share the same names and nothing breaks from load order.
   - Because the files run as one script, it's as if they were still one file: functions work from any file, and a top-level const or let is ready once its line has run. Keep code in its part's file. A new file must be added to HM_FILES in games.html AND to the APP list in sw.js (the offline copy).
   - Search for a function by name (grep js/) instead of reading whole files. Error line numbers in the browser refer to the joined script; each file starts with a "===== js/NAME.js =====" comment.
-- js/ files: 00-constants (the custom-game frame and big shared constants) · 01-content (games and Spanish words) · 02-core (state, helpers, connecting, render) · 03-guest · 04-moderator (moderator console, host console, big screen, gallery, printables) · 05-custom-games · 06-event-types (starter content, moments, legal, keepsake) · 07-actions (game logic) · 08-admin (admin, moderators, invite codes, new-event page, themes) · 09-menu (drinks menu) · 10-party-games (wiring, two-player and party games) · 11-tonight (run of show, raffle, gifts, design, reveal, presentations) · 12-planning (planning workstation, demo gate) · 13-teammates · 14-client-portals (client portals, the Clients tab, the importer, packages and invoices) · 15-client-tools (templates, approvals, payments, calendar, branding, feedback, the planner demo data in pdemoSeed) · 16-planner-portal (accounts, Help desk, the portal and its tabs) · 17-inventory-venue · 18-support-staff (support, vendor pages, sales, resources) · 19-leads-boot (leads, showcase, reports, exports, weak signal, and the start-up lines at the very end).
+- js/ files: 00-constants (the custom-game frame and big shared constants) · 01-content (games and Spanish words) · 02-core (state, helpers, connecting, render) · 03-guest · 04-moderator (moderator console, host console, big screen, gallery, printables) · 05-custom-games · 06-event-types (starter content, moments, legal, keepsake) · 07-actions (game logic) · 08-admin (admin, moderators, invite codes, new-event page, themes) · 09-menu (drinks menu) · 10-party-games (wiring, two-player and party games) · 11-tonight (run of show, raffle, gifts, design, reveal, presentations) · 12-planning (planning workstation, demo gate) · 13-teammates · 14-client-portals (client portals, the Clients tab, the importer, packages and invoices) · 15-client-tools (templates, approvals, payments, calendar, branding, feedback, the planner demo data in pdemoSeed) · 16-planner-portal (accounts, Help desk, the portal and its tabs) · 17-inventory-venue · 17a-stay-go (Stay & Go travel) · 18-support-staff (support, vendor pages, sales, resources) · 18a-team (team message channels and the onboarding checklist) · 19-leads-boot (leads, showcase, reports, exports, weak signal, and the start-up lines at the very end).
 - index.html: the front page, which opens the create-event page in the Host Mode look.
 - hosts.html and planners.html: the landing pages (single-event hosts and professional planners and venues).
 - drinks.html: the drink-ordering app, locked behind the admin console PIN.
@@ -22,19 +22,28 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - database.rules.json: the Firebase security rules.
 - sw.js: the offline copy. Pages load fresh from the network first.
 - Support: the admin console's Support tab, and games.html#support for support staff. Tickets live at partygames/tickets, with ticketReplies (what the reporter sees), ticketNotes (staff-only history and agent drafts), staff, sinvites (support codes), agents (pause switch), agentRuns (overnight reports) and backupStatus.
+- Stay & Go (planner portal tab "stay", js/17a-stay-go.js): group travel for a trip: booking-site links, reservations, traveling party, shared costs, payments, receipts, guest messages, reports. Data is planners/{uid}/stay/* (private, no rule change). Money is whole cents; balances are always worked out by SG.ledger from costs (reservation and shared-cost shares) and payment allocations, never typed in. The pure math sits between the sg-math markers and is tested by agents/stay_go_test.js (part of check_all.sh). Guests have no login: each guest's message is built only from the reservations they're on and opens in the planner's own email or texting app, logged as "opened", never "delivered". Exported in Download everything as read-only "Travel ..." tabs (the importer skips them; importing trips isn't built yet).
+- Host accounts and the event dashboard: a host creating an event with an invite code also sets an email and password (nwAcctBox in js/08-admin.js). The account is stored like a planner's (planners/{uid}, profile.kind "host", the invite's host field), so the same portal code shows it as the "Event dashboard" with HOST_TABS (My events, Stay & Go, Help desk, Settings). Its events carry meta.planner = the host and meta.host = true: their console has no Plan tab, and the dashboard's Plan button opens the event with only=plan (just the Plan screen). Older events, like the Jan 2 baby shower, keep Plan in the console. Whoever's account owns an event (host or planner) opens its console without a PIN; helpers still use theirs. Demo hosts: Jordan in the planner demo (games.html?pdemo=1&host=1#planner, event JORDAN), and "You" in the hosts' live demo (games.html?e=DEMO#planner, where demo.html's host phone starts; account planners/demohost owns Rosa's 30th). After Jan 3: move the other planning tabs (Content, Custom games, Event) the same way.
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). ops/BACKUPS.md: how backups work and how to restore one.
 - .github/workflows: nightly agents, nightly backup, pull request checks (pr-checks), the builder agent (claude-builder: the "claude" label or @claude), the reviewer agent (claude-reviewer, which also auto-merges low-risk changes with .github/scripts/auto_merge.py), the builder queue (builder-queue: starts the next "queue" issue, one at a time), the Monday report (weekly-report) and load-issues (turns .github/issues/*.json into GitHub issues, once each). agents/check_all.sh runs every check a change must pass.
+- Tap-everything check (agents/crawl.py, nightly, free): taps every button, fills every box and checks every link in the demos; agents/file_crawl_issues.py files each new problem as one issue (planner and staff screens queued and low risk; guest, moderator, big screen and sign-in screens marked needs Roy) and starts the queue. A new screen must be added to SCREENS in crawl.py.
 - Agent office (admin console → Agents): a Sims-style 3D venue in js/18-support-staff.js (agScene draws one SVG back to front; agP(a,b,z) turns a floor spot into a screen point; agents stand at AG_SPOT; tapping opens agPanel). Status comes from GitHub's public run list.
 - Every agent reads this file and the Skills that fit its job; the builder and reviewer also load the Engineering and Design plugins. This file wins over any plugin. A new agent must do the same.
 - The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
-- Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
+- Staff area: games.html#support (support logins) and the admin console both show Support, Team, Onboarding, Sales and Resources. Team messages are partygames/team/{channel} (General, Support, Sales, Marketing, Approvals); onboarding ticks are partygames/onboard/{uid}, with the checklist in ONB_ITEMS in js/18a-team.js. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
 - Skills in .claude/skills (each has a SKILL.md; read the one that fits before starting):
-  - Agents: foreman (writing issues), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
-  - Building: new-event-type, spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
+  - Agents: foreman (writing issues), agent-workflows (changing the agent system), review-builder-work (checking a builder branch by hand), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
+  - Building: new-event-type, draw-a-scene (drawn, tappable pictures like the agent office and floor plans), spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
+  - Roy: guide-roy-on-github (phone steps for GitHub, for voice sessions).
   - Planners: onboard-new-planner, pricing-helper, event-debrief, theme-builder, guest-message-writer, testimonial-collector.
   - Sales and marketing: pitch-email, vendor-outreach, social-media-posts, promo-video-script, release-notes.
   - Staff only (never public): competitor-watch, business-plan-update.
+
+## Who works where
+
+- Icee leads the sales department: the Sales section of js/18-support-staff.js, the sales dashboard, the sales agent and pricing (a pricing proposal that Roy approves). Roy handles the rest. Stay in your own area so two people don't change the same file at once; if you must touch the other's area, say so in the Team tab first.
+- Icee has creative freedom over the 3D agent dashboard (the Agents tab).
 
 ## Where things go
 
@@ -42,13 +51,20 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Build each feature once, with separate views for each role (edit, run, view only). Never copy code to make a second version.
 - The database rules decide what each person can see, not which page they land on.
 
+## Working with Roy
+
+- Roy works from his Android phone, often by voice. Give one step at a time with the exact button names, and wait for him.
+- Run commands without asking first; ask only for decisions that are his (what to build, merging, money, anything that can't be undone).
+- End every piece of work with what he needs to do, in order, and nothing more. If nothing, say so.
+- Never ask him to read a code, password or key out loud.
+
 ## Words we use
 
 - Roy is the admin (owner). His console is the "admin console."
-- "Host" means a customer running their own event, not Roy.
+- "Host" means a customer running their own event, not Roy. New hosts have their own sign-in and event dashboard.
 - Helpers are now called "teammates."
 - New hosts and planners join with one-time invite PINs that Roy issues.
-- Icee is the support teammate. Her support login opens only the support area (tickets and read-only account views). It never gets access to money, invite PINs or deleting things.
+- Icee is the support teammate, and since Nov 3, 2026 (Roy's decision) a full admin: partygames/admins/{uid} = true lets an account do everything Roy can in the admin console and the database rules, except make or remove admins (only Roy, with Make admin in Support → Support team). Other support logins still open only the support area, with no money, invite PINs or deleting.
 
 ## Brand
 
@@ -101,22 +117,16 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 
 ## Lessons from building (add one line each time something trips you up; agents read this too)
 
+Lessons for one kind of job live in its Skill: agent-workflows (GitHub and the agents), draw-a-scene (drawn pictures), review-builder-work. These apply to every job:
+
 - `data-act` only works on HTML buttons, links and form fields. On SVG elements, catch taps with one document-level listener (see the agent office).
-- An SVG nested inside another loses its CSS hook unless you give it the class again (`<svg class="agp">`).
-- Small things to tap (people in a scene, icons) need an invisible tap area around them (`fill="transparent"` rect); a finger misses the gaps.
-- In a scene drawn back to front, draw labels and name tags LAST so nothing covers them.
-- Pull requests from the builder come from Claude's bot, so workflows that react to them must allow that bot (`allowed_bots`).
-- A builder run starts from main as it is at that moment. If main changes under an open job, the job builds on the old code: when one issue replaces another, close the old one before labeling the new one.
-- A pull request opened with GitHub's own token doesn't start other workflows. That's why the reviewer also runs after the pull request checks finish on a claude/... branch.
-- The builder can only run the commands listed in its workflow (agents/check_all.sh, agents/screens.sh before|after, node agents/syntax_check.js, git status/diff, gh pr). When it needs a new kind of check, add a script to agents/ and list it, rather than allowing any command.
-- The builder sometimes can't open the pull request itself and leaves a "Create PR" link instead. The reviewer also runs when Roy opens it from that link (each version is reviewed once, so nothing is paid twice).
-- In the agent office, people keep their drawing order while they walk, so routes must not pass behind furniture; use AG_SPOT's 4th number to draw a walker later. Anything that should follow a walker (like the name tag) goes inside a `.agmove` with the same agent classes.
 - Commit as `Claude <noreply@anthropic.com>` (git config user.name/user.email in the repo). GitHub refuses pushes that would show Roy's private email.
 - Never hide a command's errors (no `2>/dev/null` on a push, no `| tail` hiding a failed check). Confirm the push printed the branch moving, and that the checks' exit result was 0.
-- The reviewer must only judge a version once its checks have finished; judging while they ran said "not ready" for no reason and used up the automatic fix round. It now waits, and marks finished reviews `reviewed-final:`.
-- A step that decides something on its own (like auto-merge) runs main's copy of its script, never the pull request's copy, so a change can't rewrite the rules it's judged by.
-- GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
+- A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems, and report one bug once.
+- When one issue replaces another, close the old one before starting the new one: a builder job starts from main as it is at that moment.
+- Planners, hosts and the owner share one sign-in: when a page reads who's signed in, check what kind of account it is (profile.kind, partygames/owner) before acting on it.
+- When a lesson only matters for one kind of job, add it to that job's Skill instead of here.
 
 ## On hold until the current build is tested
 

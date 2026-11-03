@@ -67,9 +67,12 @@ Object.assign(ACT,{
 
 /* ---- the support team's side ---- */
 const supDemo=()=>!!window.__HMPDEMO;
-function supMe(){if(supDemo()){const k=L.supAs||"roy",s=(D.staff||{})[k]||{};return {uid:k,name:s.name||(k==="roy"?"Roy":"Icee"),role:k==="roy"?"owner":"support"}}
- const u=L.user;if(!u)return null;const s=(D.staff||{})[u.uid];if(D.owner&&u.uid===D.owner)return {uid:u.uid,name:(s&&s.name)||"Roy",role:"owner"};return s?{uid:u.uid,name:s.name||"Support",role:"support"}:null}
-const supIsOwner=()=>{const m=supMe();return !!(m&&m.role==="owner")};
+function supMe(){if(supDemo()){const k=L.supAs||"roy",s=(D.staff||{})[k]||{};return {uid:k,name:s.name||(k==="roy"?"Roy":"Icee"),role:k==="roy"?"owner":(D.admins||{})[k]===true?"admin":"support"}}
+ const u=L.user;if(!u)return null;const s=(D.staff||{})[u.uid];if(D.owner&&u.uid===D.owner)return {uid:u.uid,name:(s&&s.name)||"Roy",role:"owner"};if(L.coAdmin)return {uid:u.uid,name:(s&&s.name)||"Admin",role:"admin"};return s?{uid:u.uid,name:s.name||"Support",role:"support"}:null}
+/* the owner and admins can do the owner-only actions here (support codes, removing staff, deleting reports, pausing agents) */
+const supIsOwner=()=>{const m=supMe();return !!(m&&(m.role==="owner"||m.role==="admin"))};
+/* only Roy himself can make or remove admins */
+const supIsRoy=()=>{const m=supMe();return !!(m&&m.role==="owner")};
 const tkList=()=>Object.keys(D.tix||{}).map(k=>Object.assign({k},D.tix[k])).sort((a,b)=>(b.last||b.t||0)-(a.last||a.t||0));
 const tkNewCount=()=>tkList().filter(x=>(x.status||"new")==="new").length;
 const tkWaiting=(x,me)=>x.status!=="solved"&&x.lastFrom==="reporter"&&me&&(x.last||0)>(x.t||0)&&(x.last||0)>(((x.seen||{})[me.uid])||0);
@@ -78,12 +81,12 @@ function tkLine(x){const st=x.status||"new",seen=Object.keys(x.seen||{}).map(u=>
  if(st==="working"&&x.by)return `Being worked on by <b>${esc(x.by.name)}</b> since ${esc(supTime(x.by.t))}`;
  return seen.length?`Seen by ${esc(seen.join(", "))} · nobody has taken it yet`:"Nobody has opened it yet"}
 let supSubbed=false,supBeat=null;
-function supSubs(){if(supSubbed||!db)return;supSubbed=true;
+function supSubs(){if(supSubbed||!db)return;supSubbed=true;RT("admins").on("value",s=>{D.admins=s.val()||{};renderSoon()},()=>{});
  RT("tickets").on("value",s=>{D.tix=s.val()||{};L.supLoaded=true;renderSoon()},()=>{L.supLoaded=true;L.supDenied=true;renderSoon()});
  RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
  if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
  RT("plist").once("value").then(s=>{D.plist=Object.assign({},D.plist||{},s.val()||{});renderSoon()}).catch(()=>{});
- RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});
+ RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});tmSubs();
  RT("sales").on("value",s=>{D.sales=s.val()||{};renderSoon()},()=>{});RT("salesLog").on("value",s=>{D.salesLog=s.val()||{};renderSoon()},()=>{});RT("resources").on("value",s=>{D.resources=s.val()||{};renderSoon()},()=>{});RT("agentRuns").on("value",s=>{D.agentRuns=s.val()||{};renderSoon()},()=>{});RT("backupStatus").on("value",s=>{D.backupStatus=s.val();renderSoon()},()=>{});
  RT("index").once("value").then(s=>{D.supIdx=s.val()||{};renderSoon()}).catch(()=>{});
  const beat=()=>{const m=supMe();if(m&&(VIEW==="support"||(VIEW==="host"&&L.hostTab==="support")))RT("staff/"+m.uid+"/active").set(Date.now()).catch(()=>{})};
@@ -145,11 +148,11 @@ function supAccounts(){const pl=D.plist||{},ev=Object.assign({},D.supIdx||{},VIE
  <b class="small">Planners</b>${pk.length?`<div class="stack tight">${pk.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(pl[u].name||"Planner")}</b><span class="db muted">${esc([pl[u].biz,pl[u].email].filter(Boolean).join(" · "))}</span></span><a class="btn xs" href="${esc(baseURL()+"?"+(supDemo()?"pdemo=1&":"")+"as="+encodeURIComponent(u)+"#planner")}" target="_blank" rel="noopener">Look at their portal</a></div>`).join("")}</div>`:'<span class="small muted">No planners found.</span>'}
  <b class="small">Events</b>${ek.length?`<div class="stack tight">${ek.map(k=>`<div class="row between small clrow"><span class="mw0"><b>${esc(ev[k].name||k)}</b><span class="db muted">Code ${esc(k)}</span></span><a class="btn xs" href="${esc(eventURL(k))}" target="_blank" rel="noopener">Guest view</a></div>`).join("")}</div>`:'<span class="small muted">No events found.</span>'}`:""}</section>`}
 function supTeamCard(){const codes=Object.keys(D.sinvites||{}).map(k=>Object.assign({k},D.sinvites[k])).sort((a,b)=>(b.t||0)-(a.t||0)),me=supMe(),team=Object.keys(D.staff||{}).filter(u=>D.staff[u].role!=="owner"),link=baseURL()+"#support";
- return `<section class="card stack"><h3>Support team</h3><p class="small muted m0">Make a one-time code for each person who helps with support. They open the support page, enter the code and create their own login. Support logins can answer tickets and look at accounts, but can't delete anything, change money or make invite codes.</p>
+ return `<section class="card stack"><h3>Support team</h3><p class="small muted m0">Make a one-time code for each person who helps with support. They open the support page, enter the code and create their own login. Support logins can answer tickets and look at accounts, but can't delete anything, change money or make invite codes. Tap Make admin to give someone everything you have in the admin console, except making admins.</p>
  <div class="row"><input type="text" class="grow" data-draft="si_label" maxlength="40" value="${esc(dv("si_label",""))}" placeholder="Who it's for, like Icee" aria-label="Who the code is for"><button class="btn sm primary" data-act="siMake">Make a support code</button></div>
  <div class="small">Support page: <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div>
  ${codes.length?`<div class="stack tight">${codes.map(c=>`<div class="row between small clrow"><span class="mw0"><b class="mono">${esc(c.k)}</b> · ${esc(c.label||"")}<span class="db muted">${c.by?"Used by "+esc(c.name||"someone")+" · "+esc(supTime(c.usedAt)):c.active?"Not used yet":"Turned off"}</span></span>${!c.by&&c.active?`<button class="btn xs" data-act="siOff" data-k="${esc(c.k)}">Turn off</button>`:""}</div>`).join("")}</div>`:""}
- ${team.length?`<b class="small">People with support logins</b><div class="stack tight">${team.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.staff[u].name||"Support")}</b><span class="db muted">Support · joined ${esc(supTime(D.staff[u].t))}</span></span><button class="btn xs" data-act="stRemove" data-k="${esc(u)}">${L.confirm==="stx"+u?"Tap again to remove":"Remove access"}</button></div>`).join("")}</div>`:""}
+ ${team.length?`<b class="small">People with support logins</b><div class="stack tight">${team.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.staff[u].name||"Support")}</b><span class="db muted">${(D.admins||{})[u]===true?"Admin (everything except making admins)":"Support"} · joined ${esc(supTime(D.staff[u].t))}</span></span><span class="row">${supIsRoy()?`<button class="btn xs" data-act="stAdmin" data-k="${esc(u)}">${L.confirm==="sta"+u?"Tap again to confirm":(D.admins||{})[u]===true?"Remove admin":"Make admin"}</button>`:""}<button class="btn xs" data-act="stRemove" data-k="${esc(u)}">${L.confirm==="stx"+u?"Tap again to remove":"Remove access"}</button></span></div>`).join("")}</div>`:""}
  <label class="stack tight"><span class="small">Your name on tickets</span><span class="row"><input type="text" class="grow" data-draft="st_me" maxlength="40" value="${esc(dv("st_me",(me&&me.name)||"Roy"))}"><button class="btn xs" data-act="stName">Save</button></span></label></section>`}
 async function tkSet(id,u){await RT("tickets/"+id).update(u)}
 Object.assign(ACT,{
@@ -175,20 +178,25 @@ Object.assign(ACT,{
  siMake:async()=>{if(!supIsOwner())return;const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c="SUP-";const r=crypto.getRandomValues(new Uint32Array(6));r.forEach(x=>c+=a[x%a.length]);
   await RT("sinvites/"+c).set({label:String(dv("si_label","")).trim().slice(0,40),active:true,t:Date.now()});delete L.drafts.si_label;toast("Code made: "+c);render(true)},
  siOff:async el=>{if(!supIsOwner())return;await RT("sinvites/"+el.dataset.k+"/active").set(false);toast("Code turned off")},
- stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;await RT("staff/"+u).remove();toast("Support access removed")},
+ /* Roy only: make a support person a full admin, or take it back */
+ stAdmin:async el=>{const u=el.dataset.k;if(!supIsRoy())return;if(L.confirm!=="sta"+u){L.confirm="sta"+u;return render(true)}L.confirm=null;const on=(D.admins||{})[u]!==true;
+  try{await RT("admins/"+u).set(on?true:null);toast(on?((D.staff[u]||{}).name||"They")+" is now an admin":"Admin access removed")}catch(e){toast("Couldn't change that. Check the database rules are published.")}render(true)},
+ stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;if((D.admins||{})[u]===true&&supIsRoy())await RT("admins/"+u).remove().catch(()=>{});await RT("staff/"+u).remove();toast("Support access removed")},
  stName:async()=>{const me=supMe(),n=String(dv("st_me","")).trim().slice(0,40);if(!me||!n)return;await RT("staff/"+me.uid+"/name").set(n);toast("Saved")},
- supJoin:async()=>{const a=AUTH();if(!a)return;const code=String(dv("sj_code","")).toUpperCase().replace(/[^A-Z0-9-]/g,""),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
+ supJoin:async()=>{const a=AUTH();if(!a)return;const code=supCodeNorm(dv("sj_code","")),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
   if(!code)return toast("Type the support code Roy gave you");if(!name)return toast("Type your name");
-  const v=(await RT("sinvites/"+code).once("value").catch(()=>null));const vv=v&&v.val();if(!vv||!vv.active)return toast("That support code isn't valid. Ask Roy for a new one.");if(vv.by)return toast("That support code has already been used.");
+  const v=(await RT("sinvites/"+code).once("value").catch(()=>null));const vv=v&&v.val();if(!vv||!vv.active)return toast("That support code isn't valid. Check it with Roy. A code made in the demo only works in the demo.");if(vv.by)return toast("That support code has already been used.");
   try{let u=a.currentUser;if(!u){if(pw.length<8)return toast("Use a password with at least 8 characters");u=(await a.createUserWithEmailAndPassword(em,pw)).user}
    await RT("sinvites/"+code).update({by:u.uid,usedAt:Date.now(),name});await RT("staff/"+u.uid).set({name,role:"support",code,t:Date.now(),active:Date.now()});
    ["sj_code","sj_name","ac_pw"].forEach(k=>delete L.drafts[k]);toast("Welcome to Host Mode support, "+name+"!");location.reload()}catch(e){toast(authErr(e))}}
 });
+/* support codes look like SUP-AB3CD4: accept them typed in small letters, with spaces, or without the SUP- at the start */
+function supCodeNorm(v){let c=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.startsWith("SUP"))c=c.slice(3);return c?"SUP-"+c:""}
 function supConnect(){if(supDemo()){L.authReady=true;L.supLoaded=true;supSubs();return}
  const a=AUTH();if(!a){L.authReady=true;return}
  RT("owner").on("value",s=>{D.owner=s.val()||null;renderSoon()});
  a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;if(!u){renderSoon();return}
-  const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid;D.owner=ow?ow.val():D.owner;
+  const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid||await loadCoAdmin(u);D.owner=ow?ow.val():D.owner;
   const sf=(await RT("staff/"+u.uid).once("value").catch(()=>null)),sv=sf&&sf.val();if(sv)D.staff=Object.assign({},D.staff,{[u.uid]:sv});
   if(own||sv)supSubs();renderSoon()})}
 function supportView(){if(supDemo())return staffTabs()+staffBody();
@@ -197,7 +205,7 @@ function supportView(){if(supDemo())return staffTabs()+staffBody();
  if(!L.user)return card(L.acMode==="join"?"Create your support login":"Sign in",L.acMode==="join"?`<p class="small muted m0">Use the one-time support code Roy gave you.</p><label class="stack tight"><span class="small">Support code</span><input type="text" data-draft="sj_code" value="${esc(dv("sj_code",""))}" autocapitalize="characters" autocomplete="off"></label><label class="stack tight"><span class="small">Your name</span><input type="text" data-draft="sj_name" value="${esc(dv("sj_name",""))}" autocomplete="name"></label><label class="stack tight"><span class="small">Email</span><input type="email" data-draft="ac_email" value="${esc(dv("ac_email",""))}" autocomplete="email"></label><label class="stack tight"><span class="small">Choose a password (8+ characters)</span><input type="password" data-draft="ac_pw" autocomplete="new-password"></label><button class="btn primary" data-act="supJoin">Create my support login</button><button class="btn xs as" data-act="acMode" data-k="signin">I already have a login</button>`
   :`<p class="small muted m0">For the Host Mode support team.</p>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="join">I have a support code</button>`);
  const me=supMe();if(!me)return card("No support access",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, which doesn't have a support login. If Roy gave you a support code, sign out and tap "I have a support code."</p><button class="btn" data-act="acOut">Sign out</button>`);
- return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:roleLinks("support")}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+staffTabs()+staffBody()}
+ return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"||me.role==="admin"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:roleLinks("support")}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+staffTabs()+staffBody()}
 
 /* ================= VENDOR PAGES =================
    Each vendor gets a private link (games.html?vendor=TOKEN&p=PLANNER), no account needed.
@@ -357,7 +365,7 @@ function slForm(x){const g=(f,d)=>esc(dv("slf_"+f,x?(x[f]==null?"":x[f]):(d||"")
  <button class="btn primary as" data-act="slSave" data-k="${x?esc(x.k):""}">${x?"Save":"Add"}</button></div>`}
 const slClear=()=>Object.keys(L.drafts).filter(k=>/^slf_/.test(k)).forEach(k=>delete L.drafts[k]);
 /* ---- Resources: the team's shared documents ---- */
-const RS_KIND={playbook:["📣","Sales and marketing"],process:["🧭","How we sell"],competitors:["🔍","Competitors (staff only)"],brand:["🎨","Brand kit"],link:["🔗","Link"],doc:["📄","Document"]};
+const RS_KIND={playbook:["📣","Sales and marketing"],advantages:["🏆","How we win"],process:["🧭","How we sell"],competitors:["🔍","Competitors (staff only)"],brand:["🎨","Brand kit"],link:["🔗","Link"],doc:["📄","Document"]};
 /* starter documents, shown until the team saves its own copy. No competitor names here: this code is public. */
 const RS_STARTERS={
  playbook:{title:"Sales and Marketing Playbook",kind:"playbook",body:`In anything the public sees, never name a competitor. Say "other apps" or "other event software" instead.
@@ -395,6 +403,22 @@ Plan it. Run it. Remember it. All in one place.
 - Only promise features that are live. Mark anything else "coming soon."
 - Pricing claims wait until subscriptions launch.
 - Use the Host Mode name and colors (navy, orange and green) consistently.`},
+ advantages:{title:"Sales Advantages",kind:"advantages",body:`Ideas that can set Host Mode apart. Use them in the sales plan, pitches and demos.
+
+## Always-on sales help
+Our AI sales agent can answer questions and walk people through a demo at any hour. Most small competitors can't.
+
+## Easy switching
+The importer brings in a planner's old spreadsheets and data in one upload, so the biggest reason to stay with another app goes away. This is the hardest one for others to copy.
+
+## A first event free
+People try it with no risk, then pay once they've seen it work. (Pricing waits for Roy's approval.)
+
+## Real proof
+The January 2 baby shower is our first case study: photos, guest reactions and what the host said.
+
+## Planner connections
+Roy's cousin is a professional planner. She can open doors and refer other planners.`},
  process:{title:"How We Sell (Icee's playbook)",kind:"process",body:`Write down what you do as you do it. It doesn't have to be neat: tell your Claude what happened and ask it to tidy this up. Later, this becomes the sales agent's guide.
 
 ## Where I find leads
@@ -619,10 +643,10 @@ function agGlideTo(k){const v=agV();if(v[2]>=400||!AG_SPOT[k])return;const [i,j,
 /* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */
 document.addEventListener("click",e=>{const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){L.agSel=g.getAttribute("data-agk");render(true)}});
 document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){e.preventDefault();L.agSel=g.getAttribute("data-agk");render(true);setTimeout(()=>{const n=document.querySelector(`.agw[data-agk="${L.agSel}"]`);if(n)n.focus()},0)}});
-const ST_TABS=[["support","Support"],["sales","Sales"],["resources","Resources"]];
+const ST_TABS=[["support","Support"],["team","Team"],["onboard","Onboarding"],["sales","Sales"],["resources","Resources"]];
 function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
- return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}</button>`).join("")}</div>`}
-const staffBody=()=>({sales:salesBody,resources:resourcesBody}[L.stTab]||supportBody)();
+ return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}${k==="team"&&tmUnreadAll()?` <span class="pill warn">${tmUnreadAll()}</span>`:""}</button>`).join("")}</div>`}
+const staffBody=()=>({team:teamBody,onboard:onboardBody,sales:salesBody,resources:resourcesBody}[L.stTab]||supportBody)();
 function marketingBody(){return `<section class="card stack"><h2>Marketing</h2><p class="m0">This is where the marketing department will live: campaigns, social posts, promo videos and which channels bring in sign-ups.</p><p class="small muted m0">It's empty until someone is put in charge of marketing. The playbook, taglines and brand kit are under Resources.</p></section>`}
 Object.assign(ACT,{
  stTab:el=>{L.stTab=el.dataset.k;L.confirm=null;render(true);scrollTo(0,0)},

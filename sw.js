@@ -8,8 +8,8 @@ const LIBS = /^https:\/\/(www\.gstatic\.com\/firebasejs|cdnjs\.cloudflare\.com|c
 self.addEventListener("install", e => {
   /* games.html loads its code from js/ and its look from css/, so those are kept too (the list matches HM_FILES in games.html) */
   const APP = ["00-constants", "01-content", "02-core", "03-guest", "04-moderator", "05-custom-games", "06-event-types", "07-actions", "08-admin", "09-menu",
-    "10-party-games", "11-tonight", "12-planning", "13-teammates", "14-client-portals", "15-client-tools", "16-planner-portal", "17-inventory-venue",
-    "18-support-staff", "19-leads-boot"].map(f => "js/" + f + ".js");
+    "10-party-games", "11-tonight", "12-planning", "13-teammates", "14-client-portals", "15-client-tools", "16-planner-portal", "17-inventory-venue", "17a-stay-go",
+    "18-support-staff", "18a-team", "19-leads-boot"].map(f => "js/" + f + ".js");
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(["games.html", "index.html", "hosts.html", "planners.html", "drinks.html", "demo.html", "css/games.css"].concat(APP)).catch(() => {})));
   self.skipWaiting();
 });
