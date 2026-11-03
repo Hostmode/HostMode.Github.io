@@ -25,6 +25,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). ops/BACKUPS.md: how backups work and how to restore one.
 - .github/workflows: nightly agents, nightly backup, pull request checks (pr-checks), the builder agent (claude-builder: the "claude" label or @claude), the reviewer agent (claude-reviewer, which also auto-merges low-risk changes with .github/scripts/auto_merge.py), the builder queue (builder-queue: starts the next "queue" issue, one at a time), the Monday report (weekly-report) and load-issues (turns .github/issues/*.json into GitHub issues, once each). agents/check_all.sh runs every check a change must pass.
+- Tap-everything check (agents/crawl.py, nightly, free): taps every button, fills every box and checks every link in the demos; agents/file_crawl_issues.py files each new problem as one issue (planner and staff screens queued and low risk; guest, moderator, big screen and sign-in screens marked needs Roy) and starts the queue. A new screen must be added to SCREENS in crawl.py.
 - Agent office (admin console → Agents): a Sims-style 3D venue in js/18-support-staff.js (agScene draws one SVG back to front; agP(a,b,z) turns a floor spot into a screen point; agents stand at AG_SPOT; tapping opens agPanel). Status comes from GitHub's public run list.
 - Every agent reads this file and the Skills that fit its job; the builder and reviewer also load the Engineering and Design plugins. This file wins over any plugin. A new agent must do the same.
 - The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
@@ -115,6 +116,7 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 - Never hide a command's errors (no `2>/dev/null` on a push, no `| tail` hiding a failed check). Confirm the push printed the branch moving, and that the checks' exit result was 0.
 - The reviewer must only judge a version once its checks have finished; judging while they ran said "not ready" for no reason and used up the automatic fix round. It now waits, and marks finished reviews `reviewed-final:`.
 - A step that decides something on its own (like auto-merge) runs main's copy of its script, never the pull request's copy, so a change can't rewrite the rules it's judged by.
+- A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems (like `crawl.py --self-test`), and report one bug once (group repeats of the same error).
 - GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
 

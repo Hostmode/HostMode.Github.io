@@ -8,11 +8,13 @@ on:
 permissions:
   contents: write        # to push fix branches (never main)
   pull-requests: write   # to open pull requests for Roy
+  issues: write          # the tap-everything check files what broke as GitHub issues
+  actions: write         # ...and then starts the builder queue
 concurrency: nightly-agents
 jobs:
   agents:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 110
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       AGENT_SUPPORT_CODE: ${{ secrets.AGENT_SUPPORT_CODE }}
@@ -51,6 +53,20 @@ jobs:
           python -m http.server 8765 >/dev/null 2>&1 &
           sleep 2
           python agents/tech.py
+      - name: Tap-everything check (free, no AI)
+        # taps every button, fills every box and checks every link in the demos; first proves it can catch planted problems
+        id: crawl
+        if: always() && steps.setup.outputs.ready == 'yes'
+        run: |
+          python -m http.server 8765 >/dev/null 2>&1 &
+          sleep 2
+          python agents/crawl.py --self-test
+          python agents/crawl.py --max-minutes 25
+      - name: File what broke as issues and start the builder queue
+        if: always() && steps.crawl.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python agents/file_crawl_issues.py
       - name: Keep tonight's screenshots
         if: always() && steps.setup.outputs.ready == 'yes'
         uses: actions/upload-artifact@v4

@@ -68,6 +68,9 @@ def main():
         return len([r for r in l if r["conclusion"] == "success"]), len([r for r in l if r["conclusion"] == "failure"])
     nightly, backup, builder, reviewer = tally("Nightly agents"), tally("Nightly backup"), tally("Claude builder"), tally("Claude reviewer")
     cost = nightly_cost()
+    bugs = api(f"repos/{R}/issues?state=all&labels=bug&since={WEEK_AGO:%Y-%m-%dT%H:%M:%SZ}&per_page=100")
+    crawl = [i for i in bugs if "pull_request" not in i and "<!-- crawl:" in (i.get("body") or "") and when(i["created_at"]) >= WEEK_AGO]
+    crawl_fixed = [i for i in crawl if i["state"] == "closed"]
     link = lambda p: f"[#{p['number']}]({p['html_url']}) {p['title']}"
     out = ["@Hostmode here's your Monday report.", "", f"## This week ({WEEK_AGO:%b %-d} to {NOW:%b %-d})", ""]
     out += ["**Went live:**"] + ([f"- {link(p)}" + (" (merged on its own)" if p["head"]["ref"].startswith("claude/") and p.get("merged_by") and p["merged_by"]["login"] == "github-actions[bot]" else "") for p in merged_wk] or ["- Nothing this week"])
@@ -80,7 +83,8 @@ def main():
     out += ["", "## The agents", "",
             f"- Nightly agents: {nightly[0]} good night{'s' if nightly[0] != 1 else ''}, {nightly[1]} with trouble",
             f"- Backups: {backup[0]} done, {backup[1]} failed",
-            f"- Builder: {builder[0]} job{'s' if builder[0] != 1 else ''} · Reviewer: {reviewer[0]} review{'s' if reviewer[0] != 1 else ''}"]
+            f"- Builder: {builder[0]} job{'s' if builder[0] != 1 else ''} · Reviewer: {reviewer[0]} review{'s' if reviewer[0] != 1 else ''}",
+            f"- Tap-everything check: found {len(crawl)} new problem{'s' if len(crawl) != 1 else ''}, {len(crawl_fixed)} already fixed"]
     if cost:
         out += [f"- Nightly agents' spending: ${cost[0]:.2f} this week, ${cost[1]:.2f} this month (the builder and reviewer are in the Anthropic Console, under Usage)"]
     else:
