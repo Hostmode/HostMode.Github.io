@@ -874,9 +874,10 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .shcovercard{padding:0!important;overflow:hidden}.shcover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 /* Agents tab: the agent office */
 /* ---- the agent office (js/18-support-staff.js agentsBody): an isometric 400x290 SVG venue; people are SVG groups ---- */
-.agscene{width:100%;max-width:640px;margin:0 auto;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:linear-gradient(#dfe6f5,#c9d3ea)}
+.agscene{position:relative;width:100%;max-width:640px;margin:0 auto;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:linear-gradient(#dfe6f5,#c9d3ea)}
 .agscene.night{background:linear-gradient(#16255a,#0b1022)}
-.agiso{display:block;width:100%;height:auto}
+.agiso{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+.agzoom{position:absolute;right:6px;bottom:6px;display:flex;gap:4px}.agzoom .btn{min-width:36px;min-height:36px;background:#fff}
 .agw{cursor:pointer;outline:none}.agtagw{pointer-events:none}.agw:focus-visible .agring{stroke:#f6892f;stroke-width:2.4}
 .agbulb{opacity:.9}.agscene.night .agbulb{filter:drop-shadow(0 0 2.5px #ffd98a)}
 /* each person's parts (inside agPerson): .agbod, .agleg-l, .agleg-r, .agarm (front arm), .agarm-b, .agcarry, .agflag; .agmove wraps the person, ring and bubble */

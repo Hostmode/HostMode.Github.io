@@ -567,7 +567,7 @@ function agScene(cast,sel,night,sky,n,tk,p){const wall=night?"#2a3a72":"#f6efe2"
  cast.forEach(c=>{const [i,j,,d]=AG_SPOT[c.k];parts.push([d!=null?d:i+j+.05,agFigure(c,c.k===sel)])});
  parts.sort((x,y)=>x[0]-y[0]);
  const sc=cast.find(c=>c.k===sel),tag=sc?(()=>{const [i,j,z]=AG_SPOT[sc.k],[x,y]=agP(i,j,z),w=sc.l.length*5.2+10;return `<g class="agw agtagw r-${sc.k} ${sc.st}" transform="translate(${x} ${y})" aria-hidden="true"><g class="agmove"><g class="agtag" transform="translate(0 12)"><rect x="${-w/2}" y="-7" width="${w}" height="12" rx="6" fill="#16255a"/><text y="1.8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">${esc(sc.l)}</text></g></g></g>`})():"";
- return `<svg class="agiso" viewBox="0 0 400 290" role="group" aria-label="The agent office. ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk. Tap an agent to see how it's doing.">${back}${parts.map(x=>x[1]).join("")}${tag}</svg>`}
+ return `<svg class="agiso" viewBox="${agV().join(" ")}" role="group" aria-label="The agent office. ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk. Tap an agent to see how it's doing.">${back}${parts.map(x=>x[1]).join("")}${tag}</svg>`}
 function agBar(label,pct,col,txt){return `<div class="agneed"><div class="row between small"><b>${label}</b><span class="muted">${esc(txt)}</span></div><div class="agbar"><i style="width:${Math.max(4,Math.min(100,pct))}%;background:${col}"></i></div></div>`}
 function agPanel(c,spent){const hrs=c.r?(Date.now()-Date.parse(c.r.created_at))/36e5:null,fresh=hrs==null?0:hrs<=24?100:hrs<=48?60:hrs<=72?30:10,left=Math.max(0,100-spent/AG_LIMIT*100);
  const job={work:[60,"#f6892f","Working on it"],done:[100,"#2f8a4c","Went well"],fail:[15,"#d62d2d","Needs a look"],idle:[0,"#9aa3b8","Hasn't run yet"]}[c.st];
@@ -582,7 +582,7 @@ function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Dat
  const sel=(cast.find(c=>c.k===L.agSel)||cast.find(c=>c.st==="fail")||cast.find(c=>c.st==="work")||cast[0]).k,cur=cast.find(c=>c.k===sel);
  return `<section class="card stack agoffice"><div class="row between"><h2 class="m0">The agent office</h2><button class="btn xs" data-act="agRefresh">${g.busy?"Looking…":"Refresh"}</button></div>
  <p class="small muted m0">Your helpers setting up the venue. Tap anyone to see how they're doing.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
- <div class="agscene ${night?"night":""}">${agScene(cast,sel,night,sky,n,tk,p)}</div>
+ <div class="agscene ${night?"night":""}">${agScene(cast,sel,night,sky,n,tk,p)}<div class="agzoom" role="group" aria-label="Zoom the agent office"><button class="btn xs" data-act="agZoom" data-d="in" aria-label="Zoom in">+</button><button class="btn xs" data-act="agZoom" data-d="out" aria-label="Zoom out">−</button><button class="btn xs" data-act="agZoom" data-d="all" aria-label="Show the whole room">Whole room</button></div></div>
  ${agPanel(cur,spent)}
  <div class="row agchips">${cast.map(c=>`<button class="btn xs ${c.k===sel?"primary":""}" data-act="agPick" data-k="${c.k}"><span class="agdot ${c.st}"></span>${esc(c.l)}</button>`).join("")}</div>
  <div class="stack tight"><div class="row between small clrow"><span class="mw0"><b>Waiting for Roy</b><span class="db muted">Boxes by your office door</span></span><span class="pill ${n?"warn":""}">${n} pull request${n===1?"":"s"}</span></div>
@@ -590,7 +590,32 @@ function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Dat
    <div class="row agscorerow"><span class="pill ok">${sc.merged} merged</span><span class="pill">${sc.closed} closed without merging</span><span class="pill ${sc.undone?"warn":""}">${sc.undone} undone</span><span class="pill">${sc.open} waiting</span></div>
    ${agBar("Toward Phase 2",sc.gate/5*100,"#2f8a4c",`${sc.gate} of 5`)}</div>`})()}
   <div class="row between small clrow"><span class="mw0"><b>Icee's support desk</b><span class="db muted">The lamp is on when tickets are waiting</span></span><span class="pill ${tk?"warn":""}">${tk} ticket${tk===1?"":"s"}</span></div></div></section>${helpView("ad")}`}
-Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;render(true)}});
+Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;render(true);agGlideTo(L.agSel)},
+ agZoom:el=>{const v=agV(),d=el.dataset.d;if(d==="all")return agGlide([0,0,400,290]);const w=v[2]/(d==="in"?1.5:1/1.5);agGlide(agFit(v[0]+v[2]/2-w/2,v[1]+v[3]/2-w*.725/2,w))}});
+/* zoom and move: the view is the SVG's viewBox [x,y,w,h], kept in L.agView so a refresh doesn't reset it. Whole room is 400 wide; 3 times in is about 133 */
+function agV(){const v=L.agView;return Array.isArray(v)&&v.length===4?v:[0,0,400,290]}
+function agFit(x,y,w){w=Math.max(400/3,Math.min(400,w));const h=w*.725;return [Math.max(0,Math.min(400-w,x)),Math.max(0,Math.min(290-h,y)),w,h]}
+function agApply(v){L.agView=v[2]>=400?null:v;const s=document.querySelector(".agiso");if(s)s.setAttribute("viewBox",agV().join(" "))}
+let agAnim=0;
+function agGlide(to){const from=agV(),t0=performance.now(),my=++agAnim;const step=t=>{if(my!==agAnim)return;const k=Math.min(1,(t-t0)/280),e=k*(2-k);agApply(to.map((b,i)=>from[i]+(b-from[i])*e));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+function agGlideTo(k){const v=agV();if(v[2]>=400||!AG_SPOT[k])return;const [i,j,z]=AG_SPOT[k],[x,y]=agP(i,j,z);agGlide(agFit(x-v[2]/2,y-12-v[3]/2,v[2]))}
+(()=>{const pts=new Map();let g=null,moved=false;
+ const svg=e=>e.target&&e.target.closest&&e.target.closest(".agiso");
+ const dist=()=>{const a=[...pts.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1};
+ const mid=()=>{const a=[...pts.values()];return [(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2]};
+ const begin=s=>{const r=s.getBoundingClientRect(),v=agV(),k=v[2]/r.width,m=pts.size>1?mid():[...pts.values()][0];g={s,v,d:pts.size>1?dist():0,m,px:v[0]+(m[0]-r.left)*k,py:v[1]+(m[1]-r.top)*k}};
+ document.addEventListener("pointerdown",e=>{const s=svg(e);if(!s||(e.pointerType==="mouse"&&e.button!==0))return;agAnim++;pts.set(e.pointerId,[e.clientX,e.clientY]);moved=false;begin(s)});
+ document.addEventListener("pointermove",e=>{if(!g||!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);const r=g.s.getBoundingClientRect(),m=pts.size>1?mid():[e.clientX,e.clientY];
+  if(!moved&&Math.hypot(m[0]-g.m[0],m[1]-g.m[1])<6&&(pts.size<2||Math.abs(dist()-g.d)<6))return;
+  if(!moved){moved=true;try{g.s.setPointerCapture(e.pointerId)}catch(x){}}
+  e.preventDefault();let w=g.v[2];if(pts.size>1&&g.d)w=g.v[2]*g.d/dist();w=Math.max(400/3,Math.min(400,w));
+  agApply(agFit(g.px-(m[0]-r.left)/r.width*w,g.py-(m[1]-r.top)/r.height*w*.725,w))});
+ const up=e=>{if(!pts.delete(e.pointerId))return;if(pts.size&&g)begin(g.s);else g=null;setTimeout(()=>{if(!pts.size)moved=false},60)};
+ document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up);
+ document.addEventListener("click",e=>{if(moved&&e.target.closest&&e.target.closest(".agscene")){e.stopPropagation();e.preventDefault();moved=false}},true);
+ document.addEventListener("wheel",e=>{const s=svg(e);if(!s)return;e.preventDefault();agAnim++;const r=s.getBoundingClientRect(),v=agV(),w=Math.max(400/3,Math.min(400,v[2]*(e.deltaY<0?1/1.15:1.15))),fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
+  agApply(agFit(v[0]+v[2]*fx-w*fx,v[1]+v[3]*fy-w*.725*fy,w))},{passive:false});
+ document.addEventListener("keydown",e=>{if(!e.target.closest||!e.target.closest(".agscene")||e.ctrlKey||e.metaKey)return;const d=e.key==="+"||e.key==="="?"in":e.key==="-"||e.key==="_"?"out":"";if(d){e.preventDefault();ACT.agZoom({dataset:{d}})}})})();
 /* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */
 document.addEventListener("click",e=>{const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){L.agSel=g.getAttribute("data-agk");render(true)}});
 document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){e.preventDefault();L.agSel=g.getAttribute("data-agk");render(true);setTimeout(()=>{const n=document.querySelector(`.agw[data-agk="${L.agSel}"]`);if(n)n.focus()},0)}});
