@@ -55,6 +55,10 @@ Three more helpers now work from GitHub, as in the Host Mode Agent Development P
 - **Issues.** The To-Do List lives as GitHub issues (loaded from `.github/issues/todo.json` by `load-issues.yml`). New ideas use the
   "New feature" and "Bug" forms. The foreman Skill (`.claude/skills/foreman`) says how to write and order them.
 
+The quality loop: builder → pull request checks (no AI) → reviewer. If the reviewer finds problems, it sends the pull request
+back to the builder ONCE on its own (a comment marked auto-fix). After that second try, the reviewer @mentions Roy either way:
+"Ready for you" or "Not ready yet" with a fix line to paste. The agent office shows a builder scorecard (merged, closed, undone).
+
 Roy's part: add the **claude** label to start one; when the pull request shows green checks and the reviewer's rating, approve and
 merge it (or comment `@claude` with what to change). To pause a builder or reviewer: Actions → the workflow → "..." → Disable workflow.
 

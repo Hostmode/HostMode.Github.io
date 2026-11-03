@@ -465,13 +465,19 @@ function resourcesBody(){const docs=rsList(),have=new Set(docs.map(d=>d.kind)),s
 const AG_REPO="Hostmode/HostMode.Github.io",AG_LIMIT=100;
 const AG_CAST=[["tester","Test customer","Nightly agents","guest"],["tech","Technical agent","Nightly agents","tech"],["builder","Builder","Claude builder","build"],["reviewer","Reviewer","Claude reviewer","clip"],["checks","Pull request checks","Pull request checks","guard"],["backup","Backup","Nightly backup","box"]];
 const agState=r=>!r?"idle":r.status!=="completed"?"work":r.conclusion==="success"?"done":(r.conclusion==="failure"||r.conclusion==="timed_out")?"fail":"idle";
-const agPrs=()=>((L.ag||{}).prs||[]).filter(p=>!p.draft);
+const agPrs=()=>((L.ag||{}).prs||[]).filter(p=>!p.draft&&p.state!=="closed");
+/* the builder's scorecard: its pull requests (claude/... branches) merged, closed without merging, and undone (a later "Revert" pull request names them) */
+function agScore(){const all=((L.ag||{}).prs||[]),mine=all.filter(p=>String((p.head||{}).ref||"").startsWith("claude/")),
+  reverts=all.filter(p=>/^Revert "/.test(p.title||"")&&p.merged_at).map(p=>p.title.slice(8,-1));
+ const merged=mine.filter(p=>p.merged_at),undone=merged.filter(p=>reverts.includes(p.title)).length,closed=mine.filter(p=>p.state==="closed"&&!p.merged_at).length,open=mine.filter(p=>p.state==="open").length;
+ return {merged:merged.length,undone,closed,open,gate:Math.min(5,merged.length-undone)}}
 function agLoad(force){const g=L.ag=L.ag||{};if(g.busy||(!force&&g.t&&Date.now()-g.t<120000))return;
  if(window.__HMPDEMO){const n=Date.now(),h=x=>new Date(n-x*36e5).toISOString(),u="https://github.com/"+AG_REPO+"/actions";
   g.runs=[["Nightly agents","completed","success",6],["Claude builder","in_progress","",0.1],["Claude reviewer","completed","success",2],["Pull request checks","completed","failure",3],["Nightly backup","completed","success",4]].map(([name,status,conclusion,a])=>({name,status,conclusion,html_url:u,created_at:h(a),updated_at:h(a)}));
-  g.prs=[{html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false},{html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false}];g.t=n;return}
+  const pr=(t,ref,st,m)=>({title:t,head:{ref},state:st,merged_at:m?h(30):null,html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false});
+  g.prs=[pr("Add the calendar download","claude/issue-1","open"),pr("Keepsake art","claude/issue-2","open"),pr("Agents tab","claude/issue-20","closed",1),pr("Old office movement","claude/issue-22","closed"),pr("Thank-you cards","claude/issue-3","closed",1)];g.t=n;return}
  g.busy=true;const api="https://api.github.com/repos/"+AG_REPO+"/";
- Promise.all([fetch(api+"actions/runs?per_page=60").then(r=>r.ok?r.json():Promise.reject()),fetch(api+"pulls?state=open&per_page=50").then(r=>r.ok?r.json():Promise.reject())])
+ Promise.all([fetch(api+"actions/runs?per_page=60").then(r=>r.ok?r.json():Promise.reject()),fetch(api+"pulls?state=all&per_page=100").then(r=>r.ok?r.json():Promise.reject())])
   .then(([a,p])=>{g.runs=a.workflow_runs||[];g.prs=Array.isArray(p)?p:[];g.err=false}).catch(()=>{g.err=true}).finally(()=>{g.busy=false;g.t=Date.now();renderSoon()})}
 function agLatestRun(name){return ((L.ag||{}).runs||[]).filter(r=>r.name===name&&r.conclusion!=="skipped"&&r.conclusion!=="cancelled").sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]}
 function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.agentRuns&&D.agentRuns[runs[runs.length-1]],ts=(last&&last.tester)||{},tc=(last&&last.tech)||{},n=agPrs().length,b=D.backupStatus;
@@ -579,6 +585,9 @@ function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Dat
  ${agPanel(cur,spent)}
  <div class="row agchips">${cast.map(c=>`<button class="btn xs ${c.k===sel?"primary":""}" data-act="agPick" data-k="${c.k}"><span class="agdot ${c.st}"></span>${esc(c.l)}</button>`).join("")}</div>
  <div class="stack tight"><div class="row between small clrow"><span class="mw0"><b>Waiting for Roy</b><span class="db muted">Boxes by your office door</span></span><span class="pill ${n?"warn":""}">${n} pull request${n===1?"":"s"}</span></div>
+  ${(()=>{const sc=agScore();return `<div class="small clrow agscore"><div class="row between"><b>Builder scorecard</b><span class="muted">Phase 2 needs 5 merged, none undone</span></div>
+   <div class="row agscorerow"><span class="pill ok">${sc.merged} merged</span><span class="pill">${sc.closed} closed without merging</span><span class="pill ${sc.undone?"warn":""}">${sc.undone} undone</span><span class="pill">${sc.open} waiting</span></div>
+   ${agBar("Toward Phase 2",sc.gate/5*100,"#2f8a4c",`${sc.gate} of 5`)}</div>`})()}
   <div class="row between small clrow"><span class="mw0"><b>Icee's support desk</b><span class="db muted">The lamp is on when tickets are waiting</span></span><span class="pill ${tk?"warn":""}">${tk} ticket${tk===1?"":"s"}</span></div></div></section>${helpView("ad")}`}
 Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;render(true)}});
 /* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */

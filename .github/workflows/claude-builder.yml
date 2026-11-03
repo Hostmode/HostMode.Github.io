@@ -4,6 +4,8 @@ name: Claude builder
 # pull request for Roy. It never changes main. See agents/README.md ("Phase 1").
 # Safety: the action itself refuses anyone without write access and all bots. The "if" below also skips
 # comments from people who aren't the owner, a member or a collaborator, so no runner starts for them.
+# The reviewer can send a pull request back once on its own (a comment marked <!-- auto-fix -->); only that marked
+# comment from Claude's bot starts it, and the reviewer only writes it once per pull request.
 # Pause it: Actions → Claude builder → "..." → Disable workflow.
 on:
   issue_comment:
@@ -27,6 +29,8 @@ jobs:
       (github.event_name == 'issues' && github.event.label.name == 'claude') ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.user.login == 'claude[bot]' &&
+        contains(github.event.comment.body, '<!-- auto-fix -->')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&
@@ -71,6 +75,8 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           label_trigger: "claude"
+          # the reviewer's one automatic fix request (marked auto-fix) comes from Claude's bot
+          allowed_bots: "claude,claude[bot]"
           plugin_marketplaces: "https://github.com/anthropics/knowledge-work-plugins.git"
           plugins: |
             engineering@knowledge-work-plugins
