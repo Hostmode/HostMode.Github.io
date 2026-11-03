@@ -5,6 +5,7 @@ set -u
 cd "$(dirname "$0")/.."
 node agents/syntax_check.js || exit 1
 node agents/stay_go_test.js || exit 1
+node agents/venue3d_test.mjs || exit 1
 python3 -m http.server 8765 >/dev/null 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
