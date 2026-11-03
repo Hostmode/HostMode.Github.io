@@ -461,6 +461,44 @@ function resourcesBody(){const docs=rsList(),have=new Set(docs.map(d=>d.kind)),s
   <label class="stack tight" style="grid-column:1/-1"><span class="small">Text (optional)</span><textarea rows="5" data-draft="rsn_b" maxlength="40000">${esc(dv("rsn_b",""))}</textarea></label></div><div class="row"><button class="btn primary" data-act="rsAdd">Add</button><button class="btn" data-act="rsNewClose">Cancel</button></div></div>`:""}
  <div class="stack tight">${docs.map(d=>docCard(d,false)).join("")}${starters.map(k=>docCard(Object.assign({k:"s:"+k},RS_STARTERS[k]),true)).join("")}</div></section>`}
 /* the staff area's tabs */
+/* ---- Agents tab: the agent office (admin console, Roy and staff) ---- */
+const AG_REPO="Hostmode/HostMode.Github.io",AG_LIMIT=100;
+const AG_CAST=[["tester","Test customer","Nightly agents","guest"],["tech","Technical agent","Nightly agents","tech"],["builder","Builder","Claude builder","build"],["reviewer","Reviewer","Claude reviewer","clip"],["checks","Pull request checks","Pull request checks","guard"],["backup","Backup","Nightly backup","box"]];
+const agState=r=>!r?"idle":r.status!=="completed"?"work":r.conclusion==="success"?"done":(r.conclusion==="failure"||r.conclusion==="timed_out")?"fail":"idle";
+const agPrs=()=>((L.ag||{}).prs||[]).filter(p=>!p.draft);
+function agLoad(force){const g=L.ag=L.ag||{};if(g.busy||(!force&&g.t&&Date.now()-g.t<120000))return;
+ if(window.__HMPDEMO){const n=Date.now(),h=x=>new Date(n-x*36e5).toISOString(),u="https://github.com/"+AG_REPO+"/actions";
+  g.runs=[["Nightly agents","completed","success",6],["Claude builder","in_progress","",0.1],["Claude reviewer","completed","success",2],["Pull request checks","completed","failure",3],["Nightly backup","completed","success",4]].map(([name,status,conclusion,a])=>({name,status,conclusion,html_url:u,created_at:h(a),updated_at:h(a)}));
+  g.prs=[{html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false},{html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false}];g.t=n;return}
+ g.busy=true;const api="https://api.github.com/repos/"+AG_REPO+"/";
+ Promise.all([fetch(api+"actions/runs?per_page=60").then(r=>r.ok?r.json():Promise.reject()),fetch(api+"pulls?state=open&per_page=50").then(r=>r.ok?r.json():Promise.reject())])
+  .then(([a,p])=>{g.runs=a.workflow_runs||[];g.prs=Array.isArray(p)?p:[];g.err=false}).catch(()=>{g.err=true}).finally(()=>{g.busy=false;g.t=Date.now();renderSoon()})}
+function agLatestRun(name){return ((L.ag||{}).runs||[]).filter(r=>r.name===name).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]}
+function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.agentRuns&&D.agentRuns[runs[runs.length-1]],ts=(last&&last.tester)||{},tc=(last&&last.tech)||{},n=agPrs().length,b=D.backupStatus;
+ if(st==="fail")return "Something went wrong. Tap to see.";
+ if(k==="tester")return st==="work"?"Trying the games now…":ts.passed!=null?`${ts.passed} check${ts.passed===1?"":"s"} passed${ts.failed?`, ${ts.failed} failed`:""}`:st==="idle"?"No news yet":"Finished the checks";
+ if(k==="tech")return st==="work"?"Looking at tickets…":n?"Waiting for Roy":tc.replied!=null?`${tc.replied} question${tc.replied===1?"":"s"} answered`:st==="idle"?"No news yet":"All caught up";
+ if(k==="builder")return st==="work"?"Building something new…":n?`${n} fix${n===1?"":"es"} waiting for Roy`:st==="idle"?"No news yet":"Nothing to build";
+ if(k==="reviewer")return st==="work"?"Reading a change…":st==="idle"?"No news yet":"Finished reading";
+ if(k==="checks")return st==="work"?"Checking a change…":st==="idle"?"No news yet":"All clear at the door";
+ return st==="work"?"Packing the boxes…":b&&b.t?`Last backup ${supAgo(b.t)}${b.mb?` (${b.mb} MB)`:""}`:st==="idle"?"No news yet":"Backed up"}
+const agProps={guest:'<circle cx="46" cy="14" r="6" fill="#f6892f"/><path d="M46 20v16" stroke="#16255a" stroke-width="1.5"/>',tech:'<rect x="40" y="44" width="12" height="9" rx="2" fill="#f6892f"/>',build:'<rect x="38" y="46" width="16" height="10" rx="2" fill="#f6892f"/><path d="M42 46v-3h8v3" stroke="#16255a" stroke-width="2" fill="none"/>',clip:'<rect x="38" y="36" width="13" height="17" rx="2" fill="#fff" stroke="#16255a" stroke-width="1.5"/><path d="M41 42h7M41 46h7" stroke="#2f8a4c" stroke-width="1.5"/>',guard:'<path d="M46 34l8 3v7c0 6-4 9-8 11-4-2-8-5-8-11v-7z" fill="#2f8a4c"/>',box:'<rect x="36" y="42" width="18" height="13" rx="2" fill="#c98a4a"/><path d="M36 47h18" stroke="#16255a" stroke-width="1.5"/>'};
+function agChar(kind,st){const hat=kind==="guard"?'<rect x="19" y="10" width="22" height="6" rx="3" fill="#16255a"/>':kind==="build"?'<path d="M18 17a12 10 0 0 1 24 0z" fill="#f6892f"/>':"";
+ return `<svg class="agsvg" viewBox="0 0 64 72" aria-hidden="true" focusable="false"><g class="agbody"><circle cx="30" cy="20" r="10" fill="#f3c9a0"/>${hat}<rect x="18" y="31" width="24" height="26" rx="8" fill="#16255a"/><rect x="21" y="55" width="7" height="13" rx="3" fill="#2f8a4c"/><rect x="32" y="55" width="7" height="13" rx="3" fill="#2f8a4c"/><circle cx="26" cy="19" r="1.5" fill="#16255a"/><circle cx="34" cy="19" r="1.5" fill="#16255a"/><path d="M26 24q4 3 8 0" stroke="#16255a" fill="none" stroke-width="1.5"/>${agProps[kind]}<g class="agwave"><rect x="40" y="30" width="5" height="16" rx="2.5" fill="#f3c9a0" transform="rotate(-25 42 32)"/></g>${st==="fail"?'<path d="M50 6v34" stroke="#16255a" stroke-width="2"/><path d="M50 7h13l-4 5 4 5H50z" fill="#d62d2d"/>':""}</g></svg>`}
+function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Date().getMinutes()/60,day=hr>=6.5&&hr<18,mid=(hr>=5&&hr<6.5)||(hr>=18&&hr<20),
+  sky=day?"#8fd0ff":mid?"#f6892f":"#16255a",tk=tkNewCount(),n=agPrs().length;
+ const mo=new Date().toISOString().slice(0,7);let spent=0;Object.values(D.agentRuns||{}).forEach(r=>{if(r&&r.t&&new Date(r.t).toISOString().slice(0,7)===mo)spent+=+((r.usage||{}).usd)||0});
+ const p=Math.min(100,Math.round(spent/AG_LIMIT*100));
+ return `<section class="card stack agoffice"><div class="row between"><h2 class="m0">The agent office</h2><button class="btn xs" data-act="agRefresh">${g.busy?"Looking…":"Refresh"}</button></div>
+ <p class="small muted m0">Your helpers at work. Tap one to see its latest run on GitHub.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
+ <div class="agroom"><div class="agtop"><div class="agwin" style="background:${sky}" role="img" aria-label="Window: it is ${day?"daytime":mid?"sunrise or sunset":"night"} outside"><span class="agsun ${day?"":"moon"}"></span></div>
+  <div class="agdoor"><div class="agboxes" role="img" aria-label="${n} pull request${n===1?"":"s"} waiting for approval at Roy's office door">${Array.from({length:Math.min(n,10)},()=>"<i></i>").join("")}</div><div class="agdoorlbl small">Roy's office${n?` · ${n} waiting`:""}</div></div></div>
+  <div class="agfloor">${AG_CAST.map(([k,l,wf,kind])=>{const r=agLatestRun(wf),st=agState(r),url=(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news=agNews(k,r,st);
+   return `<a class="agcell ${st}" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(l+": "+news+". Opens its latest run on GitHub.")}"><span class="agbub">${esc(news)}</span>${agChar(kind,st)}<b class="small">${esc(l)}</b><span class="small muted">${st==="work"?"Working":st==="done"?"Finished":st==="fail"?"Needs a look":"Resting"}</span></a>`}).join("")}</div>
+  <div class="agbottom"><div class="agdesk ${tk?"lit":""}"><span class="agdlamp"></span><b class="small">Icee's support desk</b><span class="small">${tk?`${tk} ticket${tk===1?"":"s"} waiting`:"No tickets waiting"}</span></div>
+  <div class="agjar"><b class="small">Tip jar</b><div class="agmeter" role="progressbar" aria-valuemin="0" aria-valuemax="${AG_LIMIT}" aria-valuenow="${Math.round(spent*100)/100}" aria-label="Agent spending this month"><i style="width:${p}%"></i></div><span class="small">${clMoney(spent)} of ${clMoney(AG_LIMIT)} this month</span></div></div></div>
+ <p class="small muted m0">Spending only counts the nightly agents, which are the ones that save their costs.</p></section>${helpView("ad")}`}
+Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)}});
 const ST_TABS=[["support","Support"],["sales","Sales"],["resources","Resources"]];
 function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
  return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}</button>`).join("")}</div>`}

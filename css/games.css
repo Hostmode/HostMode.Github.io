@@ -872,3 +872,33 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .shthumb{position:relative;display:inline-block}.shthumb img{width:76px;height:57px;object-fit:cover;border-radius:8px;display:block}.shthumb button{position:absolute;top:2px;right:2px;min-height:0;padding:0 7px}.shthumb .gpic{position:static;padding:0;border:0;background:none;cursor:zoom-in}.gpst{position:absolute;left:4px;bottom:3px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);border-radius:6px;padding:0 5px}
 .rpbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}.rpbar i{display:block;height:100%;background:var(--btn1);border-radius:99px}
 .shcovercard{padding:0!important;overflow:hidden}.shcover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+/* Agents tab: the agent office */
+.agoffice .agroom{background:linear-gradient(180deg,#eef2fb,#dfe6f5);border:2px solid #16255a;border-radius:14px;padding:10px;display:grid;gap:10px}
+.agtop{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.agwin{position:relative;width:96px;height:64px;border:4px solid #16255a;border-radius:8px;overflow:hidden;flex:none}
+.agsun{position:absolute;left:62%;top:12px;width:18px;height:18px;border-radius:50%;background:#ffd24a}
+.agsun.moon{background:#fff;left:30%}
+.agdoor{display:grid;justify-items:end;gap:4px}
+.agboxes{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;max-width:150px;min-height:18px}
+.agboxes i{width:20px;height:16px;background:#c98a4a;border:2px solid #16255a;border-radius:3px;display:block}
+.agdoorlbl{background:#16255a;color:#fff;padding:3px 8px;border-radius:6px}
+.agfloor{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;background:repeating-linear-gradient(90deg,#fff 0 24px,#f4ead8 24px 48px);border-radius:10px;padding:10px}
+@media(min-width:620px){.agfloor{grid-template-columns:repeat(3,1fr)}}
+.agcell{display:grid;justify-items:center;gap:2px;text-align:center;text-decoration:none;color:inherit;padding:6px;border-radius:10px;border:2px solid transparent}
+.agcell:hover,.agcell:focus-visible{border-color:#f6892f;outline:none}
+.agcell.fail{border-color:#d62d2d}
+.agbub{position:relative;background:#fff;border:2px solid #16255a;border-radius:10px;padding:4px 8px;font-size:.78rem;font-weight:600;color:#16255a;min-height:2.4em;display:flex;align-items:center}
+.agbub:after{content:"";position:absolute;left:50%;bottom:-7px;width:10px;height:10px;background:#fff;border:solid #16255a;border-width:0 2px 2px 0;transform:translateX(-50%) rotate(45deg)}
+.agsvg{width:56px;height:64px;margin-top:6px}
+.agcell.work .agbody{animation:agwalk 1.2s ease-in-out infinite}
+.agcell .agwave{display:none}
+.agcell.done .agwave{display:block;transform-origin:42px 32px;animation:agwav .8s ease-in-out infinite alternate}
+@keyframes agwalk{0%,100%{transform:translateX(-6px)}50%{transform:translateX(6px)}}
+@keyframes agwav{from{transform:rotate(-15deg)}to{transform:rotate(25deg)}}
+.agbottom{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.agdesk,.agjar{background:#fff;border:2px solid #16255a;border-radius:10px;padding:8px;display:grid;gap:3px;align-content:start}
+.agdlamp{width:12px;height:12px;border-radius:50%;background:#9aa3b8}
+.agdesk.lit{border-color:#f6892f;background:#fff4e8}
+.agdesk.lit .agdlamp{background:#f6892f;box-shadow:0 0 8px 3px #f6892f}
+.agmeter{height:12px;border-radius:6px;background:#dfe6f5;border:2px solid #16255a;overflow:hidden}
+.agmeter i{display:block;height:100%;background:#2f8a4c}
