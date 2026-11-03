@@ -23,10 +23,12 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - sw.js: the offline copy. Pages load fresh from the network first.
 - Support: the admin console's Support tab, and games.html#support for support staff. Tickets live at partygames/tickets, with ticketReplies (what the reporter sees), ticketNotes (staff-only history and agent drafts), staff, sinvites (support codes), agents (pause switch), agentRuns (overnight reports) and backupStatus.
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
-- agents/: the nightly test customer and technical agent (see agents/README.md). .github/workflows: nightly agents and nightly backup. ops/BACKUPS.md: how backups work and how to restore one.
+- agents/: the nightly test customer and technical agent (see agents/README.md). ops/BACKUPS.md: how backups work and how to restore one.
+- .github/workflows: nightly agents, nightly backup, pull request checks (pr-checks), the builder agent (claude-builder: the "claude" label or @claude), the reviewer agent (claude-reviewer) and load-issues (turns .github/issues/*.json into GitHub issues, once each). agents/check_all.sh runs every check a change must pass.
+- The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
 - Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
 - Skills in .claude/skills (each has a SKILL.md; read the one that fits before starting):
-  - Agents: test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
+  - Agents: foreman (writing issues), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
   - Building: new-event-type, spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
   - Planners: onboard-new-planner, pricing-helper, event-debrief, theme-builder, guest-message-writer, testimonial-collector.
   - Sales and marketing: pitch-email, vendor-outreach, social-media-posts, promo-video-script, release-notes.

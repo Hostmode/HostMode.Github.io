@@ -1,0 +1,41 @@
+name: Bug
+description: Something in Host Mode is broken or confusing
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please don't put anyone's private details here (names, emails, phone numbers, PINs). This page is public."
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to repeat
+      description: Start from a link. Use the demo if you can.
+      placeholder: |
+        1. Open games.html?pdemo=1#planner
+        2. Tap Teammates
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Phone or computer, and which browser?
+      placeholder: "iPhone, Safari"
+  - type: dropdown
+    id: bad
+    attributes:
+      label: How bad is it?
+      options:
+        - "Blocks a live event (tonight or this week)"
+        - "Stops someone finishing a task"
+        - "Annoying"
+        - "Looks wrong"
+    validations:
+      required: true

@@ -55,7 +55,7 @@ def main():
         same = norm(a.get("text", "")) == norm(b["text"]) and a.get("hdr") == b["hdr"]
         if not same or b["errs"]:
             bad += 1
-            print(("CHANGED " if not same else "ERRORS  ") + u + ("  " + b["errs"][0] if b["errs"] else ""))
+            print(("ERRORS  " if b["errs"] else "CHANGED ") + u + ("  " + b["errs"][0] if b["errs"] else ""))
             if not same:
                 print("   before:", a.get("text", "")[:160]); print("   after: ", b["text"][:160])
     print(f"{len(URLS) - bad} of {len(URLS)} screens unchanged with no errors.")

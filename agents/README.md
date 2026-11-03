@@ -41,10 +41,31 @@ Still to do, in GitHub → this repo → **Settings**:
 - **Every fix is a pull request.** Check the confidence rating: "sure", "likely" or "needs a closer look".
 - **Every fix should add a regression check** to `regressions.json`, so the bug is tested every night after.
 
+## Phase 1: agents that build (started Nov 2, 2026)
+
+Three more helpers now work from GitHub, as in the Host Mode Agent Development Plan:
+
+- **Builder** (`.github/workflows/claude-builder.yml`). Add the **claude** label to an issue, or write `@claude` and what you
+  want in an issue or pull request comment. It builds on its own `claude/...` branch, runs `bash agents/check_all.sh`, and opens a
+  pull request. Only people with write access can start it, never bots. Phase 1 builders work on screens and wording only:
+  no database rules, workflows, agents, money, invite PINs or deleting. At most 3 agent pull requests can be open at once.
+- **Reviewer** (`claude-reviewer.yml`). Reads every new pull request and posts one comment for Roy:
+  a rating (sure, likely, needs a closer look), what it does, problems, and a demo link to try.
+- **Pull request checks** (`pr-checks.yml`). Broken code, the scripted checks, and the 14 key screens before and after. Free, no secrets.
+- **Issues.** The To-Do List lives as GitHub issues (loaded from `.github/issues/todo.json` by `load-issues.yml`). New ideas use the
+  "New feature" and "Bug" forms. The foreman Skill (`.claude/skills/foreman`) says how to write and order them.
+
+Roy's part: add the **claude** label to start one; when the pull request shows green checks and the reviewer's rating, approve and
+merge it (or comment `@claude` with what to change). To pause a builder or reviewer: Actions → the workflow → "..." → Disable workflow.
+
+Spending: builders and the reviewer use the same API key as the nightly agents. The $100 monthly limit in the Anthropic Console
+is the hard stop for all of them together.
+
 ## Files
 
 - `common.py`: the agent's login, the database, Claude, the nightly spending limit and the run report
 - `tester.py`: the test customer · `tech.py`: the technical agent
 - `regressions.json`: checks that run every night, one per fixed bug
-- `syntax_check.js`: checks games.html for broken code
+- `syntax_check.js`: checks every js/ file and the joined code for broken code · `check_all.sh`: every check a change must pass
+- `compare_screens.py`: records 14 key screens before and after a change
 - Skills they read: `.claude/skills/test-as-customer` and `.claude/skills/answer-support-ticket`

@@ -1,0 +1,22 @@
+name: Load issues
+# Turns the lists in .github/issues/ into GitHub issues, once each (safe to run again).
+# Runs when a list changes on main, or by hand: Actions → Load issues → Run workflow.
+on:
+  push:
+    branches: [main]
+    paths: [".github/issues/**"]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  issues: write
+concurrency: load-issues
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/load_issues.py
