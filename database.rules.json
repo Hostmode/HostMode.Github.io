@@ -7,18 +7,25 @@
       },
       "admin": {
         ".read": true,
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
+      },
+      "admins": {
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        "$uid": {
+          ".validate": "newData.val() === true"
+        }
       },
       "index": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$ev": {
           ".read": true,
-          ".write": "!data.exists() || $ev.endsWith('-P') || (auth != null && (auth.uid === root.child('partygames/owner').val() || auth.uid === data.child('planner').val()))"
+          ".write": "!data.exists() || $ev.endsWith('-P') || (auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || auth.uid === data.child('planner').val()))"
         }
       },
       "invites": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$code": {
           ".read": true,
           ".write": "data.exists() && newData.exists() && data.child('active').val() === true && !data.child('event').exists() && newData.child('used').val() === 1",
@@ -28,30 +35,30 @@
         }
       },
       "pinvites": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$code": {
           ".read": true,
           ".write": "auth != null && data.exists() && !data.child('by').exists() && data.child('active').val() === true && newData.child('by').val() === auth.uid"
         }
       },
       "plist": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
-          ".write": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val())"
+          ".write": "auth != null && (auth.uid === $uid || (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true))"
         }
       },
       "leads": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$id": {
-          ".write": "!data.exists() || (auth != null && auth.uid === root.child('partygames/owner').val())"
+          ".write": "!data.exists() || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true))"
         }
       },
       "planners": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (auth.uid === $uid && newData.child('profile').exists()))",
+          ".read": "auth != null && (auth.uid === $uid || (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (auth.uid === $uid && newData.child('profile').exists()))",
           "profile": {
             ".validate": "newData.child('name').isString() && (root.child('partygames/pinvites/' + newData.child('code').val() + '/by').val() === $uid || newData.child('code').val() === 'OWNER' && $uid === root.child('partygames/owner').val() || newData.child('kind').val() === 'host' && root.child('partygames/invites/' + newData.child('code').val() + '/host').val() === $uid)"
           },
@@ -184,150 +191,150 @@
         }
       },
       "clients": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientTasks": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientMsgs": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientFiles": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientBlobs": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientTemplates": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientApprovals": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientPayments": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientDates": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientVendors": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "mates": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "mateTasks": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "mateShifts": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "brand": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "dayOf": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "feedback": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "clientInvoices": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "packages": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "events": {
         "$ev": {
           ".read": true,
-          ".write": "newData.exists() || $ev.endsWith('-P') || (auth != null && (auth.uid === root.child('partygames/owner').val() || auth.uid === data.child('meta/planner').val()))"
+          ".write": "newData.exists() || $ev.endsWith('-P') || (auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || auth.uid === data.child('meta/planner').val()))"
         }
       },
       "themes": {
         ".read": true,
         "$id": {
-          ".write": "!data.exists() || (auth != null && auth.uid === root.child('partygames/owner').val())"
+          ".write": "!data.exists() || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true))"
         }
       },
       "library": {
         ".read": true,
         "$id": {
-          ".write": "!data.exists() || (auth != null && auth.uid === root.child('partygames/owner').val())",
+          ".write": "!data.exists() || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true))",
           "schemaJson": {
             ".write": "data.exists() && (data.val() === '{}' || data.val() === '')"
           }
         }
       },
       "archives": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$code": {
           "$t": {
-            ".write": "!data.exists() || (auth != null && auth.uid === root.child('partygames/owner').val())"
+            ".write": "!data.exists() || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true))"
           }
         }
       },
       "tv": {
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$ev": {
           ".read": true
         }
       },
       "imMaps": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "imports": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "invSettings": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "profile": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "staff": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$uid": {
           ".write": "auth != null && auth.uid === $uid && (data.exists() ? (newData.exists() && newData.child('role').val() === data.child('role').val()) : (newData.child('role').val() === 'support' && root.child('partygames/sinvites/' + newData.child('code').val() + '/by').val() === $uid))",
           ".validate": "newData.hasChildren(['name','role']) && newData.child('name').isString() && newData.child('name').val().length <= 40"
         }
       },
       "sinvites": {
-        ".read": "auth != null && auth.uid === root.child('partygames/owner').val()",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
         "$code": {
           ".read": true,
           ".write": "auth != null && data.exists() && !data.child('by').exists() && data.child('active').val() === true && newData.child('by').val() === auth.uid"
         }
       },
       "tickets": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$id": {
           ".read": true,
-          ".write": "(!data.exists() && newData.child('status').val() === 'new') || (auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && data.exists() && newData.exists())))",
+          ".write": "(!data.exists() && newData.child('status').val() === 'new') || (auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && data.exists() && newData.exists())))",
           ".validate": "newData.hasChildren(['msg','t','status']) && newData.child('msg').isString() && newData.child('msg').val().length >= 5 && newData.child('msg').val().length <= 2000 && newData.child('t').isNumber() && (data.exists() || (newData.child('t').val() > now - 600000 && newData.child('t').val() < now + 600000)) && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 60)) && (!newData.child('contact').exists() || (newData.child('contact').isString() && newData.child('contact').val().length <= 120)) && (!newData.child('page').exists() || (newData.child('page').isString() && newData.child('page').val().length <= 300)) && (!newData.child('device').exists() || (newData.child('device').isString() && newData.child('device').val().length <= 200)) && (!newData.child('errs').exists() || (newData.child('errs').isString() && newData.child('errs').val().length <= 1000))",
           "last": {
             ".write": "data.parent().exists()",
@@ -343,55 +350,55 @@
         "$id": {
           ".read": true,
           "$r": {
-            ".write": "!data.exists() && root.child('partygames/tickets/' + $id).exists() && (newData.child('from').val() === 'reporter' || (auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())))",
+            ".write": "!data.exists() && root.child('partygames/tickets/' + $id).exists() && (newData.child('from').val() === 'reporter' || (auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())))",
             ".validate": "newData.hasChildren(['text','t','from']) && newData.child('text').isString() && newData.child('text').val().length <= 2000 && (newData.child('from').val() === 'reporter' || newData.child('from').val() === 'staff') && newData.child('t').isNumber() && newData.child('t').val() > now - 600000 && newData.child('t').val() < now + 600000"
           }
         }
       },
       "ticketNotes": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$id": {
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
         }
       },
       "agents": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "agentRuns": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$id": {
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())"
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())"
         }
       },
       "backupStatus": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
-        ".write": "auth != null && auth.uid === root.child('partygames/owner').val()"
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
+        ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)"
       },
       "sales": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$k": {
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))"
         }
       },
       "salesLog": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$k": {
-          ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
+          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true)",
           "$n": {
-            ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && !data.exists() && newData.exists()))"
+            ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && !data.exists() && newData.exists()))"
           }
         }
       },
       "resources": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$k": {
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))",
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && newData.exists()))",
           ".validate": "newData.hasChildren(['title','kind']) && newData.child('title').isString() && newData.child('title').val().length <= 80 && (!newData.child('body').exists() || newData.child('body').val().length <= 40000)"
         }
       },
       "usage": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$m": {
           "$k": {
             ".write": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1 && $m.matches(/^20[0-9][0-9]-[01][0-9]$/) && $k.matches(/^[A-Za-z0-9_-]{1,40}$/)"
@@ -399,27 +406,27 @@
         }
       },
       "team": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$ch": {
           "$id": {
-            ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (root.child('partygames/staff/' + auth.uid).exists() && !data.exists() && newData.exists()))",
+            ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (root.child('partygames/staff/' + auth.uid).exists() && !data.exists() && newData.exists()))",
             ".validate": "$ch.matches(/^(general|support|sales|marketing|approvals)$/) && newData.hasChildren(['text','uid','name','t']) && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 1000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('t').isNumber()"
           }
         }
       },
       "teamSeen": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
-          ".write": "auth != null && auth.uid === $uid && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+          ".write": "auth != null && auth.uid === $uid && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
           "$ch": {
             ".validate": "newData.isNumber()"
           }
         }
       },
       "onboard": {
-        ".read": "auth != null && (auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
+        ".read": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || root.child('partygames/staff/' + auth.uid).exists())",
         "$uid": {
-          ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (auth.uid === $uid && root.child('partygames/staff/' + auth.uid).exists()))",
+          ".write": "auth != null && ((auth.uid === root.child('partygames/owner').val() || root.child('partygames/admins/' + auth.uid).val() === true) || (auth.uid === $uid && root.child('partygames/staff/' + auth.uid).exists()))",
           "$item": {
             ".validate": "$item.matches(/^[a-z0-9]{1,20}$/) && newData.isNumber()"
           }

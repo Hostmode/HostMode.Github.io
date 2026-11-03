@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-03 · Roy (with Claude) · Admins: Roy can make a support person a full admin (Support → Support team → Make admin). An admin gets every admin console tab and everything Roy can do, except making admins. For Icee. Database rules updated (every owner check also accepts admins; new partygames/admins). Demo Icee is an admin (PDEMO_V 18).
 - 2026-11-03 · Roy (with Claude) · The hosts' live demo now starts on the host's event dashboard (My events with Plan and Run it, Stay & Go with a sample trip) instead of the console; the demo bar has Host, Console, Guest and Big screen. Guest demo data version 5.
 - 2026-11-03 · Roy (with Claude) · Support codes now work when typed in small letters, with spaces, or without the SUP- at the start; the "isn't valid" message says demo codes only work in the demo.
 - 2026-11-03 · Roy (with Claude) · Hosts now sign up with an email and password when they create an event, and get an event dashboard (My events, Stay & Go, Help desk, Settings). New hosts' events plan from the dashboard (the console's Plan tab moves there); older events, including the baby shower, keep Plan in the console. The event's own signed-in account opens its console without a PIN. Sample host Jordan in the planner demo (PDEMO_V 17). Database rules updated (host profiles, the invite's host).

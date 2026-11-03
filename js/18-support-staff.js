@@ -67,9 +67,12 @@ Object.assign(ACT,{
 
 /* ---- the support team's side ---- */
 const supDemo=()=>!!window.__HMPDEMO;
-function supMe(){if(supDemo()){const k=L.supAs||"roy",s=(D.staff||{})[k]||{};return {uid:k,name:s.name||(k==="roy"?"Roy":"Icee"),role:k==="roy"?"owner":"support"}}
- const u=L.user;if(!u)return null;const s=(D.staff||{})[u.uid];if(D.owner&&u.uid===D.owner)return {uid:u.uid,name:(s&&s.name)||"Roy",role:"owner"};return s?{uid:u.uid,name:s.name||"Support",role:"support"}:null}
-const supIsOwner=()=>{const m=supMe();return !!(m&&m.role==="owner")};
+function supMe(){if(supDemo()){const k=L.supAs||"roy",s=(D.staff||{})[k]||{};return {uid:k,name:s.name||(k==="roy"?"Roy":"Icee"),role:k==="roy"?"owner":(D.admins||{})[k]===true?"admin":"support"}}
+ const u=L.user;if(!u)return null;const s=(D.staff||{})[u.uid];if(D.owner&&u.uid===D.owner)return {uid:u.uid,name:(s&&s.name)||"Roy",role:"owner"};if(L.coAdmin)return {uid:u.uid,name:(s&&s.name)||"Admin",role:"admin"};return s?{uid:u.uid,name:s.name||"Support",role:"support"}:null}
+/* the owner and admins can do the owner-only actions here (support codes, removing staff, deleting reports, pausing agents) */
+const supIsOwner=()=>{const m=supMe();return !!(m&&(m.role==="owner"||m.role==="admin"))};
+/* only Roy himself can make or remove admins */
+const supIsRoy=()=>{const m=supMe();return !!(m&&m.role==="owner")};
 const tkList=()=>Object.keys(D.tix||{}).map(k=>Object.assign({k},D.tix[k])).sort((a,b)=>(b.last||b.t||0)-(a.last||a.t||0));
 const tkNewCount=()=>tkList().filter(x=>(x.status||"new")==="new").length;
 const tkWaiting=(x,me)=>x.status!=="solved"&&x.lastFrom==="reporter"&&me&&(x.last||0)>(x.t||0)&&(x.last||0)>(((x.seen||{})[me.uid])||0);
@@ -78,7 +81,7 @@ function tkLine(x){const st=x.status||"new",seen=Object.keys(x.seen||{}).map(u=>
  if(st==="working"&&x.by)return `Being worked on by <b>${esc(x.by.name)}</b> since ${esc(supTime(x.by.t))}`;
  return seen.length?`Seen by ${esc(seen.join(", "))} · nobody has taken it yet`:"Nobody has opened it yet"}
 let supSubbed=false,supBeat=null;
-function supSubs(){if(supSubbed||!db)return;supSubbed=true;
+function supSubs(){if(supSubbed||!db)return;supSubbed=true;RT("admins").on("value",s=>{D.admins=s.val()||{};renderSoon()},()=>{});
  RT("tickets").on("value",s=>{D.tix=s.val()||{};L.supLoaded=true;renderSoon()},()=>{L.supLoaded=true;L.supDenied=true;renderSoon()});
  RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
  if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
@@ -145,11 +148,11 @@ function supAccounts(){const pl=D.plist||{},ev=Object.assign({},D.supIdx||{},VIE
  <b class="small">Planners</b>${pk.length?`<div class="stack tight">${pk.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(pl[u].name||"Planner")}</b><span class="db muted">${esc([pl[u].biz,pl[u].email].filter(Boolean).join(" · "))}</span></span><a class="btn xs" href="${esc(baseURL()+"?"+(supDemo()?"pdemo=1&":"")+"as="+encodeURIComponent(u)+"#planner")}" target="_blank" rel="noopener">Look at their portal</a></div>`).join("")}</div>`:'<span class="small muted">No planners found.</span>'}
  <b class="small">Events</b>${ek.length?`<div class="stack tight">${ek.map(k=>`<div class="row between small clrow"><span class="mw0"><b>${esc(ev[k].name||k)}</b><span class="db muted">Code ${esc(k)}</span></span><a class="btn xs" href="${esc(eventURL(k))}" target="_blank" rel="noopener">Guest view</a></div>`).join("")}</div>`:'<span class="small muted">No events found.</span>'}`:""}</section>`}
 function supTeamCard(){const codes=Object.keys(D.sinvites||{}).map(k=>Object.assign({k},D.sinvites[k])).sort((a,b)=>(b.t||0)-(a.t||0)),me=supMe(),team=Object.keys(D.staff||{}).filter(u=>D.staff[u].role!=="owner"),link=baseURL()+"#support";
- return `<section class="card stack"><h3>Support team</h3><p class="small muted m0">Make a one-time code for each person who helps with support. They open the support page, enter the code and create their own login. Support logins can answer tickets and look at accounts, but can't delete anything, change money or make invite codes.</p>
+ return `<section class="card stack"><h3>Support team</h3><p class="small muted m0">Make a one-time code for each person who helps with support. They open the support page, enter the code and create their own login. Support logins can answer tickets and look at accounts, but can't delete anything, change money or make invite codes. Tap Make admin to give someone everything you have in the admin console, except making admins.</p>
  <div class="row"><input type="text" class="grow" data-draft="si_label" maxlength="40" value="${esc(dv("si_label",""))}" placeholder="Who it's for, like Icee" aria-label="Who the code is for"><button class="btn sm primary" data-act="siMake">Make a support code</button></div>
  <div class="small">Support page: <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div>
  ${codes.length?`<div class="stack tight">${codes.map(c=>`<div class="row between small clrow"><span class="mw0"><b class="mono">${esc(c.k)}</b> · ${esc(c.label||"")}<span class="db muted">${c.by?"Used by "+esc(c.name||"someone")+" · "+esc(supTime(c.usedAt)):c.active?"Not used yet":"Turned off"}</span></span>${!c.by&&c.active?`<button class="btn xs" data-act="siOff" data-k="${esc(c.k)}">Turn off</button>`:""}</div>`).join("")}</div>`:""}
- ${team.length?`<b class="small">People with support logins</b><div class="stack tight">${team.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.staff[u].name||"Support")}</b><span class="db muted">Support · joined ${esc(supTime(D.staff[u].t))}</span></span><button class="btn xs" data-act="stRemove" data-k="${esc(u)}">${L.confirm==="stx"+u?"Tap again to remove":"Remove access"}</button></div>`).join("")}</div>`:""}
+ ${team.length?`<b class="small">People with support logins</b><div class="stack tight">${team.map(u=>`<div class="row between small clrow"><span class="mw0"><b>${esc(D.staff[u].name||"Support")}</b><span class="db muted">${(D.admins||{})[u]===true?"Admin (everything except making admins)":"Support"} · joined ${esc(supTime(D.staff[u].t))}</span></span><span class="row">${supIsRoy()?`<button class="btn xs" data-act="stAdmin" data-k="${esc(u)}">${L.confirm==="sta"+u?"Tap again to confirm":(D.admins||{})[u]===true?"Remove admin":"Make admin"}</button>`:""}<button class="btn xs" data-act="stRemove" data-k="${esc(u)}">${L.confirm==="stx"+u?"Tap again to remove":"Remove access"}</button></span></div>`).join("")}</div>`:""}
  <label class="stack tight"><span class="small">Your name on tickets</span><span class="row"><input type="text" class="grow" data-draft="st_me" maxlength="40" value="${esc(dv("st_me",(me&&me.name)||"Roy"))}"><button class="btn xs" data-act="stName">Save</button></span></label></section>`}
 async function tkSet(id,u){await RT("tickets/"+id).update(u)}
 Object.assign(ACT,{
@@ -175,7 +178,10 @@ Object.assign(ACT,{
  siMake:async()=>{if(!supIsOwner())return;const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c="SUP-";const r=crypto.getRandomValues(new Uint32Array(6));r.forEach(x=>c+=a[x%a.length]);
   await RT("sinvites/"+c).set({label:String(dv("si_label","")).trim().slice(0,40),active:true,t:Date.now()});delete L.drafts.si_label;toast("Code made: "+c);render(true)},
  siOff:async el=>{if(!supIsOwner())return;await RT("sinvites/"+el.dataset.k+"/active").set(false);toast("Code turned off")},
- stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;await RT("staff/"+u).remove();toast("Support access removed")},
+ /* Roy only: make a support person a full admin, or take it back */
+ stAdmin:async el=>{const u=el.dataset.k;if(!supIsRoy())return;if(L.confirm!=="sta"+u){L.confirm="sta"+u;return render(true)}L.confirm=null;const on=(D.admins||{})[u]!==true;
+  try{await RT("admins/"+u).set(on?true:null);toast(on?((D.staff[u]||{}).name||"They")+" is now an admin":"Admin access removed")}catch(e){toast("Couldn't change that. Check the database rules are published.")}render(true)},
+ stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;if((D.admins||{})[u]===true&&supIsRoy())await RT("admins/"+u).remove().catch(()=>{});await RT("staff/"+u).remove();toast("Support access removed")},
  stName:async()=>{const me=supMe(),n=String(dv("st_me","")).trim().slice(0,40);if(!me||!n)return;await RT("staff/"+me.uid+"/name").set(n);toast("Saved")},
  supJoin:async()=>{const a=AUTH();if(!a)return;const code=supCodeNorm(dv("sj_code","")),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
   if(!code)return toast("Type the support code Roy gave you");if(!name)return toast("Type your name");
@@ -190,7 +196,7 @@ function supConnect(){if(supDemo()){L.authReady=true;L.supLoaded=true;supSubs();
  const a=AUTH();if(!a){L.authReady=true;return}
  RT("owner").on("value",s=>{D.owner=s.val()||null;renderSoon()});
  a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;if(!u){renderSoon();return}
-  const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid;D.owner=ow?ow.val():D.owner;
+  const ow=(await RT("owner").once("value").catch(()=>null)),own=ow&&ow.val()===u.uid||await loadCoAdmin(u);D.owner=ow?ow.val():D.owner;
   const sf=(await RT("staff/"+u.uid).once("value").catch(()=>null)),sv=sf&&sf.val();if(sv)D.staff=Object.assign({},D.staff,{[u.uid]:sv});
   if(own||sv)supSubs();renderSoon()})}
 function supportView(){if(supDemo())return staffTabs()+staffBody();
@@ -199,7 +205,7 @@ function supportView(){if(supDemo())return staffTabs()+staffBody();
  if(!L.user)return card(L.acMode==="join"?"Create your support login":"Sign in",L.acMode==="join"?`<p class="small muted m0">Use the one-time support code Roy gave you.</p><label class="stack tight"><span class="small">Support code</span><input type="text" data-draft="sj_code" value="${esc(dv("sj_code",""))}" autocapitalize="characters" autocomplete="off"></label><label class="stack tight"><span class="small">Your name</span><input type="text" data-draft="sj_name" value="${esc(dv("sj_name",""))}" autocomplete="name"></label><label class="stack tight"><span class="small">Email</span><input type="email" data-draft="ac_email" value="${esc(dv("ac_email",""))}" autocomplete="email"></label><label class="stack tight"><span class="small">Choose a password (8+ characters)</span><input type="password" data-draft="ac_pw" autocomplete="new-password"></label><button class="btn primary" data-act="supJoin">Create my support login</button><button class="btn xs as" data-act="acMode" data-k="signin">I already have a login</button>`
   :`<p class="small muted m0">For the Host Mode support team.</p>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="join">I have a support code</button>`);
  const me=supMe();if(!me)return card("No support access",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, which doesn't have a support login. If Roy gave you a support code, sign out and tap "I have a support code."</p><button class="btn" data-act="acOut">Sign out</button>`);
- return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:roleLinks("support")}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+staffTabs()+staffBody()}
+ return `<div class="row between small acctbar"><span class="muted">Signed in as ${esc(L.user.email||"")} · ${esc(me.name)}</span><span class="row">${me.role==="owner"||me.role==="admin"?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:roleLinks("support")}<button class="btn xs" data-act="acOut">Sign out</button></span></div>`+staffTabs()+staffBody()}
 
 /* ================= VENDOR PAGES =================
    Each vendor gets a private link (games.html?vendor=TOKEN&p=PLANNER), no account needed.
