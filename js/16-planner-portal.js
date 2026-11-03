@@ -205,6 +205,10 @@ const HELP={
   ["See how your business is doing","Reports shows money collected and new clients by month, best-selling packages and where leads come from.","rep","report reports revenue income money made stats numbers sales"],
   ["Collect reviews and feedback","Feedback gathers ratings from guests and clients. Feature the best ones as testimonials.","fb","feedback review reviews testimonial rating survey stars"],
   ["Change your profile or password","Settings has your profile, account email, password and sign out.","set","settings profile password account email sign out log out name"]],
+ ad:[
+  ["See what the agents are doing","Agents tab. Each helper shows what it is up to: moving means working, waving means finished, and a red flag means something failed. Tap one to see its run on GitHub.","","agents agent robot status nightly builder reviewer backup"],
+  ["Fixes waiting for approval","Boxes by Roy's office door are pull requests waiting for you. Tap the Builder or open the pull requests on GitHub.","","pull request pr approve approval waiting fix box"],
+  ["Agent spending","The tip jar shows this month's spending from the nightly agents against the $100 limit.","","cost spending money limit credits budget tip jar"]],
  m:[
   ["Start the games","Live is where you run the night: start games, go to the next moment and watch what's happening.","live","start live begin go game now run tonight"],
   ["Open the big screen","Open this link on the TV or projector. It shows games, scores and photos for the room.","@screen","big screen tv projector display monitor"],
@@ -232,7 +236,7 @@ function helpScore(item,q){const words=helpNorm(q).split(" ").filter(w=>w&&!HELP
  const ti=helpNorm(item[0]),hay=(ti+" "+helpNorm(item[1])+" "+helpNorm(item[3])).split(" ");let sc=0;
  for(const w of words){const stem=w.replace(/(ing|es|s)$/,"");const hit=hay.some(h=>h.startsWith(w)||(stem.length>2&&h.startsWith(stem)));if(!hit)continue;sc+=10+(ti.includes(stem)?3:0)}
  return sc}
-function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who==="pl"?["invoice","client link","import","teammates","booking link","reports"]:["start games","big screen","guest QR code","check in","scores","practice"];
+function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who==="ad"?["agents","waiting","spending"]:who==="pl"?["invoice","client link","import","teammates","booking link","reports"]:["start games","big screen","guest QR code","check in","scores","practice"];
  const tabName=k=>who==="pl"?((PL_TABS.find(t=>t[0]===k)||[])[1]||""):({live:"Live",plan:"Plan",tonight:"Tonight",moments:"Moments",pres:"Presentations",teams:"Teams",scores:"Scores",content:"Content",menu:"Menu",party:"Party games",custom:"Custom games",event:"Event",memories:"Memories"})[k]||"";
  const rows=list.map((it,i)=>{const go=it[2];let btn="";
   if(go==="@screen")btn=`<a class="btn xs primary" href="${esc(eventURL(EV,"screen"))}" target="_blank" rel="noopener">Open big screen</a>`;
