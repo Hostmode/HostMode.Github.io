@@ -3,6 +3,7 @@
 import * as T from "./vendor/three-bundle.min.js";
 import * as S from "./scene.js";
 import { Store } from "./store.js";
+import { material, buildItem, box, setQuality, resetLights } from "./decor.js";
 
 const $ = (q, el = document) => el.querySelector(q);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -15,131 +16,24 @@ function gpuInfo() {
   return { webgl2: !!gl2, webgl: !!gl, webgpu: !!navigator.gpu, mobile, low: mobile && mem <= 4 };
 }
 
-// ---------- Surfaces drawn in code (no third-party textures to license) ----------
-const texCache = {};
-function tex(name) {
-  if (texCache[name] !== undefined) return texCache[name];
-  const N = 256, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d");
-  const rnd = (a, b) => a + Math.random() * (b - a); let rep = 4;
-  if (name === "wood" || name === "oak") {
-    g.fillStyle = name === "oak" ? "#c9a274" : "#8d5c37"; g.fillRect(0, 0, N, N);
-    for (let y = 0; y < N; y += 32) { g.fillStyle = `rgba(0,0,0,${rnd(0.03, 0.12)})`; g.fillRect(0, y, N, 31); g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(0, y + 31, N, 1); const off = rnd(0, N); g.fillRect(off, y, 1, 32); }
-    for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(60,30,10,${rnd(0.03, 0.1)})`; g.beginPath(); const y = rnd(0, N); g.moveTo(0, y); g.bezierCurveTo(N / 3, y + rnd(-3, 3), 2 * N / 3, y + rnd(-3, 3), N, y); g.stroke(); }
-    rep = 3;
-  } else if (name === "parquet") {
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? "#1f1f24" : "#f2f0ea"; g.fillRect(i * 64, j * 64, 64, 64); }
-    rep = 4;
-  } else if (name === "tile" || name === "marble") {
-    g.fillStyle = name === "marble" ? "#f1efe9" : "#e6e2da"; g.fillRect(0, 0, N, N);
-    if (name === "marble") for (let i = 0; i < 14; i++) { g.strokeStyle = `rgba(120,120,130,${rnd(0.08, 0.2)})`; g.lineWidth = rnd(0.5, 2); g.beginPath(); let x = rnd(0, N), y = 0; g.moveTo(x, y); while (y < N) { x += rnd(-12, 12); y += rnd(8, 20); g.lineTo(x, y); } g.stroke(); }
-    g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 2; for (let k = 0; k <= N; k += 128) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k, N); g.moveTo(0, k); g.lineTo(N, k); g.stroke(); }
-    rep = 6;
-  } else if (name === "carpet" || name === "fabric" || name === "velvet" || name === "concrete" || name === "stone") {
-    g.fillStyle = "#ffffff"; g.fillRect(0, 0, N, N);
-    const n = name === "concrete" || name === "stone" ? 9000 : 12000, lo = name === "concrete" || name === "stone" ? 170 : 215;
-    for (let i = 0; i < n; i++) { const v = rnd(lo, 255) | 0; g.fillStyle = `rgba(${v},${v},${v},0.6)`; g.fillRect(rnd(0, N), rnd(0, N), 1.5, 1.5); }
-    if (name === "carpet") { g.strokeStyle = "rgba(0,0,0,.08)"; g.lineWidth = 6; for (let k = -N; k < N * 2; k += 48) { g.beginPath(); g.arc(k, N / 2, 40, 0, Math.PI * 2); g.stroke(); } }
-    rep = name === "carpet" ? 8 : 3;
-  } else { texCache[name] = null; return null; }
-  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; t.userData.rep = rep;
-  return (texCache[name] = t);
-}
-const GREY_TEX = new Set(["carpet", "fabric", "velvet", "concrete", "stone"]);
-const matCache = new Map();
-function material(name, color, opts = {}) {
-  const M = S.MATERIALS[name] || S.MATERIALS.paint;
-  const key = name + "|" + (color || "") + "|" + (opts.repeat || "") + "|" + (opts.emissive || "");
-  if (matCache.has(key)) return matCache.get(key);
-  const t = tex(name);
-  const m = new T.MeshStandardMaterial({ color: new T.Color(color || (t && !GREY_TEX.has(name) ? "#ffffff" : M.color)), roughness: M.rough, metalness: M.metal });
-  if (t) { const tt = t.clone(); tt.needsUpdate = true; const r = opts.repeat || t.userData.rep; tt.repeat.set(r, r); m.map = tt; }
-  if (M.opacity) { m.transparent = true; m.opacity = M.opacity; m.depthWrite = false; }
-  if (opts.emissive) { m.emissive = new T.Color(opts.emissive); m.emissiveIntensity = 1.5; }
-  matCache.set(key, m); return m;
-}
-
-// ---------- Building pieces ----------
-function box(w, h, d, m, x = 0, y = 0, z = 0) { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y + h / 2, z); o.castShadow = o.receiveShadow = true; return o; }
-function cyl(rt, rb, h, m, x = 0, y = 0, z = 0, seg = 32, open = false) { const o = new T.Mesh(new T.CylinderGeometry(rt, rb, h, seg, 1, open), m); o.position.set(x, y + h / 2, z); o.castShadow = o.receiveShadow = true; return o; }
-function ball(r, m, x, y, z) { const o = new T.Mesh(new T.SphereGeometry(r, 16, 12), m); o.position.set(x, y, z); o.castShadow = true; return o; }
-
-function buildItem(it) {
-  const g = new T.Group(), W = it.w, D = it.d, H = it.h;
-  const main = material(it.mat, it.color, { repeat: 1 });
-  const dark = material("metal", "#3a3a40"), white = material("fabric", "#f7f5f0", { repeat: 1 }), wood = material("wood", null, { repeat: 1 });
-  switch (it.kind) {
-    case "table_round": case "table_round72": case "cake_table":
-      g.add(cyl(W / 2, W / 2, H - 0.01, main, 0, 0, 0, 48, true)); g.add(cyl(W / 2, W / 2, 0.02, main, 0, H - 0.02, 0, 48));
-      if (it.kind === "cake_table") { const ic = material("fabric", "#fffaf2", { repeat: 1 }); [0.2, 0.15, 0.1].forEach((r, i) => g.add(cyl(r, r, 0.12, ic, 0, H + i * 0.12, 0))); }
-      break;
-    case "table_rect": case "table_banquet": case "buffet":
-      g.add(box(W, H, D, main));
-      if (it.kind === "buffet") { const steel = material("metal"); [-W / 3, 0, W / 3].forEach(x => g.add(box(W / 4, 0.08, D * 0.6, steel, x, H, 0))); }
-      break;
-    case "table_cocktail":
-      g.add(cyl(W / 2, W / 2.6, H - 0.01, main, 0, 0, 0, 32, true)); g.add(cyl(W / 2, W / 2, 0.02, main, 0, H - 0.02, 0));
-      break;
-    case "chair": case "chair_folding": {
-      const sh = 0.46, leg = 0.02, m = main;
-      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(leg, leg, sh, m, a * (W / 2 - 0.03), 0, b * (D / 2 - 0.03), 8)));
-      g.add(box(W, 0.05, D, it.kind === "chair" ? material("fabric", "#f3ead6", { repeat: 1 }) : m, 0, sh, 0));
-      // Back on the -z side, so the chair faces +z (toward the table: see chairsAround).
-      [-1, 1].forEach(a => g.add(cyl(leg, leg, H - sh, m, a * (W / 2 - 0.03), sh, -D / 2 + 0.03, 8)));
-      for (let k = 0; k < 3; k++) g.add(box(W - 0.06, 0.025, 0.025, m, 0, sh + 0.12 + k * (H - sh - 0.15) / 2, -D / 2 + 0.03));
-      break;
-    }
-    case "sofa": case "lounge_chair":
-      g.add(box(W, 0.42, D, main)); g.add(box(W, H - 0.42, 0.2, main, 0, 0.42, -D / 2 + 0.1)); [-1, 1].forEach(a => g.add(box(0.18, 0.2, D, main, a * (W / 2 - 0.09), 0.42, 0)));
-      break;
-    case "stage":
-      g.add(box(W, H - 0.02, D, material("fabric", "#1b1b22", { repeat: 1 }))); g.add(box(W, 0.02, D, main, 0, H - 0.02, 0));
-      for (let k = 0; k < 2; k++) g.add(box(1.2, (H / 3) * (k + 1), 0.3, main, W / 2 - 1, 0, D / 2 + 0.6 - k * 0.3));
-      break;
-    case "dance_floor": {
-      const m = material(it.mat, it.color, { repeat: Math.max(1, Math.round(W / 0.61 / 4)) });
-      g.add(box(W, H, D, m)); break;
-    }
-    case "podium": g.add(box(W, H, D, main)); g.add(box(W + 0.05, 0.04, D + 0.05, main, 0, H - 0.04, 0)); break;
-    case "bar": case "dj_booth": case "food_station":
-      g.add(box(W, H - 0.05, D, main)); g.add(box(W + 0.1, 0.05, D + 0.1, material("marble", null, { repeat: 1 }), 0, H - 0.05, 0));
-      if (it.kind === "dj_booth") { g.add(box(0.5, 0.06, 0.35, dark, -0.4, H, 0)); g.add(box(0.5, 0.06, 0.35, dark, 0.4, H, 0)); }
-      break;
-    case "backdrop": g.add(box(W, H, D, main)); [-1, 1].forEach(a => g.add(box(0.05, H, 0.4, dark, a * W / 2, 0, 0))); break;
-    case "screen": g.add(box(W, H - 0.4, 0.04, material("fabric", "#ffffff", { repeat: 1 }), 0, 0.4, 0)); [-1, 1].forEach(a => g.add(cyl(0.03, 0.03, H, dark, a * W / 2, 0, 0, 8))); break;
-    case "arch": case "balloon_arch": {
-      const r = W / 2, flower = it.kind === "arch";
-      const tor = new T.Mesh(new T.TorusGeometry(r, 0.04, 8, 48, Math.PI), main); tor.position.y = H - r; tor.castShadow = true; g.add(tor);
-      [-1, 1].forEach(a => g.add(cyl(0.04, 0.04, H - r, main, a * r, 0, 0, 8)));
-      const cols = flower ? ["#f1a7bd", "#ffffff", "#9cae8f"] : [it.color || "#f6892f", "#16255a", "#2f8a4c", "#ffffff"];
-      for (let k = 0; k <= 24; k++) { const a = (k / 24) * Math.PI; g.add(ball(flower ? 0.1 : 0.16, material("fabric", cols[k % cols.length], { repeat: 1 }), Math.cos(a) * r, H - r + Math.sin(a) * r, 0)); }
-      break;
-    }
-    case "centerpiece": g.add(cyl(0.06, 0.08, 0.25, material("glass"), 0, 0, 0)); g.add(ball(0.13, material("fabric", it.color || "#f1a7bd", { repeat: 1 }), 0, 0.33, 0)); break;
-    case "plant": g.add(cyl(W / 3, W / 4, 0.45, main)); g.add(ball(W / 2, material("fabric", "#3f7a4a", { repeat: 1 }), 0, 0.45 + W / 2, 0)); g.add(ball(W / 2.6, material("fabric", "#4d8d58", { repeat: 1 }), 0.1, H - W / 2.6, 0.05)); break;
-    case "speaker": g.add(cyl(0.02, 0.02, H - 0.6, dark, 0, 0, 0, 8)); g.add(box(W, 0.6, D, material("metal", "#222226"), 0, H - 0.6, 0)); break;
-    case "light_truss": [-1, 1].forEach(a => g.add(box(0.15, H, 0.15, main, a * W / 2, 0, 0))); g.add(box(W + 0.15, 0.2, 0.2, main, 0, H - 0.2, 0)); break;
-    case "uplight": g.add(box(W, H, D, dark)); g.add(box(W * 0.8, 0.01, D * 0.8, material("glass", it.color || "#f6c27a", { emissive: it.color || "#f6c27a" }), 0, H, 0)); break;
-    case "column": g.add(cyl(W / 2, W / 2, H, main)); break;
-    default: g.add(box(W, H, D, main));
-  }
-  g.position.set(it.x, it.y || 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 180;
-  g.userData = { id: it.id, item: true };
-  return g;
-}
-
+// Surfaces, furniture and decor are drawn in decor.js.
 // Walls with doors and windows cut out: each wall is split into solid pieces around its openings.
 function buildWall(s, w) {
-  const g = new T.Group(), L = S.wallLen(w), m = material("paint", w.color || s.room.wallColor, { repeat: 1 });
+  const g = new T.Group(), L = S.wallLen(w), m = material(s.room.walls || "paint", w.color || s.room.wallColor, { size: [L, w.h] });
   const ops = s.openings.filter(o => o.wall === w.id).sort((a, b) => a.at - b.at);
   let cur = 0; const H = w.h, t = w.t;
   const seg = (x0, x1, y0, y1) => { if (x1 - x0 > 0.005 && y1 - y0 > 0.005) g.add(box(x1 - x0, y1 - y0, t, m, (x0 + x1) / 2, y0, 0)); };
   for (const o of ops) {
     const a = o.at - o.w / 2, b = o.at + o.w / 2; seg(cur, a, 0, H); seg(a, b, o.sill + o.h, H); seg(a, b, 0, o.sill);
-    if (o.type === "window") { const gl = new T.Mesh(new T.PlaneGeometry(o.w, o.h), material("glass")); gl.position.set(o.at, o.sill + o.h / 2, 0); gl.userData.glass = true; g.add(gl); g.add(box(o.w, 0.05, t + 0.06, material("paint", "#ffffff", { repeat: 1 }), o.at, o.sill - 0.05, 0)); }
-    else { const dm = material("wood", "#5a3a24", { repeat: 1 }); const leaves = o.w > 1.2 ? 2 : 1; for (let k = 0; k < leaves; k++) { const lw = o.w / leaves; g.add(box(lw - 0.02, o.h - 0.02, 0.05, dm, a + lw * (k + 0.5), 0, 0)); } }
+    if (o.type === "window") { const gl = new T.Mesh(new T.PlaneGeometry(o.w, o.h), material("glass")); gl.position.set(o.at, o.sill + o.h / 2, 0); gl.userData.glass = true; g.add(gl); g.add(box(o.w, 0.05, t + 0.06, material("paint", "#ffffff"), o.at, o.sill - 0.05, 0)); [o.sill + o.h, o.sill].forEach(y => g.add(box(o.w + 0.1, 0.05, t + 0.04, material("paint", "#ffffff"), o.at, y - 0.025, 0))); [-1, 1].forEach(sd => g.add(box(0.05, o.h, t + 0.04, material("paint", "#ffffff"), o.at + sd * o.w / 2, o.sill, 0))); g.add(box(0.03, o.h, 0.04, material("paint", "#ffffff"), o.at, o.sill, 0)); }
+    else { const dm = material("wood", "#7a5233", { size: 1 }), fr = material("paint", "#ffffff"), gold = material("gold"); const leaves = o.w > 1.2 ? 2 : 1; for (let k = 0; k < leaves; k++) { const lw = o.w / leaves, cx = a + lw * (k + 0.5); g.add(box(lw - 0.02, o.h - 0.02, 0.05, dm, cx, 0, 0)); [0.25, 0.62].forEach(f => g.add(box(lw - 0.2, o.h * 0.3, 0.06, dm, cx, o.h * f, 0))); g.add(box(0.02, 0.25, 0.08, gold, cx + (k ? -1 : 1) * (lw / 2 - 0.1), 1.0, 0)); } g.add(box(o.w + 0.12, 0.08, t + 0.04, fr, o.at, o.h, 0)); [-1, 1].forEach(sd => g.add(box(0.06, o.h, t + 0.04, fr, o.at + sd * (o.w / 2 + 0.03), 0, 0))); }
     cur = b;
   }
   seg(cur, L, 0, H);
+  // Baseboard and crown molding, broken at the doors.
+  const trim = material("paint", "#ffffff"); let c0 = 0;
+  [...ops.filter(o => o.type === "door"), { at: L + 10, w: 0 }].forEach(o => { const a = Math.min(L, o.at - o.w / 2) - 0.06; if (a - c0 > 0.05) g.add(box(a - c0, 0.14, t + 0.03, trim, (c0 + a) / 2, 0, 0)); c0 = Math.max(c0, o.at + o.w / 2 + 0.06); });
+  g.add(box(L, 0.12, t + 0.05, trim, L / 2, H - 0.12, 0));
   const ang = Math.atan2(w.b[1] - w.a[1], w.b[0] - w.a[0]);
   g.position.set(w.a[0], 0, w.a[1]); g.rotation.y = -ang;
   // Which side is outside the room, so the "dollhouse" view can hide walls between the camera and the room.
@@ -166,6 +60,8 @@ export class Editor {
     this.r.outputColorSpace = T.SRGBColorSpace; this.r.toneMapping = T.ACESFilmicToneMapping; this.r.toneMappingExposure = 1.0;
     this.applyQuality();
     this.scene3 = new T.Scene(); this.scene3.background = new T.Color("#dfe3ec");
+    // Soft reflections from a simple studio room, so polished floors, satin and glass catch light.
+    const pm = new T.PMREMGenerator(this.r); this.scene3.environment = pm.fromScene(new T.RoomEnvironment(), 0.04).texture; this.scene3.environmentIntensity = 0.12;
     this.persp = new T.PerspectiveCamera(50, 1, 0.05, 400);
     this.ortho = new T.OrthographicCamera(-10, 10, 10, -10, 0.05, 400);
     this.cam = this.persp;
@@ -187,7 +83,7 @@ export class Editor {
   applyQuality() {
     const hi = this.quality === "high";
     this.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, hi ? 2 : 1));
-    this.r.shadowMap.enabled = hi; this.r.shadowMap.type = T.PCFSoftShadowMap;
+    this.r.shadowMap.enabled = hi; this.r.shadowMap.type = T.PCFShadowMap; setQuality(hi);
     if (this.s) this.build();
   }
 
@@ -216,17 +112,17 @@ export class Editor {
   build() {
     const s = this.s, W = this.world; const keepSel = this.sel;
     this.tc.detach();
-    W.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    W.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
     W.clear(); this.objs = new Map();
     const R = s.room;
-    const fl = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.floor, R.floorColor, { repeat: Math.max(2, Math.round(R.w / 2)) }));
+    const fl = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.floor, R.floorColor, { size: [R.w, R.d] }));
     fl.rotation.x = -Math.PI / 2; fl.position.set(R.w / 2, 0, R.d / 2); fl.receiveShadow = true; fl.userData.floor = true; W.add(fl);
     const ground = new T.Mesh(new T.PlaneGeometry(R.w * 6, R.d * 6), new T.MeshStandardMaterial({ color: "#c9cfdb", roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(R.w / 2, -0.01, R.d / 2); ground.receiveShadow = true; W.add(ground);
-    const ce = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.ceiling, R.ceilingColor || "#f4f1ea", { repeat: 1 }));
+    const ce = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.ceiling, R.ceilingColor || "#f4f1ea", { size: [R.w, R.d] }));
     ce.rotation.x = Math.PI / 2; ce.position.set(R.w / 2, R.h, R.d / 2); ce.userData.ceiling = true; W.add(ce); this.ceil = ce; // faces down, so it vanishes when seen from above
     this.walls = s.walls.map(w => { const g = buildWall(s, w); W.add(g); return g; });
-    s.items.forEach(it => { const g = buildItem(it); W.add(g); this.objs.set(it.id, g); });
+    resetLights(); s.items.forEach(it => { const g = buildItem(it, s); W.add(g); this.objs.set(it.id, g); });
     this.lightObjs = [];
     s.lights.forEach(L => {
       let l;

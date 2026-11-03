@@ -14,7 +14,7 @@ function dl(blob, name) { const a = document.createElement("a"); a.href = URL.cr
 const safeName = s => (s.name || "venue").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
 // ---------- Ask (the assistant) ----------
-const EXAMPLES = ["Move the stage to the front of the room, create a dance floor in the center, and arrange eight round tables around it", "Set up this venue for a wedding with 100 guests", "Change the tablecloths to dark purple", "Add warm lighting around the dance floor", "Make the room look more elegant and upscale", "Move the bar to the left"];
+const EXAMPLES = ["Move the stage to the front of the room, create a dance floor in the center, and arrange eight round tables around it", "Ivory floor-length linens with gold sequin runners and blush napkins", "Add white spandex chair covers with blush sashes", "Put tall centerpieces on every table", "Add a blush and gold balloon arch at the back", "Add string lights over the dance floor", "Set up this venue for a wedding with 100 guests", "Change the tablecloths to dark purple", "Add warm lighting around the dance floor", "Make the room look more elegant and upscale", "Move the bar to the left"];
 function askTab() {
   return `<p class="muted">Tell the designer what you want. It shows you the change first, and nothing is kept until you say so.</p>
   <textarea id="ask" placeholder="Arrange ten round tables with eight chairs at each table">${esc(askText)}</textarea>
@@ -53,7 +53,7 @@ $("#banner").addEventListener("click", e => {
 // ---------- Add ----------
 function addTab() {
   const cats = {}; Object.entries(S.CATALOG).forEach(([k, c]) => (cats[c.cat] = cats[c.cat] || []).push([k, c]));
-  return Object.entries(cats).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
+  return `<p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>` + S.CAT_ORDER.filter(c => cats[c]).map(cat => [cat, cats[cat]]).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
     `<p class="muted">New things land in the middle of the room. Drag the arrows to move them.</p>`;
 }
 
@@ -63,8 +63,8 @@ function selTab() {
   const it = ed.sel && ed.itemOf(ed.sel);
   if (!it) return `<p class="muted">Tap something in the room to select it.</p>`;
   if (S.LIGHT_KINDS.includes(it.kind)) return lightCard(it, true);
-  const c = S.CATALOG[it.kind], kids = ed.s.items.filter(i => i.group === it.id).length;
-  return `<div class="card"><b>${esc(it.label || c.label)}</b> <span class="muted">${kids ? kids + " chairs" : ""}</span>
+  const c = S.CATALOG[it.kind], kids = ed.s.items.filter(i => i.group === it.id && i.kind.startsWith("chair")).length;
+  return `<div class="card"><b>${esc(it.label || c.label)}</b> <span class="muted">${kids ? kids + " chairs" : ""}</span>${dressCard(it)}
   <div class="row" style="margin-top:8px">
    <label class="f">Across (${uL()})<input type="number" step="0.5" data-sz="w" value="${toU(it.w)}"></label>
    <label class="f">Deep (${uL()})<input type="number" step="0.5" data-sz="d" value="${toU(it.d)}"></label>
@@ -73,10 +73,29 @@ function selTab() {
    <label class="f">From left wall (${uL()})<input type="number" step="0.5" data-pos="x" value="${toU(it.x)}"></label>
    <label class="f">From front wall (${uL()})<input type="number" step="0.5" data-pos="z" value="${toU(it.z)}"></label>
    <label class="f">Turn (°)<input type="number" step="15" data-rot value="${Math.round(it.rot)}"></label></div>
-  <h3>Material</h3><select id="matSel">${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
-  <h3>Color</h3><div class="row">${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
+  ${c.palette || c.dress ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
+  ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
   <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button>${it.kind.startsWith("table") ? `<button class="btn l" data-x="chairs">${kids ? "Reset" : "Add"} chairs</button>` : ""}
    <button class="btn r" data-x="del">${confirmDel === it.id ? "Tap again to remove" : "Remove"}</button></div></div>`;
+}
+
+// ---------- Decorating (linens, chair dressing, color sets) ----------
+const DSW = ["white", "ivory", "champagne", "blush", "rose", "gold", "silver", "black", "navy", "dark purple", "lavender", "burgundy", "emerald", "sage", "light blue", "orange"];
+function dressCard(it) {
+  const c = S.CATALOG[it.kind];
+  if (c.palette) {
+    const cur = (it.palette || []).join();
+    return `<h3>Colors</h3><div class="row">${Object.entries(S.PALETTES).map(([k, p]) => `<button class="chip${cur === p.join() ? " on" : ""}" data-pal="${k}" aria-label="${k}" style="display:flex;gap:2px;align-items:center">${p.map(x => `<span style="width:14px;height:14px;border-radius:50%;background:${x};box-shadow:0 0 0 1px #0002"></span>`).join("")}<span style="margin-left:4px">${k === "hostmode" ? "Host Mode" : k[0].toUpperCase() + k.slice(1)}</span></button>`).join("")}</div>`;
+  }
+  if (!c.dress) return "";
+  const d = S.dressOf(it), spec = S.DRESS[c.dress], who = c.dress === "table" ? "tables" : "chairs";
+  const rows = Object.entries(spec).map(([k, f]) => {
+    if (f.opts) return `<label class="f" style="margin-top:6px">${f.label}<select data-dr="${k}">${Object.entries(f.opts).map(([v, l]) => `<option value="${v}" ${d[k] === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+    const val = k === "linenColor" ? (d.linenColor || it.color) : d[k];
+    if (k === "linenColor" && d.linen === "none") return ""; if (k === "overlayColor" && d.overlay === "none") return ""; if (k === "runnerColor" && d.runner === "none") return ""; if (k === "coverColor" && d.cover === "none") return "";
+    return `<div style="margin-top:6px"><span class="muted">${f.label}</span><div class="row" style="gap:5px;margin-top:3px">${f.none ? `<button class="chip" style="padding:4px 8px" data-drc="${k}" data-v="none">${val ? "None" : "<b>None</b>"}</button>` : ""}${DSW.map(n => `<button class="sw${val === S.COLORS[n] ? " on" : ""}" title="${n}" aria-label="${f.label}: ${n}" data-drc="${k}" data-v="${n}" style="background:${S.COLORS[n]};${val === S.COLORS[n] ? "box-shadow:0 0 0 3px var(--orange)" : ""}"></button>`).join("")}</div></div>`;
+  }).join("");
+  return `<h3>${c.dress === "table" ? "Linens and place settings" : "Chair dressing"}</h3>${rows}<div class="row" style="margin-top:8px"><button class="btn o" data-x="dressAll">Use this look on all ${who}</button></div>`;
 }
 
 // ---------- Lights ----------
@@ -162,6 +181,8 @@ body.addEventListener("click", async e => {
   if (e.target.id === "opsGo") { try { const ops = JSON.parse($("#opsJson").value); previewSteps(Array.isArray(ops) ? ops : [ops]); } catch (er) { toast("Those steps aren't valid JSON"); } return; }
   if (d.add) { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
   if (d.col && it) return ed.run([{ op: "change_material", id: it.id, color: d.col }]);
+  if (d.drc && it) return ed.run([{ op: "dress_object", id: it.id, [d.drc]: d.v }]);
+  if (d.pal && it) return ed.run([{ op: "dress_object", id: it.id, palette: d.pal }]);
   if (d.addl) { const id = S.uid("L_"); ed.run([{ op: "add_light", kind: d.addl, id, kelvin: 3000, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); ed.select(id); return; }
   if (d.open) { const w = ed.s.walls.find(x => x.id === d.wall); const used = ed.s.openings.filter(o => o.wall === w.id).map(o => o.at), L = S.wallLen(w); let at = L / 2; for (const f of [0.5, 0.25, 0.75, 0.15, 0.85]) { at = L * f; if (used.every(u => Math.abs(u - at) > 1.8)) break; } return ed.run([{ op: "add_opening", type: d.open, wall: w.id, at }]); }
   if (d.units) { ed.units = d.units; localStorage.setItem("hm3d_units", d.units); return render(); }
@@ -169,6 +190,7 @@ body.addEventListener("click", async e => {
   if (d.openp) { const s = await ed.store.open(d.openp); if (s) { ed.load(s); toast("Opened " + s.name); } return; }
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
   switch (d.x) {
+    case "dressAll": if (it) { const C = S.CATALOG[it.kind], dd = S.dressOf(it), o = { op: "dress_object", kind: C.dress === "table" ? "tables" : "chairs" }; Object.keys(S.DRESS[C.dress]).forEach(k => { if (dd[k] == null && k !== "linenColor" && !S.DRESS[C.dress][k].none) return; o[k] = k === "linenColor" ? (dd.linenColor || it.color || "white") : dd[k] == null ? "none" : dd[k]; }); const r = ed.run([o]); if (r.ok) toast(r.log[0]); } break;
     case "dup": if (it) { ed.run([{ op: "duplicate_object", id: it.id }]); } break;
     case "chairs": if (it) { const n = S.CATALOG[it.kind].seats || 6; const kids = ed.s.items.filter(i => i.group === it.id).map(i => i.id); ed.run([...kids.map(id => ({ op: "delete_object", id, confirm: true })), ...S.chairsAround(it, n).map(c => ({ op: "add_item", kind: "chair", x: c.x, z: c.z, rot: c.rot, group: it.id }))]); } break;
     case "del": if (it) { if (confirmDel !== it.id) { confirmDel = it.id; render(); } else { confirmDel = null; ed.run([{ op: "delete_object", id: it.id, confirm: true }]); ed.select(null); } } break;
@@ -186,6 +208,7 @@ body.addEventListener("change", async e => {
   if (t.dataset.sz && it) ed.run([{ op: "resize_object", id: it.id, [t.dataset.sz]: fromU(t.value) }]);
   if (t.dataset.pos && it) ed.run([{ op: "move_object", id: it.id, [t.dataset.pos]: fromU(t.value) }]);
   if (t.dataset.rot != null && it) ed.run([{ op: "rotate_object", id: it.id, rot: +t.value }]);
+  if (t.dataset.dr && it) ed.run([{ op: "dress_object", id: it.id, [t.dataset.dr]: t.value }]);
   if (t.id === "matSel" && it) ed.run([{ op: "change_material", id: it.id, mat: t.value }]);
   if (t.id === "colPick" && it) ed.run([{ op: "change_material", id: it.id, color: t.value }]);
   if (t.dataset.li) ed.run([{ op: "modify_lighting", id: t.dataset.li, [t.dataset.lk]: +t.value }]);

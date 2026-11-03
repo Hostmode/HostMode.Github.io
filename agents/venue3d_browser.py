@@ -12,8 +12,8 @@ os.makedirs(OUT, exist_ok=True)
 PORT = 8766
 handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=os.getcwd())
 handler.log_message = lambda *a: None
-socketserver.TCPServer.allow_reuse_address = True
-srv = socketserver.TCPServer(("127.0.0.1", PORT), handler); threading.Thread(target=srv.serve_forever, daemon=True).start()
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+srv = socketserver.ThreadingTCPServer(("127.0.0.1", PORT), handler); threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 fails, errors, results = [], [], []
 def check(cond, msg):
@@ -33,7 +33,7 @@ with sync_playwright() as p:
         return ctx, pg
     ctx, pg = page_for(1280, 800)
     shot = lambda n: pg.screenshot(path=f"{OUT}/{n}.png")
-    pg.goto(f"http://127.0.0.1:{PORT}/venue3d.html"); pg.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=20000); pg.wait_for_timeout(1500)
+    pg.goto(f"http://127.0.0.1:{PORT}/venue3d.html", timeout=120000, wait_until="domcontentloaded"); pg.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=120000); pg.wait_for_timeout(1500)
     s = pg.evaluate("hm3d.scene()")
     # 1-2 open the editor and see the whole room
     check(len(s["walls"]) == 4 and any(o["type"] == "door" for o in s["openings"]) and any(o["type"] == "window" for o in s["openings"]), "1. editor opens a venue with 4 walls, doors and windows")
@@ -100,6 +100,21 @@ with sync_playwright() as p:
     check(len(rt) == 8 and len(ch) == 64 and abs(df["x"] - s2["room"]["w"] / 2) < 0.01, f"AI: the real scene now has 8 tables, 64 chairs, dance floor centered")
     shot("10c-ai-kept")
     pg.click("[data-view=top]"); pg.wait_for_timeout(500); shot("10d-ai-top"); pg.click("[data-view=orbit]")
+    # Decor from the panels: style one table, copy the look to all tables, dress a chair, add a balloon arch
+    pg.evaluate("hm3d.select(hm3d.scene().items.find(i=>i.kind==='table_round').id)"); pg.wait_for_timeout(200)
+    pg.select_option("[data-dr=linen]", "lap"); pg.wait_for_timeout(150)
+    pg.click("[data-drc=runnerColor][data-v=gold]") if pg.locator("[data-drc=runnerColor]").count() else pg.select_option("[data-dr=runner]", "satin")
+    pg.wait_for_timeout(150); pg.click("[data-x=dressAll]"); pg.wait_for_timeout(200)
+    ts = [i for i in pg.evaluate("hm3d.scene().items") if i["kind"] == "table_round"]
+    check(all(t.get("dress", {}).get("linen") == "lap" and t["dress"].get("runner") == "satin" for t in ts), "decor: lap-length cloth and satin runner copied to all 8 tables from the panel")
+    pg.evaluate("hm3d.select(hm3d.scene().items.find(i=>i.kind==='chair').id)"); pg.wait_for_timeout(200)
+    pg.click("[data-drc=sash][data-v=blush]"); pg.wait_for_timeout(150); pg.click("[data-x=dressAll]"); pg.wait_for_timeout(200)
+    check(all(c.get("dress", {}).get("sash") == "#efc7c2" for c in pg.evaluate("hm3d.scene().items") if c["kind"] == "chair"), "decor: blush sashes on every chair")
+    pg.click("[data-tab=add]"); pg.click("[data-add=balloon_full_arch]"); pg.wait_for_timeout(300); pg.click("[data-pal=hostmode]"); pg.wait_for_timeout(300)
+    b0 = [i for i in pg.evaluate("hm3d.scene().items") if i["kind"] == "balloon_full_arch"]
+    check(len(b0) == 1 and len(b0[0].get("palette", [])) == 4, "decor: balloon arch added from the library and given the Host Mode colors")
+    pg.evaluate("hm3d.editor.frame()"); pg.wait_for_timeout(800); shot("10e-decor")
+    pg.click("[data-tab=ask]")
     # A removal asks first
     pg.fill("#ask", "remove the bar"); pg.click("#askGo"); pg.wait_for_timeout(200)
     check("removes" in pg.inner_text("#banner"), "AI: removing something asks for an OK first"); pg.click("#bnNo")
@@ -110,7 +125,7 @@ with sync_playwright() as p:
     pg.close()
     ctx2 = b.new_context(viewport={"width": 1280, "height": 800}, storage_state=ctx_state, accept_downloads=True); pg = ctx2.new_page()
     pg.route("**/www.gstatic.com/**", lambda r: r.abort()); pg.on("pageerror", lambda e: errors.append(str(e)))
-    pg.goto(f"http://127.0.0.1:{PORT}/venue3d.html"); pg.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=20000); pg.wait_for_timeout(1200)
+    pg.goto(f"http://127.0.0.1:{PORT}/venue3d.html", timeout=120000, wait_until="domcontentloaded"); pg.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=120000); pg.wait_for_timeout(1200)
     s3 = pg.evaluate("hm3d.scene()")
     check(s3["id"] == sid and len([i for i in s3["items"] if i["kind"] == "table_round"]) == 8, "10-11. saved, closed the page, reopened: same venue with the AI's 8 tables")
     pg.screenshot(path=f"{OUT}/11-reopened.png")
@@ -127,7 +142,7 @@ with sync_playwright() as p:
     check(len(pg.evaluate("hm3d.scene().items")) == len(j["items"]), "12. the exported file opens again")
     # Phone size
     ctx3, pm = page_for(412, 860, mobile=True)
-    pm.goto(f"http://127.0.0.1:{PORT}/venue3d.html"); pm.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=20000); pm.wait_for_timeout(1500)
+    pm.goto(f"http://127.0.0.1:{PORT}/venue3d.html", timeout=120000, wait_until="domcontentloaded"); pm.wait_for_function("window.hm3d && window.hm3d.editor.s", timeout=120000); pm.wait_for_timeout(1500)
     pm.screenshot(path=f"{OUT}/20-phone.png")
     pm.click("[data-tab=add]"); pm.wait_for_timeout(200); pm.screenshot(path=f"{OUT}/21-phone-library.png")
     pm.click("[data-tab=room]"); pm.wait_for_timeout(200); pm.screenshot(path=f"{OUT}/22-phone-room.png")

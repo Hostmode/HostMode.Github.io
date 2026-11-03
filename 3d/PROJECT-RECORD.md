@@ -77,7 +77,8 @@ New files only; nothing in the live app was changed except one line in `agents/c
 - `3d/editor.js` — the 3D view: dollhouse walls, drag arrows to move/turn/resize with snapping, top/front/side views, walk mode with on-screen arrows, shadows (Fast mode for weaker phones), pictures (.png), 3D model export (.glb).
 - `3d/store.js` — saving: a working copy and 20 versions on the device, plus `planners/{uid}/venue3d` in Host Mode's database when signed in.
 - `3d/app.js` — the panels: Ask, Add, Selected, Lights, Room, Views, Save & share.
-- Tests: `agents/venue3d_test.mjs` (29 model checks, free) and `agents/venue3d_browser.py` (21 browser steps with screenshots).
+- `3d/decor.js` — surfaces (textures, bump maps, sheen, clear coat) and every piece of furniture and decor.
+- Tests: `agents/venue3d_test.mjs` (46 model checks, free) and `agents/venue3d_browser.py` (24 browser steps with screenshots).
 
 ### Test results (Nov 3, 2026, headless Chrome with software graphics)
 All pass: opens with 4 walls, doors and windows · room drawn · top/front/side views · walk moves · tap selects · move (chairs follow their table) · turn · resize · material · drag arrows · warm lighting · undo/redo · **AI instruction "Move the stage to the front, create a dance floor in the center, arrange eight round tables around it" → preview → kept → 8 tables, 64 chairs, dance floor centered, no overlaps** · removal asks first · save, close, reopen · export venue file · export .glb · re-import · phone width with no sideways scrolling · no page errors.
@@ -90,6 +91,30 @@ The assistant also refuses honestly when things don't fit: 120 guests in the 60�
 - Walls are straight 4-wall rooms plus extra walls; no L-shaped room drawing tool, columns as library items, no multi-floor.
 - Collision checks use boxes (round tables count as squares).
 - Photo reconstruction: not started.
+
+## 3b. Decor library and surface quality (Nov 3, 2026) — Done on the branch
+
+Roy asked for a decorator's library before going further. Priority order is what decorators change most often first; it's also the order of the Add tab.
+
+| Priority | Category | Built |
+|---|---|---|
+| 1 | Linens (on every table) | Floor-length, lap-length, fitted spandex, pleated skirt or no cloth; square or sequin overlay; satin or sequin runner; charger plates; napkins. Any color. |
+| 2 | Chair dressing (on every chair) | Banquet or fitted spandex covers, satin sashes tied in a bow; chair styles Chiavari, ghost, cross-back, folding. |
+| 3 | Balloons | Garland, full arch, column, balloon wall, each with a color set (Blush, Garden, Navy, Host Mode, Classic, Jewel, Rainbow or any colors). Gold and silver balloons are chrome. |
+| 4 | Backdrops and drapery | Backdrop, pipe and drape, flower wall, shimmer (sequin) wall, ceiling draping. |
+| 5 | Centerpieces (sit on the table) | Low floral, tall floral, candle cluster. One step puts one on every table. |
+| 6 | Lighting and candles | Uplights (real colored light), string lights, chandelier (real light), floor candles, light truss. |
+| 7 | Florals and greenery | Floral arch, aisle flower stand, hanging greenery, potted plant. |
+| 8 | Lounge and accents | Sofa, lounge chair, ottoman, coffee table, area rug, welcome sign (shows its label), marquee letters (LOVE or the label's letters), gift table. |
+
+50 library pieces in all, 20 materials. How it works:
+- Linens and chair dressing are settings on each table and chair (`dress`), not separate objects, so "Use this look on all tables" restyles a whole room in one step, and re-arranging tables keeps the look (cloths, chairs, covers, sashes, centerpieces).
+- New checked steps: `dress_object`, `decorate_tables`, `swap_style`. Centerpieces ride on their table (move, copy and delete with it); ceiling pieces follow the ceiling height; neither counts as an overlap.
+- The Ask box understands decor requests, e.g. "Ivory floor-length linens with gold sequin runners and blush napkins", "Add white spandex chair covers with blush sashes", "Switch to ghost chairs", "Put tall centerpieces on every table", "Add a blush and gold balloon arch at the back", "Add string lights over the dance floor". "More elegant" now means ivory floor-length linens, champagne runners and sashes, gold chargers, tall centerpieces and warmer light.
+
+Surfaces (all drawn in code, still nothing to license): every surface now has a bump map and true-to-scale texture. Planked oak and herringbone floors with per-plank tone and joints; polished floors, marble and the dance floor have a clear coat; woven linen, satin and velvet have fabric sheen; sequins catch light; plaster walls; patterned banquet carpet; soft studio reflections so gold, chrome, glass and satin read correctly; window frames, paneled doors, baseboards and crown molding. "Fast" quality skips bumps, sheen and the small decor lights for weaker phones.
+
+Not yet: realistic photo textures (would need licensed or self-made photo scans), wrinkles that react to objects (cloth is shaped, not simulated), text on marquee letters beyond a small built-in alphabet, rentals/inventory link (planned with integration: each piece could map to the planner's Inventory items and counts).
 
 ## 4. Decisions for Roy
 1. **Getting the branch onto GitHub.** This session was refused permission to push. Options: (a) give this session push access when asked, (b) start a Claude Code session on the repo and ask it to apply the branch bundle, (c) leave it here for now.
