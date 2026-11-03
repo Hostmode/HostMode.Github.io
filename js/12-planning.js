@@ -474,7 +474,7 @@ Object.assign(ACT,{
 
 /* ---- a gentle nudge when the console opens with something overdue ---- */
 const _renderPlan=render;
-render=function(force){_renderPlan(force);if(VIEW==="moderator"&&L.modOK&&L.planLoaded&&!L.plNudged&&L.mtab!=="plan"){L.plNudged=true;const n=plBadge();if(n)setTimeout(()=>toast(`${n} planning reminder${n===1?" needs":"s need"} attention. See the Plan tab.`),1200)}};
+render=function(force){_renderPlan(force);if(VIEW==="moderator"&&L.modOK&&L.planLoaded&&!L.plNudged&&L.mtab!=="plan"&&!(D.meta&&D.meta.host)){L.plNudged=true;const n=plBadge();if(n)setTimeout(()=>toast(`${n} planning reminder${n===1?" needs":"s need"} attention. See the Plan tab.`),1200)}};
 
 TOUR.splice(Math.max(0,TOUR.findIndex(x=>/k=live/.test(x.sel))+1),0,{sel:'[data-act=mtab][data-k=plan]',title:"Plan",text:"Everything for the weeks before: a countdown, to-dos with due dates, budget and payments, vendors, seating, food, shopping, documents and reminders. Teammates see the to-dos you give them."});
 
@@ -519,7 +519,7 @@ newEventView=function(){const h=_newEvBrand();if(!L.loaded||L.newInv)return h;
 /* ================= DEMO EVENT (?e=DEMO) =================
    demo.js swaps in a pretend database kept in this browser only. The first visit fills it with a
    ready-made birthday party so visitors can see every screen; "Start the demo over" resets it. */
-const DEMO_V=4;
+const DEMO_V=5;
 const demoOn=()=>!!window.__HMDEMO&&EV==="DEMO";
 function demoSeed(){const dbr=firebase.database();const cur=JSON.parse(localStorage.getItem("hm_demo_db")||"{}");
  if(cur.demoV===DEMO_V&&cur.partygames)return;
@@ -541,10 +541,18 @@ function demoSeed(){const dbr=firebase.database();const cur=JSON.parse(localStor
   diet:{d1:{name:"Priya S",need:"Vegetarian",t:1}},
   colors:["#7b3fb8","#e8338f","#f6892f","#ffd166"],
   notes:"Surprise toast from Rosa's college friends at 8:30. Venue says no open flames except the cake candles."};
- const ev={meta:{name:"Rosa's 30th",created:now,demo:true,setup:{details:true,content:true,moments:true,menu:true,pin:true,practice:true,share:true}},
+ const ev={meta:{name:"Rosa's 30th",created:now,demo:true,planner:"demohost",host:true,setup:{details:true,content:true,moments:true,menu:true,pin:true,practice:true,share:true}},
   mods:{m1:{name:"You",pinHash:"demo",owner:true},m2:{name:"Alicia",pinHash:"demo-helper"}},
   content,players,scores,team:{A:64,B:51},state:{teamNames:{A:"Team Cake",B:"Team Candles"}},guests,album,albumFull,plan};
- const all={demoV:DEMO_V,partygames:{admin:{defaultEvent:"DEMO"},index:{DEMO:{name:"Rosa's 30th",created:now}},events:{DEMO:ev}}};
+ /* the host's own account (as made on the new-event page): their dashboard has My events, Plan and Stay & Go. Made-up people and money. */
+ const td=iso(13),tt=iso(15),wh=o=>Object.fromEntries(o.map(k=>[k,1]));
+ const host={profile:{kind:"host",name:"You",email:"you@example.com",code:"DEMO",t:now},events:{DEMO:{name:"Rosa's 30th",created:now}},
+  stay:{trips:{rt:{name:"Rosa's 30th weekend",client:"",place:"Charlotte, NC",cur:"USD",from:td,to:tt,note:"",t:now}},
+   mem:{s1:{trip:"rt",name:"Priya S",email:"priya@example.com",phone:"",room:"",group:"Out of town",from:td,to:tt,t:now},s2:{trip:"rt",name:"Omar J",email:"",phone:"555-0161",room:"",group:"Out of town",from:td,to:tt,t:now},s3:{trip:"rt",name:"Lauren B",email:"lauren@example.com",phone:"555-0162",room:"",group:"Out of town",from:td,to:tt,t:now}},
+   res:{h1:{trip:"rt",cat:"stay",prov:"hotels",name:"Uptown Suites",conf:"US-55120",booked:iso(-7),start:td,end:tt,inT:"15:00",outT:"11:00",addr:"Tryon St, Charlotte, NC",phone:"555-0170",email:"",total:72000,due:iso(10),status:"confirmed",who:wh(["s1","s2","s3"]),split:"even",owe:{s1:24000,s2:24000,s3:24000},oweDue:iso(7),gnote:"Ask for the Rosa's 30th block at the front desk.",note:"",t:now}},
+   exp:{},pay:{q1:{trip:"rt",mid:"s1",amt:24000,date:iso(-2),method:"Zelle",ref:"",note:"",alloc:{"r:h1":24000},rc:"",t:now}},rc:{},rcBlob:{},msg:{},
+   act:{a1:{trip:"rt",ref:"trip",text:"Created the trip Rosa's 30th weekend",t:now,by:"You"}}}};
+ const all={demoV:DEMO_V,partygames:{admin:{defaultEvent:"DEMO"},index:{DEMO:{name:"Rosa's 30th",created:now,planner:"demohost"}},events:{DEMO:ev},planners:{demohost:host}}};
  localStorage.setItem("hm_demo_db",JSON.stringify(all));dbr.ref("demoV").set(DEMO_V);
  Object.keys(localStorage).filter(k=>/^pg_.*DEMO/.test(k)).forEach(k=>localStorage.removeItem(k));
  store.set("mod_DEMO",{h:"demo",id:"m1",r:"mod"})}
@@ -554,7 +562,7 @@ const _connectDemo=connect;
 connect=function(){if(demoOn()){try{demoSeed()}catch(e){console.warn("demo seed",e)}if(!store.get("mod_DEMO",null))store.set("mod_DEMO",{h:"demo",id:"m1",r:"mod"})}_connectDemo()};
 /* a bar on every demo screen: switch views, start over */
 function demoBar(){if(!demoOn()||window.top!==window)return "";const v=(h,l)=>`<a class="${(VIEW===(h||"guest"))?"on":""}" href="games.html?e=DEMO${h?"#"+h:""}">${l}</a>`;
- return `<div class="demoslot"><div class="demobar"><div class="dbrow"><span class="dbt">Demo</span><span class="dbkeys"><a href="index.html">Home</a><a href="demo.html">All three</a><button data-act="demoReset">Start over</button></span></div><div class="dbscreens">${v("moderator","Host")}${v("","Guest")}${v("screen","Big screen")}</div></div></div>`}
+ return `<div class="demoslot"><div class="demobar"><div class="dbrow"><span class="dbt">Demo</span><span class="dbkeys"><a href="index.html">Home</a><a href="demo.html">All three</a><button data-act="demoReset">Start over</button></span></div><div class="dbscreens">${v("planner","Host")}${v("moderator","Console")}${v("","Guest")}${v("screen","Big screen")}</div></div></div>`}
 /* the bar floats with you down the page and fades the further you scroll */
 function demoFloat(){const b=document.querySelector(".demobar"),sl=document.querySelector(".demoslot");if(!b||!sl)return;const h=b.offsetHeight+22;if(sl.dataset.h!=h){sl.dataset.h=h;sl.style.height=h+"px"}const y=window.scrollY||document.documentElement.scrollTop||0;const mx=Math.max(1,(document.documentElement.scrollHeight||0)-(window.innerHeight||0));b.style.opacity=String(Math.max(0,Math.min(1,1-y/mx)).toFixed(2));b.style.pointerEvents=+b.style.opacity<.05?"none":""}
 if(demoOn()&&window.top===window){addEventListener("scroll",demoFloat,{passive:true});addEventListener("resize",demoFloat);setInterval(demoFloat,400)}
