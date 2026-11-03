@@ -96,7 +96,7 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
    - After raising PDEMO_V, clear localStorage (the demo database is kept there) before testing.
    - Background servers stop between turns; start the server in the same command as the test.
    - For big changes (moving code, refactors, anything touching guest, moderator or big-screen screens), record the screens first with `python agents/compare_screens.py before`, make the change, then run it with `after`: it lists any of 14 key screens that changed or shows an error.
-4. Commit with a short plain-English summary of what changed.
+4. Commit with a short plain-English summary of what changed, as Claude <noreply@anthropic.com>, and check that the push went through.
 5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval.
 
 ## Lessons from building (add one line each time something trips you up; agents read this too)
@@ -111,6 +111,8 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 - The builder can only run the commands listed in its workflow (agents/check_all.sh, agents/screens.sh before|after, node agents/syntax_check.js, git status/diff, gh pr). When it needs a new kind of check, add a script to agents/ and list it, rather than allowing any command.
 - The builder sometimes can't open the pull request itself and leaves a "Create PR" link instead. The reviewer also runs when Roy opens it from that link (each version is reviewed once, so nothing is paid twice).
 - In the agent office, people keep their drawing order while they walk, so routes must not pass behind furniture; use AG_SPOT's 4th number to draw a walker later. Anything that should follow a walker (like the name tag) goes inside a `.agmove` with the same agent classes.
+- Commit as `Claude <noreply@anthropic.com>` (git config user.name/user.email in the repo). GitHub refuses pushes that would show Roy's private email.
+- Never hide a command's errors (no `2>/dev/null` on a push, no `| tail` hiding a failed check). Confirm the push printed the branch moving, and that the checks' exit result was 0.
 - GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
 
