@@ -178,6 +178,12 @@ def json_of(resp):
         return None
 
 
+def claude_md():
+    """The project rules every agent follows (CLAUDE.md at the repo root)."""
+    p = os.path.join(ROOT, "CLAUDE.md")
+    return open(p, encoding="utf-8").read() if os.path.exists(p) else ""
+
+
 def read_skill(name):
     p = os.path.join(ROOT, ".claude", "skills", name, "SKILL.md")
     s = open(p, encoding="utf-8").read() if os.path.exists(p) else ""

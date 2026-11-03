@@ -181,7 +181,7 @@ def ai_customer(base, run, max_steps=30):
     role, who, url = ROLES[day % len(ROLES)]
     size = SIZES[(day // len(ROLES)) % 2]
     lang = "Spanish" if day % 7 == 3 and role in ("guest", "vendor") else "English"
-    system = (read_skill("test-as-customer") + f"\n\nTonight you are {who}. Use the app in {lang} if it offers it. "
+    system = (read_skill("test-as-customer") + "\n\n" + read_skill("accessibility-check") + f"\n\nTonight you are {who}. Use the app in {lang} if it offers it. "
               f"Screen: {size[0]}. You have up to {max_steps} actions. Report each real problem once with the report tool, then call done.")
     issues, summary, steps = [], "", 0
     with sync_playwright() as pw:

@@ -58,6 +58,11 @@ Three more helpers now work from GitHub, as in the Host Mode Agent Development P
 Roy's part: add the **claude** label to start one; when the pull request shows green checks and the reviewer's rating, approve and
 merge it (or comment `@claude` with what to change). To pause a builder or reviewer: Actions → the workflow → "..." → Disable workflow.
 
+What every agent reads: CLAUDE.md always, plus its own Skills from `.claude/skills` (tester: test-as-customer and
+accessibility-check; technical agent: answer-support-ticket, or fix-host-mode-bug and privacy-check; builder and reviewer: all of them).
+The builder and reviewer also load Roy's Engineering and Design plugins (Anthropic's knowledge-work-plugins) for code review,
+debugging, accessibility and wording. If a plugin and CLAUDE.md disagree, CLAUDE.md wins.
+
 Spending: builders and the reviewer use the same API key as the nightly agents. The $100 monthly limit in the Anthropic Console
 is the hard stop for all of them together.
 
