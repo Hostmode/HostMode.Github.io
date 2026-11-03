@@ -125,6 +125,7 @@ Lessons for one kind of job live in its Skill: agent-workflows (GitHub and the a
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
 - A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems, and report one bug once.
 - When one issue replaces another, close the old one before starting the new one: a builder job starts from main as it is at that moment.
+- Planners, hosts and the owner share one sign-in: when a page reads who's signed in, check what kind of account it is (profile.kind, partygames/owner) before acting on it.
 - When a lesson only matters for one kind of job, add it to that job's Skill instead of here.
 
 ## On hold until the current build is tested

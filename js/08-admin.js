@@ -43,16 +43,22 @@ Object.assign(ACT,{
  nwImg:el=>{const f=el.files[0];if(!f)return;shrinkImage(f,640,.72,img=>{L.drafts.nw_image=img;extractPalette(img,pal=>{L.palette=pal;const th=autoTheme(pal);Object.keys(th).forEach(k=>L.drafts["ts_c_"+k]=th[k]);previewTheme("ts_");render(true)})})},
  nwCreate:async()=>{const d=k=>(L.drafts[k]||"").trim();const name=d("nw_name"),pin=d("nw_pin"),you=d("nw_you");
   if(!name)return toast("Give your event a name");if(!you)return toast("Type your name");if(pin.length<4)return toast("Choose a PIN with at least 4 digits");
-  const inv=L.newInv,plu=L.newPl;let hu=null,hprof=null;
+  const inv=L.newInv,plu=L.newPl;let hu=null,hprof=null,asHost=false;
   if(nwAcctOn()){const a=AUTH();hu=a.currentUser;
+   /* check the invite code before making an account, so a used code doesn't leave an account with no event */
+   const iv=await RT("invites/"+inv).once("value").then(x=>x.val()).catch(()=>null);if(!iv||!iv.active||(iv.used||0)>=1||iv.event)return toast("That invite code can't be used any more. Ask the host for a new one.");
    if(!hu){const em=d("nw_email"),pw=nwPw();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast("Type your email for your account");if(pw.length<8)return toast("Choose a password with at least 8 characters");
     try{hu=(await a.createUserWithEmailAndPassword(em,pw)).user}catch(e){return toast(authErr(e))}}
-   hprof=await RT("planners/"+hu.uid+"/profile").once("value").then(x=>x.val()).catch(()=>null)}
+   hprof=await RT("planners/"+hu.uid+"/profile").once("value").then(x=>x.val()).catch(()=>null);
+   /* planners and the owner use the same sign-in: only a new account or a host account becomes the event's host.
+      A planner's event is added to their portal as usual (keeping Plan in the console); the owner's isn't linked at all. */
+   const own=await RT("owner").once("value").then(x=>x.val()).catch(()=>null);
+   asHost=hprof?hprof.kind==="host":hu.uid!==own;if(!asHost&&!hprof)hu=null}
   /* a transaction first runs on the phone's local copy, which can be empty (null) before the server answers.
      Returning null there lets Firebase fetch the real code and run this again, instead of giving up. */
-  const ok=plu?true:await new Promise(res=>RT("invites/"+inv).transaction(v=>{if(v===null)return null;if(!v.active||(v.used||0)>=1||v.event)return;v.used=1;if(hu)v.host=hu.uid;return v},(e,c,snap)=>{const x=snap&&snap.val();res(!e&&c&&!!x&&x.used===1&&!x.event)}));
+  const ok=plu?true:await new Promise(res=>RT("invites/"+inv).transaction(v=>{if(v===null)return null;if(!v.active||(v.used||0)>=1||v.event)return;v.used=1;if(asHost)v.host=hu.uid;return v},(e,c,snap)=>{const x=snap&&snap.val();res(!e&&c&&!!x&&x.used===1&&!x.event)}));
   if(!ok)return toast("That invite code can't be used any more. Ask the host for a new one.");
-  if(hu&&!hprof){const pr={kind:"host",name:you.slice(0,40),email:hu.email||"",code:inv,t:Date.now()};
+  if(asHost&&!hprof){const pr={kind:"host",name:you.slice(0,40),email:hu.email||"",code:inv,t:Date.now()};
    try{await RT("planners/"+hu.uid+"/profile").set(pr);await RT("plist/"+hu.uid).set({name:pr.name,biz:"",email:pr.email,kind:"host",t:pr.t})}catch(e){return toast("We couldn't set up your account. Try again in a moment.")}
    store.set("hmRoles",{uid:hu.uid,roles:["planner"],host:true})}
   let code=d("nw_code").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,10);const taken=async c=>!!(await ER("meta",c).once("value")).val()||!!(await RT("index/"+c).once("value")).val();
@@ -66,7 +72,7 @@ Object.assign(ACT,{
   u["events/"+code+"/meta"]={name,created:tm,invite:inv,setup:{type:true}};u["events/"+code+"/content"]=content;if(plu){u["events/"+code+"/meta"].invite=null;u["events/"+code+"/meta"].planner=plu;u["index/"+code]={name,created:tm,planner:plu,by:you.slice(0,30)};u["planners/"+plu+"/events/"+code]={name,created:tm}}
   else{u["index/"+code]={name,created:tm,invite:inv,by:you.slice(0,30)};u["invites/"+inv+"/event"]=code;u["invites/"+inv+"/eventName"]=name;u["invites/"+inv+"/usedAt"]=tm;
    /* the event belongs to the host's account: it shows in their dashboard, and Plan moves there (meta.host) */
-   if(hu){u["events/"+code+"/meta"].planner=hu.uid;u["events/"+code+"/meta"].host=true;u["index/"+code].planner=hu.uid;u["planners/"+hu.uid+"/events/"+code]={name,created:tm}}}
+   if(hu){u["events/"+code+"/meta"].planner=hu.uid;if(asHost)u["events/"+code+"/meta"].host=true;u["index/"+code].planner=hu.uid;u["planners/"+hu.uid+"/events/"+code]={name,created:tm}}}
   const mid=ER("mods",code).push().key;u["events/"+code+"/mods/"+mid]={name:you.slice(0,30),pinHash:h,t:tm,owner:true};
   await db.ref(ROOT).update(u);store.set("mod_"+code,{h,id:mid,r:"mod"});location.href=eventURL(code,"moderator")},
  /* theme studio */
