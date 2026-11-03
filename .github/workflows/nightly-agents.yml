@@ -23,7 +23,7 @@ jobs:
         id: setup
         run: |
           if [ -z "$AGENT_PASSWORD" ]; then echo "The agents aren't set up yet: add the AGENT_PASSWORD and AGENT_SUPPORT_CODE secrets (see agents/README.md)."; echo "ready=no" >> "$GITHUB_OUTPUT"; else echo "ready=yes" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: steps.setup.outputs.ready == 'yes'
         with:
           fetch-depth: 0
@@ -43,7 +43,8 @@ jobs:
           sleep 2
           python agents/tester.py
       - name: Technical agent
-        if: steps.setup.outputs.ready == 'yes'
+        # runs even if the test customer had trouble, so tickets still get answered
+        if: always() && steps.setup.outputs.ready == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

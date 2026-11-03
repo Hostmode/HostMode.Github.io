@@ -270,7 +270,11 @@ def main():
     a = ap.parse_args()
     os.makedirs(os.path.join(ROOT, "agent-screens"), exist_ok=True)
     run = Run()
-    passed, issues = scripted(a.base, run)
+    try:
+        passed, issues = scripted(a.base, run)
+    except Exception as e:  # a broken page or browser shouldn't hide the rest of the night's report
+        run.say(f"The scripted checks stopped early ({type(e).__name__}: {str(e)[:200]}).")
+        passed, issues = 0, [{"title": "The scripted checks couldn't finish", "steps": "Nightly scripted checks", "what": f"{type(e).__name__}: {str(e)[:300]}", "sig": sig("scripted", "crash", type(e).__name__), "page": ""}]
     run.say(f"Scripted checks: {passed} passed, {len(issues)} failed.")
     if a.scripted_only:
         print(json.dumps({"passed": passed, "failed": [i["title"] + ": " + i["what"] for i in issues]}))
@@ -285,7 +289,13 @@ def main():
             ai, more = ai_customer(a.base, run)
         except Stop as e:
             run.say(f"Skipped the AI test customer: {e}")
-    filed = 0 if a.no_tickets else file_tickets(db, issues + more, run)
+        except Exception as e:  # a slow page or a hiccup at Anthropic: keep the scripted results and the report
+            run.say(f"The AI test customer stopped early ({type(e).__name__}: {str(e)[:200]}).")
+    try:
+        filed = 0 if a.no_tickets else file_tickets(db, issues + more, run)
+    except Exception as e:
+        run.say(f"Couldn't file tonight's tickets ({type(e).__name__}: {str(e)[:200]}).")
+        filed = 0
     run.tester = {"passed": passed, "failed": len(issues), "aiProblems": len(more), "filed": filed, "ai": ai,
                   "problems": [i["title"] for i in (issues + more)][:12]}
     run.save(db)
