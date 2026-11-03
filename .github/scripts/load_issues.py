@@ -13,6 +13,10 @@ LABELS = {
     "high risk": ("b60205", "Rules, security, money, deleting or live-event screens"),
     "needs Roy": ("fbca04", "Roy decides or does something first"),
     "claude": ("e8590c", "Start the builder agent on this issue"),
+    "queue": ("0e8a16", "Line this issue up: the builder starts it when the one before is done"),
+    "next": ("006b75", "With queue: goes to the front of the line"),
+    "low risk": ("c5def5", "Small, safe change: may merge on its own when all checks pass and the reviewer rates it sure"),
+    "weekly report": ("bfd4f2", "The Monday report"),
 }
 
 def gh(*args):

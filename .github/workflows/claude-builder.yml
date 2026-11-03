@@ -6,6 +6,7 @@ name: Claude builder
 # comments from people who aren't the owner, a member or a collaborator, so no runner starts for them.
 # The reviewer can send a pull request back once on its own (a comment marked <!-- auto-fix -->); only that marked
 # comment from Claude's bot starts it, and the reviewer only writes it once per pull request.
+# The builder queue starts it the same way, with one fixed comment marked <!-- queue-start --> on the next queued issue.
 # Pause it: Actions → Claude builder → "..." → Disable workflow.
 on:
   issue_comment:
@@ -31,6 +32,8 @@ jobs:
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.user.login == 'claude[bot]' &&
         contains(github.event.comment.body, '<!-- auto-fix -->')) ||
+      (github.event_name == 'issue_comment' && !github.event.issue.pull_request && github.event.comment.user.login == 'claude[bot]' &&
+        contains(github.event.comment.body, '<!-- queue-start -->')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&

@@ -55,6 +55,16 @@ Every agent reads CLAUDE.md, so that is how the builder, reviewer and technical 
 3. Small, low-risk features that finish a phase gate.
 4. Everything else, most-used features first.
 
+## The queue and auto-merge
+
+- **Line work up with the `queue` label.** The builder queue starts the next queued issue by itself, one at a time, whenever the
+  last builder pull request is merged or closed. Add `next` to put one at the front. It skips issues labeled `needs Roy`
+  and starts nothing during the event freeze.
+- **Label `low risk` only for small, safe jobs:** wording, Help desk entries, tests, styles, small planner or staff screen fixes.
+  These can merge on their own when every check passes and the reviewer rates them "sure". Never label `low risk` anything
+  touching database rules, money, deleting, sign-in, the guest screens, the moderator console or the big screen.
+- Order issues so each one builds on what's already merged (for example zoom after walking).
+
 ## Keep it moving
 
 - At most **3 open agent pull requests**. The builder workflow refuses to start a fourth.

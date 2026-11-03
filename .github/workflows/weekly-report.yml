@@ -1,0 +1,25 @@
+name: Weekly report
+# Every Monday morning: one GitHub issue that @mentions Roy with what went live, what's waiting, what's queued,
+# how the agents did and what they cost, and the builder scorecard. Last week's report is closed.
+# Try it any time: Actions → Weekly report → Run workflow.
+on:
+  schedule:
+    - cron: "17 13 * * 1"   # Mondays about 8:17 AM in Charlotte (9:17 AM in summer)
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Write and post the report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AGENT_SUPPORT_CODE: ${{ secrets.AGENT_SUPPORT_CODE }}
+          AGENT_PASSWORD: ${{ secrets.AGENT_PASSWORD }}
+        run: python3 .github/scripts/weekly_report.py

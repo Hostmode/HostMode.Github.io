@@ -59,6 +59,11 @@ The quality loop: builder → pull request checks (no AI) → reviewer. If the r
 back to the builder ONCE on its own (a comment marked auto-fix). After that second try, the reviewer @mentions Roy either way:
 "Ready for you" or "Not ready yet" with a fix line to paste. The agent office shows a builder scorecard (merged, closed, undone).
 
+The queue: add the **queue** label to issues and the builder works through them one at a time on its own (**next** jumps the line).
+Auto-merge: a builder pull request whose issue is labeled **low risk** merges itself when the checks pass, the reviewer rates it
+"sure", and it only touches safe files (see .github/scripts/auto_merge.py). Everything else waits for Roy.
+The Monday report: every Monday morning one GitHub issue @mentions Roy with the week's summary (weekly-report.yml).
+
 Roy's part: add the **claude** label to start one; when the pull request shows green checks and the reviewer's rating, approve and
 merge it (or comment `@claude` with what to change). To pause a builder or reviewer: Actions → the workflow → "..." → Disable workflow.
 

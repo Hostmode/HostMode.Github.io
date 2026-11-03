@@ -1,12 +1,14 @@
 name: Claude reviewer
-# The reviewer agent: a fresh-eyes review of every pull request from this repo, posted as ONE comment that
-# @mentions Roy, so his phone buzzes only when a pull request is ready to look at. It only reads and comments.
-# It runs:
-#  - after the pull request checks finish on an agent branch (claude/...), so every builder pull request gets reviewed
-#    with its check results, however it was opened;
-#  - when someone else opens a pull request from a branch in this repo;
+# The reviewer agent: a fresh-eyes review of every pull request from this repo, posted as ONE comment.
+# It only reviews once the pull request checks have FINISHED, so its verdict includes them:
+#  - when the checks finish on an agent branch (claude/...), or
+#  - when someone opens a pull request whose checks have already finished, or
 #  - by hand: Actions → Claude reviewer → Run workflow → the pull request number.
-# Each version of a pull request is reviewed once (a hidden "reviewed:" mark in the comment), so nothing is paid for twice.
+# Each version is reviewed once (a hidden "reviewed-final:" mark), so nothing is paid for twice.
+# Verdicts:
+#  - Not ready, first time on this pull request: sent back to the builder once on its own (marked auto-fix). No ping for Roy.
+#  - Ready, rating "sure", issue labeled "low risk", only safe files, small change: merged on its own (see "Auto-merge" below). No ping.
+#  - Otherwise: @Hostmode "Ready for you" or "Not ready yet", so Roy's phone buzzes once.
 # Pull requests the builder opens come from Claude's own bot, so that one bot is allowed (only for branches inside this repo).
 # Pause it: Actions → Claude reviewer → "..." → Disable workflow.
 on:
@@ -22,9 +24,11 @@ on:
         description: "Pull request number to review"
         required: true
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
-  actions: read
+  issues: read
+  actions: write
+  pages: write
   id-token: write
 concurrency:
   group: claude-reviewer-${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref || inputs.pr }}
@@ -39,35 +43,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Find the pull request and skip if this version was already reviewed
+      - name: Find the pull request, wait for its checks, and skip if this version was already reviewed
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
           IN_PR: ${{ inputs.pr }}
           PR_NUM: ${{ github.event.pull_request.number }}
-          PR_SHA: ${{ github.event.pull_request.head.sha }}
           RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
           RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           RUN_RESULT: ${{ github.event.workflow_run.conclusion }}
         run: |
           set -e
+          R="$GITHUB_REPOSITORY"
           if [ "$EVENT" = "workflow_run" ]; then
-            N=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$RUN_BRANCH" --state open --json number --jq '.[0].number // empty')
-            SHA="$RUN_SHA"; CHECKS="$RUN_RESULT"
-          elif [ "$EVENT" = "pull_request" ]; then
-            N="$PR_NUM"; SHA="$PR_SHA"; CHECKS="still running (see the checks on the pull request)"
-          else
-            N=$(echo "$IN_PR" | tr -cd '0-9'); SHA=$(gh pr view "$N" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid); CHECKS="see the checks on the pull request"
-          fi
+            N=$(gh pr list --repo "$R" --head "$RUN_BRANCH" --state open --json number --jq '.[0].number // empty')
+          elif [ "$EVENT" = "pull_request" ]; then N="$PR_NUM"
+          else N=$(echo "$IN_PR" | tr -cd '0-9'); fi
           if [ -z "$N" ]; then echo "No open pull request for this branch yet."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if gh pr view "$N" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' | grep -q "reviewed:$SHA"; then
+          SHA=$(gh pr view "$N" --repo "$R" --json headRefOid --jq .headRefOid)
+          BR=$(gh pr view "$N" --repo "$R" --json headRefName --jq .headRefName)
+          if [ "$EVENT" = "workflow_run" ] && [ "$RUN_SHA" = "$SHA" ]; then CHECKS="$RUN_RESULT"
+          else
+            # the newest finished "Pull request checks" run for this exact version
+            CHECKS=$(gh api "repos/$R/actions/runs?head_sha=$SHA&per_page=20" --jq '[.workflow_runs[] | select(.name=="Pull request checks")] | sort_by(.created_at) | reverse | (map(select(.status=="completed")) | .[0].conclusion) // empty')
+            BUSY=$(gh api "repos/$R/actions/runs?head_sha=$SHA&per_page=20" --jq '[.workflow_runs[] | select(.name=="Pull request checks" and .status!="completed")] | length')
+            if [ -z "$CHECKS" ] || [ "$BUSY" != "0" ]; then echo "Checks still running; the review will run when they finish."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
+          if gh pr view "$N" --repo "$R" --json comments --jq '.comments[].body' | grep -q "reviewed-final:$SHA"; then
             echo "Pull request #$N at $SHA was already reviewed."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          AUTO=$(gh pr view "$N" --repo "$GITHUB_REPOSITORY" --json comments --jq '[.comments[].body | select(contains("<!-- auto-fix -->"))] | length')
-          BR=$(gh pr view "$N" --repo "$GITHUB_REPOSITORY" --json headRefName --jq .headRefName)
+          AUTO=$(gh pr view "$N" --repo "$R" --json comments --jq '[.comments[].body | select(contains("<!-- auto-fix -->"))] | length')
           case "$BR" in claude/*) [ "$AUTO" = "0" ] && FIX=yes || FIX=no;; *) FIX=no;; esac
-          { echo "go=yes"; echo "num=$N"; echo "sha=$SHA"; echo "checks=$CHECKS"; echo "autofix=$FIX"; } >> "$GITHUB_OUTPUT"
+          { echo "go=yes"; echo "num=$N"; echo "sha=$SHA"; echo "checks=$CHECKS"; echo "autofix=$FIX"; echo "branch=$BR"; } >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
         if: steps.pr.outputs.go == 'yes'
         with:
@@ -112,8 +120,8 @@ jobs:
               - READY: "@Hostmode Ready for you."
               - NOT READY and AUTOMATIC FIX ALLOWED is yes: "Not ready yet. Sending it back to the builder for one fix." (no @ mention of Roy)
               - NOT READY and AUTOMATIC FIX ALLOWED is no: "@Hostmode Not ready yet."
-              Then on the next line "Rating: sure", "Rating: likely" or "Rating: needs a closer look",
-              and one sentence on whether it's safe to approve.
+              Then on the next line exactly one of "Rating: sure", "Rating: likely" or "Rating: needs a closer look",
+              and one sentence on whether it's safe to approve. Say "sure" only when you found no problems at all.
             - "Checks": passed or failed, in one line (from PULL REQUEST CHECKS above).
             - "What it does" in one or two sentences.
             - "Problems" as a short list (or "None found"), most serious first, each with the file and what to change.
@@ -122,9 +130,22 @@ jobs:
               then a line exactly: <!-- auto-fix -->
             - NOT READY and AUTOMATIC FIX ALLOWED is no: end with the exact comment Roy can paste to have the builder fix it, starting with "@claude please fix".
               Never write the auto-fix mark in this case.
-            - The very last line must be exactly: <!-- reviewed:${{ steps.pr.outputs.sha }} -->
+            - The very last line must be exactly: <!-- reviewed-final:${{ steps.pr.outputs.sha }} -->
             Use inline comments only for specific lines that must change.
           claude_args: |
             --model claude-sonnet-5-5
             --max-turns 25
             --allowedTools "Skill,Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+      # Auto-merge: only small, safe changes, and only when everything agrees. No AI decides this step; it reads the facts.
+      - name: Auto-merge small, safe changes
+        # never from the pull_request event (that runs the pull request's own copy of this file), and always main's copy of the script
+        if: steps.pr.outputs.go == 'yes' && steps.pr.outputs.checks == 'success' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N: ${{ steps.pr.outputs.num }}
+          SHA: ${{ steps.pr.outputs.sha }}
+          BR: ${{ steps.pr.outputs.branch }}
+        run: |
+          git fetch -q --depth 1 origin main
+          git show FETCH_HEAD:.github/scripts/auto_merge.py > "$RUNNER_TEMP/auto_merge.py"
+          python3 "$RUNNER_TEMP/auto_merge.py"

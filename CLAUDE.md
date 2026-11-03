@@ -24,7 +24,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Support: the admin console's Support tab, and games.html#support for support staff. Tickets live at partygames/tickets, with ticketReplies (what the reporter sees), ticketNotes (staff-only history and agent drafts), staff, sinvites (support codes), agents (pause switch), agentRuns (overnight reports) and backupStatus.
 - Vendor pages: games.html?vendor=TOKEN&p=PLANNER. Built from planners/{uid}/vpages; check-ins and flagged problems in planners/{uid}/vcheck.
 - agents/: the nightly test customer and technical agent (see agents/README.md). ops/BACKUPS.md: how backups work and how to restore one.
-- .github/workflows: nightly agents, nightly backup, pull request checks (pr-checks), the builder agent (claude-builder: the "claude" label or @claude), the reviewer agent (claude-reviewer) and load-issues (turns .github/issues/*.json into GitHub issues, once each). agents/check_all.sh runs every check a change must pass.
+- .github/workflows: nightly agents, nightly backup, pull request checks (pr-checks), the builder agent (claude-builder: the "claude" label or @claude), the reviewer agent (claude-reviewer, which also auto-merges low-risk changes with .github/scripts/auto_merge.py), the builder queue (builder-queue: starts the next "queue" issue, one at a time), the Monday report (weekly-report) and load-issues (turns .github/issues/*.json into GitHub issues, once each). agents/check_all.sh runs every check a change must pass.
 - Agent office (admin console → Agents): a Sims-style 3D venue in js/18-support-staff.js (agScene draws one SVG back to front; agP(a,b,z) turns a floor spot into a screen point; agents stand at AG_SPOT; tapping opens agPanel). Status comes from GitHub's public run list.
 - Every agent reads this file and the Skills that fit its job; the builder and reviewer also load the Engineering and Design plugins. This file wins over any plugin. A new agent must do the same.
 - The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
@@ -97,7 +97,7 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
    - Background servers stop between turns; start the server in the same command as the test.
    - For big changes (moving code, refactors, anything touching guest, moderator or big-screen screens), record the screens first with `python agents/compare_screens.py before`, make the change, then run it with `after`: it lists any of 14 key screens that changed or shows an error.
 4. Commit with a short plain-English summary of what changed, as Claude <noreply@anthropic.com>, and check that the push went through.
-5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval.
+5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval. The one exception, Roy's decision on Nov 3, 2026: a builder pull request merges on its own when its issue is labeled "low risk", every check passes, the reviewer rates it "sure", and it only touches safe files and 200 lines or fewer (.github/scripts/auto_merge.py). Shared core, guest and moderator/big-screen files never auto-merge.
 
 ## Lessons from building (add one line each time something trips you up; agents read this too)
 
@@ -112,6 +112,8 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 - The builder sometimes can't open the pull request itself and leaves a "Create PR" link instead. The reviewer also runs when Roy opens it from that link (each version is reviewed once, so nothing is paid twice).
 - Commit as `Claude <noreply@anthropic.com>` (git config user.name/user.email in the repo). GitHub refuses pushes that would show Roy's private email.
 - Never hide a command's errors (no `2>/dev/null` on a push, no `| tail` hiding a failed check). Confirm the push printed the branch moving, and that the checks' exit result was 0.
+- The reviewer must only judge a version once its checks have finished; judging while they ran said "not ready" for no reason and used up the automatic fix round. It now waits, and marks finished reviews `reviewed-final:`.
+- A step that decides something on its own (like auto-merge) runs main's copy of its script, never the pull request's copy, so a change can't rewrite the rules it's judged by.
 - GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
 
