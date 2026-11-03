@@ -494,8 +494,9 @@ function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.ag
 const AG_LOOK={tester:{shirt:"#2f8a4c",skin:"#c68c5a",hair:"#3b2416"},tech:{shirt:"#16255a",skin:"#8d5a3b",hair:"#111"},
  builder:{shirt:"#16255a",skin:"#f1c7a1",hair:"#6b3b1f"},reviewer:{shirt:"#e8edf7",skin:"#e0ac7e",hair:"#2a1a10"},
  checks:{shirt:"#111c3d",skin:"#a8714a",hair:"#111"},backup:{shirt:"#f6892f",skin:"#f3cfa8",hair:"#7a4b26"}};
-/* stations on the 10 x 10 floor grid (i runs down to the right, j down to the left); z lifts onto the stage */
-const AG_SPOT={tester:[4.9,5.6,0],tech:[2.1,6.75,0],builder:[8,1.7,8],reviewer:[7.3,8.7,0],checks:[1.6,3.7,0],backup:[3.2,1.5,0]};
+/* stations on the 10 x 10 floor grid (i runs down to the right, j down to the left); z lifts onto the stage;
+   an optional 4th number sets the drawing order (default i + j), for agents whose walk takes them in front of furniture */
+const AG_SPOT={tester:[4.9,5.6,0,13],tech:[2.1,6.75,0],builder:[8,1.7,8],reviewer:[7.3,8.7,0],checks:[1.6,3.7,0],backup:[3.2,1.5,0]};
 const AG_ROLE={tester:"Tries the demos every night like a real planner, venue, host or guest.",tech:"Answers support tickets and tries to fix bugs overnight.",
  builder:"Builds the issues you label \"claude\" and sends them to you as pull requests.",reviewer:"Reads every new pull request and gives it a rating for you.",
  checks:"Checks every change for broken code and broken screens before it reaches you.",backup:"Packs up an encrypted copy of the whole database every night."};
@@ -563,9 +564,9 @@ function agScene(cast,sel,night,sky,n,tk,p){const wall=night?"#2a3a72":"#f6efe2"
  parts.push([9.9,agBox(1,7.2,2.3,.9,14,"#2f8a4c","#16255a","#22305e")+(()=>{const q=agP(1.7,7.5,14);return `<rect x="${q[0]-5}" y="${q[1]-8}" width="10" height="7" rx="1" fill="#2b2b2b"/><rect x="${q[0]-4}" y="${q[1]-7}" width="8" height="5" fill="#8fd0ff"/>`})()]);
  parts.push([13.9,agBox(4,8.5,1.7,.9,12,"#f6efe2","#c9bfa9","#ddd3bd")+(()=>{const q=agP(5.2,8.8,12);return `${tk?`<circle cx="${q[0]}" cy="${q[1]-10}" r="11" fill="#f6892f" opacity=".3"/>`:""}<path d="M${q[0]} ${q[1]}v-8" stroke="#16255a" stroke-width="1.4"/><circle cx="${q[0]}" cy="${q[1]-9}" r="3.2" fill="${tk?"#f6892f":"#9aa3b8"}"/>`})()]);
  {const q=agP(9.5,9.4,0);parts.push([19,`<rect x="${q[0]-5}" y="${q[1]-9}" width="10" height="9" rx="2" fill="#c98a4a"/><circle cx="${q[0]}" cy="${q[1]-15}" r="7" fill="#2f8a4c"/><circle cx="${q[0]-4}" cy="${q[1]-12}" r="4.5" fill="#3aa35e"/>`])}
- cast.forEach(c=>{const [i,j]=AG_SPOT[c.k];parts.push([i+j+.05,agFigure(c,c.k===sel)])});
+ cast.forEach(c=>{const [i,j,,d]=AG_SPOT[c.k];parts.push([d!=null?d:i+j+.05,agFigure(c,c.k===sel)])});
  parts.sort((x,y)=>x[0]-y[0]);
- const sc=cast.find(c=>c.k===sel),tag=sc?(()=>{const [i,j,z]=AG_SPOT[sc.k],[x,y]=agP(i,j,z),w=sc.l.length*5.2+10;return `<g class="agtag" transform="translate(${x} ${y+12})" aria-hidden="true"><rect x="${-w/2}" y="-7" width="${w}" height="12" rx="6" fill="#16255a"/><text y="1.8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">${esc(sc.l)}</text></g>`})():"";
+ const sc=cast.find(c=>c.k===sel),tag=sc?(()=>{const [i,j,z]=AG_SPOT[sc.k],[x,y]=agP(i,j,z),w=sc.l.length*5.2+10;return `<g class="agw agtagw r-${sc.k} ${sc.st}" transform="translate(${x} ${y})" aria-hidden="true"><g class="agmove"><g class="agtag" transform="translate(0 12)"><rect x="${-w/2}" y="-7" width="${w}" height="12" rx="6" fill="#16255a"/><text y="1.8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">${esc(sc.l)}</text></g></g></g>`})():"";
  return `<svg class="agiso" viewBox="0 0 400 290" role="group" aria-label="The agent office. ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk. Tap an agent to see how it's doing.">${back}${parts.map(x=>x[1]).join("")}${tag}</svg>`}
 function agBar(label,pct,col,txt){return `<div class="agneed"><div class="row between small"><b>${label}</b><span class="muted">${esc(txt)}</span></div><div class="agbar"><i style="width:${Math.max(4,Math.min(100,pct))}%;background:${col}"></i></div></div>`}
 function agPanel(c,spent){const hrs=c.r?(Date.now()-Date.parse(c.r.created_at))/36e5:null,fresh=hrs==null?0:hrs<=24?100:hrs<=48?60:hrs<=72?30:10,left=Math.max(0,100-spent/AG_LIMIT*100);
