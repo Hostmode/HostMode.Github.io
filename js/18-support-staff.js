@@ -83,7 +83,7 @@ function supSubs(){if(supSubbed||!db)return;supSubbed=true;
  RT("staff").on("value",s=>{D.staff=s.val()||{};supEnsureOwner();renderSoon()},()=>{});
  if(supIsOwner()||supDemo())RT("sinvites").on("value",s=>{D.sinvites=s.val()||{};renderSoon()},()=>{});
  RT("plist").once("value").then(s=>{D.plist=Object.assign({},D.plist||{},s.val()||{});renderSoon()}).catch(()=>{});
- RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});
+ RT("agents").on("value",s=>{D.agents=s.val()||{};renderSoon()},()=>{});tmSubs();
  RT("sales").on("value",s=>{D.sales=s.val()||{};renderSoon()},()=>{});RT("salesLog").on("value",s=>{D.salesLog=s.val()||{};renderSoon()},()=>{});RT("resources").on("value",s=>{D.resources=s.val()||{};renderSoon()},()=>{});RT("agentRuns").on("value",s=>{D.agentRuns=s.val()||{};renderSoon()},()=>{});RT("backupStatus").on("value",s=>{D.backupStatus=s.val();renderSoon()},()=>{});
  RT("index").once("value").then(s=>{D.supIdx=s.val()||{};renderSoon()}).catch(()=>{});
  const beat=()=>{const m=supMe();if(m&&(VIEW==="support"||(VIEW==="host"&&L.hostTab==="support")))RT("staff/"+m.uid+"/active").set(Date.now()).catch(()=>{})};
@@ -357,7 +357,7 @@ function slForm(x){const g=(f,d)=>esc(dv("slf_"+f,x?(x[f]==null?"":x[f]):(d||"")
  <button class="btn primary as" data-act="slSave" data-k="${x?esc(x.k):""}">${x?"Save":"Add"}</button></div>`}
 const slClear=()=>Object.keys(L.drafts).filter(k=>/^slf_/.test(k)).forEach(k=>delete L.drafts[k]);
 /* ---- Resources: the team's shared documents ---- */
-const RS_KIND={playbook:["📣","Sales and marketing"],process:["🧭","How we sell"],competitors:["🔍","Competitors (staff only)"],brand:["🎨","Brand kit"],link:["🔗","Link"],doc:["📄","Document"]};
+const RS_KIND={playbook:["📣","Sales and marketing"],advantages:["🏆","How we win"],process:["🧭","How we sell"],competitors:["🔍","Competitors (staff only)"],brand:["🎨","Brand kit"],link:["🔗","Link"],doc:["📄","Document"]};
 /* starter documents, shown until the team saves its own copy. No competitor names here: this code is public. */
 const RS_STARTERS={
  playbook:{title:"Sales and Marketing Playbook",kind:"playbook",body:`In anything the public sees, never name a competitor. Say "other apps" or "other event software" instead.
@@ -395,6 +395,22 @@ Plan it. Run it. Remember it. All in one place.
 - Only promise features that are live. Mark anything else "coming soon."
 - Pricing claims wait until subscriptions launch.
 - Use the Host Mode name and colors (navy, orange and green) consistently.`},
+ advantages:{title:"Sales Advantages",kind:"advantages",body:`Ideas that can set Host Mode apart. Use them in the sales plan, pitches and demos.
+
+## Always-on sales help
+Our AI sales agent can answer questions and walk people through a demo at any hour. Most small competitors can't.
+
+## Easy switching
+The importer brings in a planner's old spreadsheets and data in one upload, so the biggest reason to stay with another app goes away. This is the hardest one for others to copy.
+
+## A first event free
+People try it with no risk, then pay once they've seen it work. (Pricing waits for Roy's approval.)
+
+## Real proof
+The January 2 baby shower is our first case study: photos, guest reactions and what the host said.
+
+## Planner connections
+Roy's cousin is a professional planner. She can open doors and refer other planners.`},
  process:{title:"How We Sell (Icee's playbook)",kind:"process",body:`Write down what you do as you do it. It doesn't have to be neat: tell your Claude what happened and ask it to tidy this up. Later, this becomes the sales agent's guide.
 
 ## Where I find leads
@@ -594,10 +610,10 @@ Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel
 /* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */
 document.addEventListener("click",e=>{const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){L.agSel=g.getAttribute("data-agk");render(true)}});
 document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){e.preventDefault();L.agSel=g.getAttribute("data-agk");render(true);setTimeout(()=>{const n=document.querySelector(`.agw[data-agk="${L.agSel}"]`);if(n)n.focus()},0)}});
-const ST_TABS=[["support","Support"],["sales","Sales"],["resources","Resources"]];
+const ST_TABS=[["support","Support"],["team","Team"],["onboard","Onboarding"],["sales","Sales"],["resources","Resources"]];
 function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
- return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}</button>`).join("")}</div>`}
-const staffBody=()=>({sales:salesBody,resources:resourcesBody}[L.stTab]||supportBody)();
+ return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}${k==="team"&&tmUnreadAll()?` <span class="pill warn">${tmUnreadAll()}</span>`:""}</button>`).join("")}</div>`}
+const staffBody=()=>({team:teamBody,onboard:onboardBody,sales:salesBody,resources:resourcesBody}[L.stTab]||supportBody)();
 function marketingBody(){return `<section class="card stack"><h2>Marketing</h2><p class="m0">This is where the marketing department will live: campaigns, social posts, promo videos and which channels bring in sign-ups.</p><p class="small muted m0">It's empty until someone is put in charge of marketing. The playbook, taglines and brand kit are under Resources.</p></section>`}
 Object.assign(ACT,{
  stTab:el=>{L.stTab=el.dataset.k;L.confirm=null;render(true);scrollTo(0,0)},

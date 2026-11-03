@@ -1,6 +1,6 @@
 # CLAUDE.md for Host Mode
 
-Notes Claude reads at the start of every coding session. Keep this under about 200 lines. When one section grows past 30 to 40 lines and only matters for certain jobs, move it into a Skill.
+Notes Claude reads at the start of every coding session. This is also the project brief for Icee's Claude, so anyone can pick up where the last session left off. **When you finish a piece of work, update this file if anything here changed, and add one line to CHANGELOG.md** (date, who, what changed). Keep this under about 200 lines. When one section grows past 30 to 40 lines and only matters for certain jobs, move it into a Skill.
 
 ## What Host Mode is
 
@@ -14,7 +14,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - games.html: the main app's page, now a small shell. Its look is in css/games.css and its code is in js/, one file per part of the app. The page fetches the js/ files in the order listed in HM_FILES (inside games.html), joins them and runs them as ONE script, so all files share the same names and nothing breaks from load order.
   - Because the files run as one script, it's as if they were still one file: functions work from any file, and a top-level const or let is ready once its line has run. Keep code in its part's file. A new file must be added to HM_FILES in games.html AND to the APP list in sw.js (the offline copy).
   - Search for a function by name (grep js/) instead of reading whole files. Error line numbers in the browser refer to the joined script; each file starts with a "===== js/NAME.js =====" comment.
-- js/ files: 00-constants (the custom-game frame and big shared constants) · 01-content (games and Spanish words) · 02-core (state, helpers, connecting, render) · 03-guest · 04-moderator (moderator console, host console, big screen, gallery, printables) · 05-custom-games · 06-event-types (starter content, moments, legal, keepsake) · 07-actions (game logic) · 08-admin (admin, moderators, invite codes, new-event page, themes) · 09-menu (drinks menu) · 10-party-games (wiring, two-player and party games) · 11-tonight (run of show, raffle, gifts, design, reveal, presentations) · 12-planning (planning workstation, demo gate) · 13-teammates · 14-client-portals (client portals, the Clients tab, the importer, packages and invoices) · 15-client-tools (templates, approvals, payments, calendar, branding, feedback, the planner demo data in pdemoSeed) · 16-planner-portal (accounts, Help desk, the portal and its tabs) · 17-inventory-venue · 18-support-staff (support, vendor pages, sales, resources) · 19-leads-boot (leads, showcase, reports, exports, weak signal, and the start-up lines at the very end).
+- js/ files: 00-constants (the custom-game frame and big shared constants) · 01-content (games and Spanish words) · 02-core (state, helpers, connecting, render) · 03-guest · 04-moderator (moderator console, host console, big screen, gallery, printables) · 05-custom-games · 06-event-types (starter content, moments, legal, keepsake) · 07-actions (game logic) · 08-admin (admin, moderators, invite codes, new-event page, themes) · 09-menu (drinks menu) · 10-party-games (wiring, two-player and party games) · 11-tonight (run of show, raffle, gifts, design, reveal, presentations) · 12-planning (planning workstation, demo gate) · 13-teammates · 14-client-portals (client portals, the Clients tab, the importer, packages and invoices) · 15-client-tools (templates, approvals, payments, calendar, branding, feedback, the planner demo data in pdemoSeed) · 16-planner-portal (accounts, Help desk, the portal and its tabs) · 17-inventory-venue · 18-support-staff (support, vendor pages, sales, resources) · 18a-team (team message channels and the onboarding checklist) · 19-leads-boot (leads, showcase, reports, exports, weak signal, and the start-up lines at the very end).
 - index.html: the front page, which opens the create-event page in the Host Mode look.
 - hosts.html and planners.html: the landing pages (single-event hosts and professional planners and venues).
 - drinks.html: the drink-ordering app, locked behind the admin console PIN.
@@ -29,7 +29,7 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Agent office (admin console → Agents): a Sims-style 3D venue in js/18-support-staff.js (agScene draws one SVG back to front; agP(a,b,z) turns a floor spot into a screen point; agents stand at AG_SPOT; tapping opens agPanel). Status comes from GitHub's public run list.
 - Every agent reads this file and the Skills that fit its job; the builder and reviewer also load the Engineering and Design plugins. This file wins over any plugin. A new agent must do the same.
 - The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
-- Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
+- Staff area: games.html#support (support logins) and the admin console both show Support, Team, Onboarding, Sales and Resources. Team messages are partygames/team/{channel} (General, Support, Sales, Marketing, Approvals); onboarding ticks are partygames/onboard/{uid}, with the checklist in ONB_ITEMS in js/18a-team.js. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
 - Skills in .claude/skills (each has a SKILL.md; read the one that fits before starting):
   - Agents: foreman (writing issues), agent-workflows (changing the agent system), review-builder-work (checking a builder branch by hand), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
   - Building: new-event-type, draw-a-scene (drawn, tappable pictures like the agent office and floor plans), spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
@@ -37,6 +37,11 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
   - Planners: onboard-new-planner, pricing-helper, event-debrief, theme-builder, guest-message-writer, testimonial-collector.
   - Sales and marketing: pitch-email, vendor-outreach, social-media-posts, promo-video-script, release-notes.
   - Staff only (never public): competitor-watch, business-plan-update.
+
+## Who works where
+
+- Icee leads the sales department: the Sales section of js/18-support-staff.js, the sales dashboard, the sales agent and pricing (a pricing proposal that Roy approves). Roy handles the rest. Stay in your own area so two people don't change the same file at once; if you must touch the other's area, say so in the Team tab first.
+- Icee has creative freedom over the 3D agent dashboard (the Agents tab).
 
 ## Where things go
 

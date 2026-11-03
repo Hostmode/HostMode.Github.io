@@ -928,3 +928,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .agscore{display:grid;gap:6px}.agscorerow{flex-wrap:wrap;gap:6px}
 .agdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#9aa3b8;vertical-align:middle}
 .agdot.work{background:#f6892f}.agdot.done{background:#2f8a4c}.agdot.fail{background:#d62d2d}
+
+/* team messages and onboarding (js/18a-team.js) */
+.tmlist{max-height:60vh;overflow-y:auto}.tmmsg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;max-width:92%}.tmmsg.mine{align-self:flex-end;border-color:#f7941d;background:#fff7ec}.tmtext{white-space:pre-wrap;overflow-wrap:anywhere}
+.onb{border:1px solid var(--line);border-radius:12px;padding:8px 10px}.onb.done{background:#f1faef;border-color:#3dae2b}.onbtick{min-width:34px;height:34px;font-weight:700}.onb.done .onbtick{background:#3dae2b;color:#fff;border-color:#3dae2b}.onbhead{background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:4px 8px}.onbhow{margin:6px 0 0 42px}

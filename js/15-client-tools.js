@@ -272,7 +272,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=14;
+const PDEMO_V=15;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -402,6 +402,9 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
  pg.sales={s1:{biz:"Queen City Events",name:"Dana Brooks",kind:"planner",city:"Charlotte",email:"dana@queencity.example",phone:"704-555-0190",src:"Wedding expo",stage:"talking",next:day(0),nextWhat:"Send the demo link",owner:{uid:"icee",name:"Icee"},notes:"Does about 30 weddings a year. Uses three apps and a rentals spreadsheet.",t:ago(80),last:ago(20)},
   s2:{biz:"The Mill at Rock Hill",name:"Marcus Hale",kind:"venue",city:"Rock Hill",web:"themill.example",src:"Instagram",stage:"idea",next:day(2),nextWhat:"First call",owner:{uid:"icee",name:"Icee"},notes:"Two event rooms and a garden. Books by phone and a paper calendar.",t:ago(30),last:ago(30)},
   s3:{biz:"Bloom & Vine Florals",name:"Tara Nguyen",kind:"decor",city:"Charlotte",email:"tara@bloomvine.example",src:"Referral from Claire",stage:"trial",next:day(5),nextWhat:"Check in on the inventory import",owner:{uid:"roy",name:"Roy"},t:ago(200),last:ago(48)}};
+ pg.team={general:{m1:{text:"Welcome to the team, Icee! Your onboarding checklist is in the Onboarding tab.",uid:"roy",name:"Roy",t:ago(26)},m2:{text:"Thanks! Starting on Blender today.",uid:"icee",name:"Icee",t:ago(25)}},approvals:{m1:{text:"Pricing proposal draft is in Resources. Ready for your review when you have a minute.",uid:"icee",name:"Icee",t:ago(3)}}};
+ pg.teamSeen={roy:{general:ago(25)},icee:{general:ago(25),approvals:ago(3)}};
+ pg.onboard={icee:{login:ago(200),claude:ago(190),team:ago(25)}};
  pg.salesLog={s1:{l1:{text:"Met at the Charlotte wedding expo. Loved the big screen games.",name:"Icee",t:ago(80)},l2:{text:"Called. She wants to see the planner portal.",name:"Icee",t:ago(20)}},s3:{l1:{text:"Moved to Trying it",name:"Roy",t:ago(48)}}};
  pg.agents={paused:false};pg.backupStatus={t:ago(4),mb:3.1,ok:true};
  pg.agentRuns={r1:{t:ago(6),done:ago(5.6),usage:{in:182000,out:9100,usd:0.45},
