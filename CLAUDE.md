@@ -107,6 +107,8 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 - In a scene drawn back to front, draw labels and name tags LAST so nothing covers them.
 - Pull requests from the builder come from Claude's bot, so workflows that react to them must allow that bot (`allowed_bots`).
 - A builder run starts from main as it is at that moment. If main changes under an open job, the job builds on the old code: when one issue replaces another, close the old one before labeling the new one.
+- A pull request opened with GitHub's own token doesn't start other workflows. That's why the reviewer also runs after the pull request checks finish on a claude/... branch.
+- The builder can only run the commands listed in its workflow (agents/check_all.sh, agents/screens.sh before|after, node agents/syntax_check.js, git status/diff, gh pr). When it needs a new kind of check, add a script to agents/ and list it, rather than allowing any command.
 - GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
 
