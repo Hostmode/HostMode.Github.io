@@ -508,7 +508,7 @@ Object.assign(ACT,{
 
 /* ---- Host Mode's own look: the create-event page and the host console wear the brand, not an event's theme ---- */
 const BRAND={colors:{bar:"#0c2147",ground:"#f2f5fa",card:"#ffffff",line:"#d2dbea",ink:"#0c2147",muted:"#4b5b79",hd:"#0f2c5c",hd2:"#b45a00",btn1:"#0f2c5c",btn2:"#1f4f96",rose:"#f7941d",flame:"#f26722",gold:"#f2b134",violet:"#0f2c5c",leaf:"#3dae2b"},fonts:{title:"Montserrat",head:"Montserrat",body:"Figtree",size:15}};
-const brandView=()=>VIEW==="new"||VIEW==="host"||VIEW==="planner"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||(VIEW==="guest"&&(!EV||L.missing));
+const brandView=()=>VIEW==="new"||VIEW==="host"||VIEW==="planner"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"||(VIEW==="guest"&&(!EV||L.missing))||(VIEW==="moderator"&&modPlanOnly());/* the Plan screen opened from a host's dashboard wears the dashboard's look, not the event's */
 const _applyThemeBrand=applyTheme;
 applyTheme=function(){_applyThemeBrand();const on=brandView();document.documentElement.classList.toggle("hmbrand",on);if(!on)return;
  setThemeVars(BRAND.colors,BRAND.fonts,true);if(Object.keys(L.drafts).some(k=>k.startsWith("ts_c_")||k.startsWith("ts_f_")||k==="ts_glow"))previewTheme("ts_")};

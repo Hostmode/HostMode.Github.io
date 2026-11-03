@@ -179,7 +179,7 @@ mLive=function(){const items=rosItems().filter(x=>!(D.rosDone||{})[x.k]);const n
 const modPlanOnly=()=>!!(D.meta&&D.meta.host&&QS.get("only")==="plan");
 const planURL=code=>baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"e="+encodeURIComponent(code)+"&only=plan#moderator";
 moderator=function(){
- if(modPlanOnly()){if(L.mtab!=="plan")L.mtab="plan";
+ if(modPlanOnly()){if(L.mtab!=="plan")L.mtab="plan";if(!document.documentElement.classList.contains("hmbrand"))applyTheme();
   return `${status()}<section class="card row between"><div class="mw0"><div class="eyebrow">Plan</div><b>${esc((D.meta&&D.meta.name)||"Your event")}</b></div><div class="row small"><a class="btn sm" href="${esc(baseURL()+(window.__HMPDEMO?"?pdemo=1&host=1":window.__HMDEMO?"?e=DEMO":"")+"#planner")}">My event dashboard</a><a class="btn sm" href="${esc(eventURL(EV,"moderator"))}">Open the console</a></div></section><div class="stack mw0">${mPlan()}</div>`}
  const tab=(k,l)=>`<button data-act="mtab" data-k="${k}" aria-pressed="${L.mtab===k}">${l}</button>`;
  const body=({live:mLive,plan:mPlan,tonight:mTonight,pres:mPres,moments:mMoments,teams:mTeams,scores:mScores,content:mContent,custom:mCustom,event:mEvent,memories:mMemories,menu:mMenu,party:mParty,help:mHelp}[L.mtab]||mLive)();
