@@ -318,5 +318,5 @@ Object.assign(ACT,{
   if(n){return toast(`${n} upcoming booking${n===1?" uses":"s use"} this space. Move or cancel ${n===1?"it":"them"} first.`)}await RT(PSP+"spaces/"+k).remove();toast("Space deleted")}
 });
 
-function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:()=>plSettings()+privacyCard(),help:plHelp}[k]||plHome)()}
-function plTabBadge(k){const n=k==="home"?0:k==="leads"?inqNew():k==="clients"?clAttention():k==="team"?mateBehind():k==="inv"?gearIssues():k==="venue"?(venueOn()?holdsDue().length:0):k==="pkg"?Object.keys(D.clients||{}).reduce((s,id)=>s+invList(id).filter(x=>invStatus(id,x)==="Overdue").length,0):0;return n?` <span class="pill warn">${n}</span>`:""}
+function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,stay:sgTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:()=>plSettings()+privacyCard(),help:plHelp}[k]||plHome)()}
+function plTabBadge(k){const n=k==="home"?0:k==="leads"?inqNew():k==="clients"?clAttention():k==="team"?mateBehind():k==="inv"?gearIssues():k==="venue"?(venueOn()?holdsDue().length:0):k==="stay"?sgBadge():k==="pkg"?Object.keys(D.clients||{}).reduce((s,id)=>s+invList(id).filter(x=>invStatus(id,x)==="Overdue").length,0):0;return n?` <span class="pill warn">${n}</span>`:""}
