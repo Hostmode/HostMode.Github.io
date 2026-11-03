@@ -45,7 +45,7 @@ A builder works from main as it is when it starts, so a stale issue builds on ol
 
 ## Keep the lessons
 
-After any session where something went wrong or was learned, add one plain line to "Lessons from building" in CLAUDE.md.
+After any session where something went wrong or was learned, add one plain line to "Lessons from building" in CLAUDE.md, or to the Skill for that kind of job (agent-workflows, draw-a-scene, review-builder-work) if it only matters there.
 Every agent reads CLAUDE.md, so that is how the builder, reviewer and technical agent learn.
 
 ## Order the queue

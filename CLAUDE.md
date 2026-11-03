@@ -31,8 +31,9 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - The agent plan: "Host Mode Agent Development Plan" doc. Phase 1 started Nov 2, 2026: front-end builder only, at most 3 open agent pull requests, freeze Dec 31 to Jan 3.
 - Staff area: games.html#support (support logins) and the admin console both show Support, Sales and Resources. Sales leads are partygames/sales and salesLog; shared documents are partygames/resources (starter documents are RS_STARTERS in js/18-support-staff.js, with no competitor names because the code is public). The admin console also has an empty Marketing tab.
 - Skills in .claude/skills (each has a SKILL.md; read the one that fits before starting):
-  - Agents: foreman (writing issues), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
-  - Building: new-event-type, spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
+  - Agents: foreman (writing issues), agent-workflows (changing the agent system), review-builder-work (checking a builder branch by hand), test-as-customer, answer-support-ticket, bug-report-cleanup, fix-host-mode-bug.
+  - Building: new-event-type, draw-a-scene (drawn, tappable pictures like the agent office and floor plans), spanish-check, accessibility-check, privacy-check (run on every feature that adds data), data-import-helper.
+  - Roy: guide-roy-on-github (phone steps for GitHub, for voice sessions).
   - Planners: onboard-new-planner, pricing-helper, event-debrief, theme-builder, guest-message-writer, testimonial-collector.
   - Sales and marketing: pitch-email, vendor-outreach, social-media-posts, promo-video-script, release-notes.
   - Staff only (never public): competitor-watch, business-plan-update.
@@ -42,6 +43,13 @@ Notes Claude reads at the start of every coding session. Keep this under about 2
 - Roy's business tools (support, sales, marketing, Resources) go in the admin console. Customers' tools (floor plans, inventory, venue, run-of-show setup) go in the planner portal. Live event tools run in the event console. Vendors and teammates follow along on simple phone pages through private links, no login.
 - Build each feature once, with separate views for each role (edit, run, view only). Never copy code to make a second version.
 - The database rules decide what each person can see, not which page they land on.
+
+## Working with Roy
+
+- Roy works from his Android phone, often by voice. Give one step at a time with the exact button names, and wait for him.
+- Run commands without asking first; ask only for decisions that are his (what to build, merging, money, anything that can't be undone).
+- End every piece of work with what he needs to do, in order, and nothing more. If nothing, say so.
+- Never ask him to read a code, password or key out loud.
 
 ## Words we use
 
@@ -102,23 +110,15 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 
 ## Lessons from building (add one line each time something trips you up; agents read this too)
 
+Lessons for one kind of job live in its Skill: agent-workflows (GitHub and the agents), draw-a-scene (drawn pictures), review-builder-work. These apply to every job:
+
 - `data-act` only works on HTML buttons, links and form fields. On SVG elements, catch taps with one document-level listener (see the agent office).
-- An SVG nested inside another loses its CSS hook unless you give it the class again (`<svg class="agp">`).
-- Small things to tap (people in a scene, icons) need an invisible tap area around them (`fill="transparent"` rect); a finger misses the gaps.
-- In a scene drawn back to front, draw labels and name tags LAST so nothing covers them.
-- Pull requests from the builder come from Claude's bot, so workflows that react to them must allow that bot (`allowed_bots`).
-- A builder run starts from main as it is at that moment. If main changes under an open job, the job builds on the old code: when one issue replaces another, close the old one before labeling the new one.
-- A pull request opened with GitHub's own token doesn't start other workflows. That's why the reviewer also runs after the pull request checks finish on a claude/... branch.
-- The builder can only run the commands listed in its workflow (agents/check_all.sh, agents/screens.sh before|after, node agents/syntax_check.js, git status/diff, gh pr). When it needs a new kind of check, add a script to agents/ and list it, rather than allowing any command.
-- The builder usually leaves a "Create PR" link instead of opening the pull request, so the builder workflow's last step opens it (with GitHub's own token). The reviewer finds it when the checks finish; if Roy opens one by hand, the reviewer runs then too (each version is reviewed once).
-- In the agent office, people keep their drawing order while they walk, so routes must not pass behind furniture; use AG_SPOT's 4th number to draw a walker later. Anything that should follow a walker (like the name tag) goes inside a `.agmove` with the same agent classes.
 - Commit as `Claude <noreply@anthropic.com>` (git config user.name/user.email in the repo). GitHub refuses pushes that would show Roy's private email.
 - Never hide a command's errors (no `2>/dev/null` on a push, no `| tail` hiding a failed check). Confirm the push printed the branch moving, and that the checks' exit result was 0.
-- The reviewer must only judge a version once its checks have finished; judging while they ran said "not ready" for no reason and used up the automatic fix round. It now waits, and marks finished reviews `reviewed-final:`.
-- A step that decides something on its own (like auto-merge) runs main's copy of its script, never the pull request's copy, so a change can't rewrite the rules it's judged by.
-- A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems (like `crawl.py --self-test`), and report one bug once (group repeats of the same error).
-- GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
 - A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
+- A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems, and report one bug once.
+- When one issue replaces another, close the old one before starting the new one: a builder job starts from main as it is at that moment.
+- When a lesson only matters for one kind of job, add it to that job's Skill instead of here.
 
 ## On hold until the current build is tested
 
