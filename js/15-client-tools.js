@@ -272,7 +272,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=17;
+const PDEMO_V=18;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -428,6 +428,7 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
  pg.invites={DEMOHOST:{label:"Jordan",max:1,used:1,active:true,host:"jordan",event:"JORDAN",eventName:"Jordan's 40th",usedAt:ago(120),t:ago(130)}};
  const dev="iPhone/iPad · Safari · screen 390×844 · online · en-US";
  pg.staff={roy:{name:"Roy",role:"owner",t:ago(3000),active:ago(0.01)},icee:{name:"Icee",role:"support",code:"SUP-DEMO1",t:ago(200),active:ago(2.5)}};
+ pg.admins={icee:true};
  pg.sinvites={"SUP-DEMO1":{label:"Icee",active:true,by:"icee",name:"Icee",usedAt:ago(200),t:ago(210)}};
  pg.tickets={tk1:{msg:"The trivia question on my phone is stuck on question 4. Everyone else moved on to question 5.",who:"guest",name:"Tasha",contact:"",ev:"DUBLIN",page:"games.html?e=DUBLIN",device:dev,errs:"",status:"new",t:ago(0.3),last:ago(0.3),lastFrom:"reporter"},
   tk2:{msg:"I uploaded my vendor spreadsheet but two of the vendors didn't show up under Vendors.",who:"planner",name:"Claire Moran",contact:"claire@northlight.example",p:"northlight",page:"games.html#planner",device:"Mac · Chrome · screen 1512×982 · online · en-US",status:"working",seen:{roy:ago(5),icee:ago(4)},by:{uid:"icee",name:"Icee",t:ago(4)},t:ago(6),last:ago(1),lastFrom:"reporter"},

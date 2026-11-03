@@ -7,6 +7,11 @@
    partygames/owner = owner uid (claimed once)       partygames/pinvites/{CODE} = planner invite {label, active, by, t}
    partygames/plist/{uid} = {name, biz, email, t}     partygames/planners/{uid}/profile = {name, biz, email, code, t}
    partygames/planners/{uid}/events/{EV} = {name, created}   partygames/planners/{uid}/tv/{EV} = vendors shared with teammates */
+/* admins: Roy (the owner) can make other people full admins (partygames/admins/{uid}=true, Roy's decision on Nov 3, 2026).
+   An admin can do everything Roy can in the admin console except make or remove admins. */
+L.coAdmin=false;D.admins={};
+const isAdminUser=()=>!!(L.user&&(L.user.uid===D.owner||L.coAdmin));
+const loadCoAdmin=async u=>{L.coAdmin=false;if(!u)return false;const v=await RT("admins/"+u.uid).once("value").then(s=>s.val()).catch(()=>null);L.coAdmin=v===true;return L.coAdmin};
 const AUTH=()=>{try{return window.firebase&&firebase.auth?firebase.auth():null}catch(e){return null}};
 const PLID=()=>PSP?PSP.split("/")[1]:"";
 const authErr=e=>{const c=(e&&e.code)||"";return {"auth/invalid-email":"That email address doesn't look right.","auth/user-not-found":"No account with that email.","auth/wrong-password":"That password isn't right.","auth/invalid-credential":"That email and password don't match.","auth/invalid-login-credentials":"That email and password don't match.","auth/email-already-in-use":"There's already an account with that email. Sign in instead.","auth/weak-password":"Use a password with at least 8 characters.","auth/too-many-requests":"Too many tries. Wait a minute and try again.","auth/network-request-failed":"No connection. Check your signal and try again."}[c]||("Something went wrong: "+((e&&e.message)||c))};
@@ -44,8 +49,8 @@ Object.assign(ACT,{
    Guests, clients, teammates and vendors don't sign in: they use event codes and private links. */
 const ROLE_LBL={host:["Admin console","Events, support, sales and settings for Host Mode"],planner:["Planner portal","Your clients, events, venue and inventory"],support:["Staff area","Support tickets, sales and resources"]};
 async function acctRoles(u){if(!u)return [];const get=p=>RT(p).once("value").then(s=>s.val()).catch(()=>null);
- const [ow,pl,st]=await Promise.all([get("owner"),get("planners/"+u.uid+"/profile"),get("staff/"+u.uid)]);D.owner=ow||D.owner;
- const r=[];if(ow&&ow===u.uid)r.push("host");if(pl)r.push("planner");if(st&&ow!==u.uid)r.push("support");
+ const [ow,pl,st,adm]=await Promise.all([get("owner"),get("planners/"+u.uid+"/profile"),get("staff/"+u.uid),get("admins/"+u.uid)]);D.owner=ow||D.owner;L.coAdmin=adm===true;
+ const r=[];if(ow&&ow===u.uid||adm===true)r.push("host");if(pl)r.push("planner");if(st&&ow!==u.uid)r.push("support");
  store.set("hmRoles",{uid:u.uid,roles:r,host:!!(pl&&pl.kind==="host")});return r}
 const goRole=role=>{location.hash=role;location.reload()};
 /* hosts (one event, own account) reuse the planner role and pages, with their own name and a smaller set of tabs */
@@ -67,7 +72,7 @@ ACT.goRole=el=>goRole(el.dataset.k);
 
 /* ---- owner console gate ---- */
 const _checkAuthOwner=checkAuth;
-checkAuth=function(){_checkAuthOwner();if(VIEW==="host"&&AUTH()&&!window.__HMPDEMO)L.hostOK=!!(L.user&&D.owner&&L.user.uid===D.owner)};
+checkAuth=function(){_checkAuthOwner();if(VIEW==="host"&&AUTH()&&!window.__HMPDEMO)L.hostOK=!!(L.user&&(D.owner&&L.user.uid===D.owner||L.coAdmin))};
 let ownerSubbed=false;
 function ownerSubs(){if(ownerSubbed||!db)return;ownerSubbed=true;
  RT("invites").on("value",s=>{D.invites=s.val()||{};renderSoon()});RT("index").on("value",s=>{D.events=s.val()||{};L.loaded=true;plAutoAttach();renderSoon()},()=>{L.loaded=true;renderSoon()});
@@ -76,7 +81,7 @@ function ownerSubs(){if(ownerSubbed||!db)return;ownerSubbed=true;
  Promise.all(["clients","mates"].map(n=>RT(n).once("value").then(x=>Object.keys(x.val()||{}).length).catch(()=>0))).then(([c,m])=>{L.legacy={c,m};renderSoon()})}
 function hostConnect(){RT("owner").on("value",s=>{D.owner=s.val()||null;checkAuth();if(L.hostOK)ownerSubs();else L.loaded=true;renderSoon()});
  const a=AUTH();if(!a){/* no sign-in available (offline test copy): fall back to the PIN */L.authReady=true;ownerSubs();return}
- a.onAuthStateChanged(u=>{L.user=u;L.authReady=true;checkAuth();if(L.hostOK)ownerSubs();renderSoon()})}
+ a.onAuthStateChanged(async u=>{L.user=u;await loadCoAdmin(u);L.authReady=true;checkAuth();if(L.hostOK)ownerSubs();renderSoon()})}
 const _hostView0=hostView;
 hostView=function(){const a=AUTH();if(!a||window.__HMPDEMO)return _hostView0();
  if(!L.authReady)return loadingView();
@@ -291,8 +296,8 @@ function plConnect(){
   if(!u){L.plOK=false;L.loaded=true;renderSoon();return}
   const asU=QS.get("as")||"";
   if(/^[A-Za-z0-9_-]{1,64}$/.test(asU)){const ow=(await RT("owner").once("value").catch(()=>null));
-   const sf=ow&&ow.val()!==u.uid?(await RT("staff/"+u.uid).once("value").catch(()=>null)):null,isSt=!!(sf&&sf.val());
-   if(ow&&(ow.val()===u.uid||isSt)){if(isSt)L.viewOnly=true;const ap=(await RT("planners/"+asU+"/profile").once("value").catch(()=>null));const apv=ap&&ap.val();
+   const adm=await loadCoAdmin(u),sf=ow&&ow.val()!==u.uid&&!adm?(await RT("staff/"+u.uid).once("value").catch(()=>null)):null,isSt=!!(sf&&sf.val());
+   if(ow&&(ow.val()===u.uid||adm||isSt)){if(isSt)L.viewOnly=true;const ap=(await RT("planners/"+asU+"/profile").once("value").catch(()=>null));const apv=ap&&ap.val();
     if(apv){PSP="planners/"+asU+"/";D.plMe=apv;L.plOK=true;L.viewAs=true;plSubs();renderSoon();return}}}
   const prof=(await RT("planners/"+u.uid+"/profile").once("value").catch(()=>null));const pv=prof&&prof.val();
   if(pv){PSP="planners/"+u.uid+"/";D.plMe=pv;L.plOK=true;plSubs()}else{L.plOK=false;L.loaded=true}
@@ -305,7 +310,7 @@ function plannerView(){
   return card(mode==="new"?"Create your planner account":"Sign in",`${mode==="new"?`<p class="small muted m0">You'll need the planner code Host Mode sent you.</p>${acctForm("planner")}<button class="btn xs as" data-act="acMode" data-k="signin">I already have an account</button>`:`${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="new">New planner? Create your account</button>`}`)}
  const TB=plTabsNow(),cur=TB.some(([k])=>k===L.plTab)?L.plTab:TB[0][0],tab=(k,l)=>`<button data-act="plTab" data-k="${k}" aria-pressed="${cur===k}">${l}${plTabBadge(k)}</button>`;
  const body=plTabBody(cur);const me=D.plMe||{};
- return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s ${plIsHost()?"event dashboard":"planner portal"} ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="${plIsHost()?"Dashboard sections":"Planner sections"}">${TB.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO||window.__HMDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}${roleLinks("planner")}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
+ return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s ${plIsHost()?"event dashboard":"planner portal"} ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="${plIsHost()?"Dashboard sections":"Planner sections"}">${TB.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO||window.__HMDEMO?"":`<span class="row">${isAdminUser()?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}${roleLinks("planner")}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
 function plEvents(){const ev=D.events||{},ks=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0)),host=plIsHost();
  /* hosts need a new invite code for each event, so their New event goes to the invite code page */
  const nu=host?baseURL()+(window.__HMPDEMO?"?pdemo=1":"")+"#new":baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+(L.viewAs?"as="+encodeURIComponent(PLID())+"&":"")+"planner=1#new";

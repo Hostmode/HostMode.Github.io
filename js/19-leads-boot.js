@@ -192,7 +192,7 @@ if(VIEW==="new"&&QS.get("planner")==="1"){
  {const tq=QS.get("tpl");if(tq)setTimeout(()=>{if(EVENT_TEMPLATES[tq]&&!L.drafts.nw_tpl)ACT.nwTpl({dataset:{k:tq}})},400)}
  const setPl=uid=>{L.newPl=uid;L.newInv="PLANNER";renderSoon()};
  if(window.__HMPDEMO)setPl("northlight");
- else setTimeout(()=>{const a=AUTH(),asU=QS.get("as")||"";if(a)a.onAuthStateChanged(async u=>{if(u&&/^[A-Za-z0-9_-]{1,64}$/.test(asU)){const ow=await RT("owner").once("value").catch(()=>null);if(ow&&ow.val()===u.uid){setPl(asU);return}}if(u)RT("planners/"+u.uid+"/profile").once("value").then(s=>{const v=s.val();if(v&&v.kind!=="host")setPl(u.uid)}).catch(()=>{})})},0)}
+ else setTimeout(()=>{const a=AUTH(),asU=QS.get("as")||"";if(a)a.onAuthStateChanged(async u=>{if(u&&/^[A-Za-z0-9_-]{1,64}$/.test(asU)){const ow=await RT("owner").once("value").catch(()=>null);if(ow&&ow.val()===u.uid||await loadCoAdmin(u)){setPl(asU);return}}if(u)RT("planners/"+u.uid+"/profile").once("value").then(s=>{const v=s.val();if(v&&v.kind!=="host")setPl(u.uid)}).catch(()=>{})})},0)}
 /* the new-event page for hosts: knows who's signed in, so a host with an account adds the event to it (nwAcctBox) */
 if(VIEW==="new"&&QS.get("planner")!=="1"&&!window.__HMDEMO&&!window.__HMPDEMO)setTimeout(()=>{const a=AUTH();if(a)a.onAuthStateChanged(u=>{L.user=u;render(true)})},0);
 

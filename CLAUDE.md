@@ -64,7 +64,7 @@ Notes Claude reads at the start of every coding session. This is also the projec
 - "Host" means a customer running their own event, not Roy. New hosts have their own sign-in and event dashboard.
 - Helpers are now called "teammates."
 - New hosts and planners join with one-time invite PINs that Roy issues.
-- Icee is the support teammate. Her support login opens only the support area (tickets and read-only account views). It never gets access to money, invite PINs or deleting things.
+- Icee is the support teammate, and since Nov 3, 2026 (Roy's decision) a full admin: partygames/admins/{uid} = true lets an account do everything Roy can in the admin console and the database rules, except make or remove admins (only Roy, with Make admin in Support → Support team). Other support logins still open only the support area, with no money, invite PINs or deleting.
 
 ## Brand
 
