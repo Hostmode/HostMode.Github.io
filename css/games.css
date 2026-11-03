@@ -943,3 +943,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .sgfacts{display:grid;grid-template-columns:minmax(100px,max-content) 1fr;gap:4px 12px;font-size:.9rem;margin:0}.sgfacts dt{color:var(--muted)}.sgfacts dd{margin:0}
 .sgwrap{overflow-x:auto}.sgtbl{width:100%;border-collapse:collapse;font-size:.88rem}.sgtbl th,.sgtbl td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}.sgtbl .n{text-align:right;white-space:nowrap}
 .sgperson{align-items:flex-start}.sgdetail{margin-top:8px}
+
+/* planner portal: the 3D designer tab */
+.pl3d{width:100%;height:78vh;min-height:520px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.pl3dfloat{position:absolute;z-index:5;border:1px solid var(--line);border-radius:12px;background:#fff;box-sizing:border-box}

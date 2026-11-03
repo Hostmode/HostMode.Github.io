@@ -318,5 +318,21 @@ Object.assign(ACT,{
   if(n){return toast(`${n} upcoming booking${n===1?" uses":"s use"} this space. Move or cancel ${n===1?"it":"them"} first.`)}await RT(PSP+"spaces/"+k).remove();toast("Space deleted")}
 });
 
-function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,stay:sgTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:()=>(plIsHost()?hostSettings():plSettings())+privacyCard(),help:plHelp}[k]||plHome)()}
+/* ---- 3D designer tab: the designer page (venue3d.html, files in 3d/) shown inside the portal.
+   It's the same website, so it uses the planner's sign-in and saves to planners/{uid}/venue3d. In the demo it saves on the device only. ---- */
+function pl3dTab(){const demo=!!window.__HMPDEMO,src="venue3d.html"+(demo?"?demo=1":"");
+ if(L.viewAs)return `<section class="card stack"><h2>3D designer</h2><p class="small muted m0">Designs open under the account that's signed in, so they can't be viewed from here while you're looking at someone else's portal.</p></section>`;
+ return `<section class="card stack"><div class="row between"><div class="mw0"><h2 class="m0">3D designer</h2><p class="small muted m0">Lay out the room, the tables and the decor in 3D.${demo?" In the demo, designs stay on this device.":" Designs save to your account."}</p></div><a class="btn sm" href="${esc(src)}" target="_blank" rel="noopener">Open full screen ↗</a></div>
+ <div id="pl3dSlot" class="pl3d" data-src="${esc(src)}"></div></section>`}
+/* The portal redraws the whole screen on every change, which would reload the designer and lose what's on it.
+   So one designer window lives outside the redraw and is lined up over the tab's empty slot (pl3dSlot), and hidden on other tabs. */
+let pl3dFrame=null;
+const pl3dPause=on=>{try{pl3dFrame.contentWindow.HM3D_PAUSED=on}catch(e){}};
+function pl3dPlace(){const slot=document.getElementById("pl3dSlot");
+ if(!slot){if(pl3dFrame&&pl3dFrame.style.display!=="none"){pl3dFrame.style.display="none";pl3dPause(true)}return}
+ if(!pl3dFrame){pl3dFrame=document.createElement("iframe");pl3dFrame.className="pl3dfloat";pl3dFrame.title="3D venue designer";pl3dFrame.allow="fullscreen";pl3dFrame.src=slot.dataset.src;document.body.appendChild(pl3dFrame)}
+ if(pl3dFrame.style.display==="none")pl3dPause(false);const r=slot.getBoundingClientRect();Object.assign(pl3dFrame.style,{display:"block",left:(r.left+scrollX)+"px",top:(r.top+scrollY)+"px",width:r.width+"px",height:r.height+"px"})}
+const _render3d=render;render=function(f){_render3d(f);pl3dPlace()};
+if(VIEW==="planner"){addEventListener("resize",pl3dPlace);setInterval(pl3dPlace,400)}
+function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,d3:pl3dTab,stay:sgTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:()=>(plIsHost()?hostSettings():plSettings())+privacyCard(),help:plHelp}[k]||plHome)()}
 function plTabBadge(k){const n=k==="home"?0:k==="leads"?inqNew():k==="clients"?clAttention():k==="team"?mateBehind():k==="inv"?gearIssues():k==="venue"?(venueOn()?holdsDue().length:0):k==="stay"?sgBadge():k==="pkg"?Object.keys(D.clients||{}).reduce((s,id)=>s+invList(id).filter(x=>invStatus(id,x)==="Overdue").length,0):0;return n?` <span class="pill warn">${n}</span>`:""}

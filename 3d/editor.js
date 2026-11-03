@@ -77,7 +77,8 @@ export class Editor {
     this.ray = new T.Raycaster(); this.walk = { yaw: 0, pitch: 0, keys: {}, pos: new T.Vector3() };
     this.bindInput(cv);
     new ResizeObserver(() => this.resize()).observe(cv.parentElement); this.resize();
-    const loop = () => { requestAnimationFrame(loop); this.tick(); }; loop();
+    // window.HM3D_PAUSED: set by the planner portal while its 3D designer tab is hidden, so the hidden view stops drawing
+    const loop = () => { requestAnimationFrame(loop); if (!window.HM3D_PAUSED) this.tick(); }; loop();
   }
 
   applyQuality() {

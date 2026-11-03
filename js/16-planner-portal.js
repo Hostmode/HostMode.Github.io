@@ -211,6 +211,7 @@ const HELP={
   ["Download a backup","Import & export → Download everything gives you one spreadsheet with every part of your business, which you can also upload back.","data","export download backup spreadsheet copy save excel everything"],
   ["See how your business is doing","Reports shows money collected and new clients by month, best-selling packages and where leads come from.","rep","report reports revenue income money made stats numbers sales"],
   ["Collect reviews and feedback","Feedback gathers ratings from guests and clients. Feature the best ones as testimonials.","fb","feedback review reviews testimonial rating survey stars"],
+  ["Design a venue in 3D","3D designer lays out a room in 3D: walls, stage, dance floor, tables and chairs, linens, balloons, drapery and lighting. Type what you want in the Ask box and it shows a preview first. Designs save to your account.","d3","3d design layout floor plan room venue tables chairs decor seating render"],
   ["Change your profile or password","Settings has your profile, account email, password and sign out.","set","settings profile password account email sign out log out name"]],
  ho:[
   ["Plan your event","My events → Plan has your date, countdown and to-do list with due dates and reminders.","events","plan planning date countdown checklist to-do todo reminder due"],
@@ -321,7 +322,7 @@ ACT.plTab=el=>{L.plTab=el.dataset.k;L.confirm=null;render();scrollTo(0,0)};
    Home (what needs attention and this week), Clients, Events, Calendar, Teammates, Packages (and every invoice),
    Inventory (what the business owns and pull lists), Venue (spaces, bookings, holds and blocked days),
    Templates (ready-made events and checklists), Import & export, Branding, Feedback, Settings. */
-const PL_TABS=[["home","Home"],["clients","Clients"],["leads","Leads"],["events","Events"],["cal","Calendar"],["inv","Inventory"],["venue","Venue"],["stay","Stay & Go"],["team","Teammates"],["pkg","Packages"],["show","Showcase"],["rep","Reports"],["tpl","Templates"],["data","Import & export"],["brand","Branding"],["fb","Feedback"],["set","Settings"],["help","Help desk"]];
+const PL_TABS=[["home","Home"],["clients","Clients"],["leads","Leads"],["events","Events"],["cal","Calendar"],["inv","Inventory"],["venue","Venue"],["d3","3D designer"],["stay","Stay & Go"],["team","Teammates"],["pkg","Packages"],["show","Showcase"],["rep","Reports"],["tpl","Templates"],["data","Import & export"],["brand","Branding"],["fb","Feedback"],["set","Settings"],["help","Help desk"]];
 /* a host's dashboard: their events, Stay & Go, the Help desk and their account (planning tabs move here after Jan 3) */
 const HOST_TABS=[["events","My events"],["stay","Stay & Go"],["help","Help desk"],["set","Settings"]];
 const plIsHost=()=>!!(D.plMe&&D.plMe.kind==="host");
