@@ -21,6 +21,8 @@ JSZIP = "/opt/npm-tools/node_modules/jszip/dist/jszip.min.js"  # the sandbox can
 # big screen, new event and sign-in screens, which always wait for Roy.
 SCREENS = [
     ("Planner portal", "games.html?pdemo=1#planner", "low"),
+    ("Host dashboard", "games.html?pdemo=1&host=1#planner", "low"),
+    ("Host Plan page", "games.html?pdemo=1&e=JORDAN&only=plan#moderator", "roy"),
     ("Client portal", "games.html?pdemo=1&p=northlight&client=dublin", "low"),
     ("Teammate page", "games.html?pdemo=1&p=northlight&mate=liam", "low"),
     ("Vendor page", "games.html?pdemo=1&vendor=demoVendor3x&p=northlight", "low"),
@@ -237,6 +239,12 @@ def main():
                         break
                     print(f"  tab: {label}", flush=True)
                     c.tap_all(f"Planner portal, {label} tab", url, "low", f"ACT.plTab({{dataset:{{k:{json.dumps(k)}}}}})")
+            if name == "Host dashboard":
+                for k, label in c.tabs(url, "HOST_TABS", "plTab"):
+                    if time.time() > c.deadline:
+                        break
+                    print(f"  tab: {label}", flush=True)
+                    c.tap_all(f"Host dashboard, {label} tab", url, "low", f"ACT.plTab({{dataset:{{k:{json.dumps(k)}}}}})")
             if name == "Admin console":
                 for k in c.tabs(url, "[...document.querySelectorAll('[data-act=hostTab]')].map(b=>b.dataset.k)", "hostTab"):
                     if time.time() > c.deadline:

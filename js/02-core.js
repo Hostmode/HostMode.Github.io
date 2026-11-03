@@ -188,7 +188,7 @@ function connect(){
  try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){L.offline=true;render();return}
  db.ref(".info/connected").on("value",s=>{L.connected=!!s.val();renderSoon()});
  supMineSubs();
- if(VIEW==="moderator"){try{const a=firebase.auth&&firebase.auth();if(a)a.onAuthStateChanged(u=>{L.navUid=u?u.uid:null;renderSoon()})}catch(e){}}
+ if(VIEW==="moderator"){try{const a=firebase.auth&&firebase.auth();if(a)a.onAuthStateChanged(u=>{L.navUid=u?u.uid:null;checkAuth();renderSoon()})}catch(e){}}
  db.ref(".info/serverTimeOffset").on("value",s=>{L.offset=s.val()||0});
  hashPin(DEFAULT_MASTER_PIN).then(h=>{L.defaultHash=h;RT("admin").on("value",s=>{D.admin=s.val()||{};L.masterHash=D.admin.pinHash||L.defaultHash;checkAuth();renderSoon()})});
  if(VIEW==="new"){L.loaded=true;renderSoon();return}
@@ -346,12 +346,12 @@ document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest
 
 function headerView(){
  const c=C();const noEv=(!EV||L.missing)&&VIEW==="guest";const title=noEv||VIEW==="host"||VIEW==="planner"||VIEW==="support"||VIEW==="signin"||VIEW==="vendor"||VIEW==="new"||VIEW==="mate"||VIEW==="client"||VIEW==="fb"?"Host Mode":(c.title||"Host Mode");
- const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?"Planner portal":VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Staff area":VIEW==="signin"?"Sign in":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
+ const sub=VIEW==="mate"?"Your tasks":VIEW==="client"?"Your event portal":VIEW==="planner"?(D.plMe&&D.plMe.kind==="host"?"Event dashboard":"Planner portal"):VIEW==="fb"?"Quick feedback":VIEW==="host"?"Admin console":VIEW==="support"?"Staff area":VIEW==="signin"?"Sign in":VIEW==="vendor"?"Your event page":VIEW==="new"?"Create your event":noEv?"Plan it. Run it. Remember it.":(c.tagline||"");
  const showAa=VIEW==="guest"||VIEW==="album"||VIEW==="keepsake";
  return `<div class="brand"><h1>${esc(title)}</h1>${sub?`<p>${esc(sub)}</p>`:""}</div>${showAa?`<button class="btn sm aa" data-act="settings" aria-label="${t("Settings")}">Aa</button>`:""}${VIEW==="moderator"&&L.modOK?`<span class="row"><span class="pill ${D.meta&&D.meta.practice?"warn":"live"}">${D.meta&&D.meta.practice?"Practice run":L.isAdmin?"Administrator":"Moderator"} · ${esc(EV)}</span><span class="small muted">${esc(L.isAdmin?"":L.modName||"")}</span>${modBackLinks()}<button class="btn xs" data-act="modSignOut">Sign out</button></span>`:""}`}
 /* back buttons from an event console to the admin console and the planner portal */
 function modBackLinks(){if(window.__HMDEMO||window.__HMPDEMO)return "";const pl=D.meta&&D.meta.planner;
- return (L.isAdmin?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:"")+(pl&&L.navUid&&L.navUid===pl?`<a class="btn xs" href="${esc(baseURL())}#planner">My planner portal</a>`:"")}
+ return (L.isAdmin?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:"")+(pl&&L.navUid&&L.navUid===pl?`<a class="btn xs" href="${esc(baseURL())}#planner">${(store.get("hmRoles",null)||{}).host?"My event dashboard":"My planner portal"}</a>`:"")}
 function loadingView(){return `<div class="card muted">${t("Loading…")}</div>`}
 const status=()=>L.connected||!db||!L.everConnected||VIEW==="guest"?"":`<div class="banner soft"><span>Weak signal. Changes are saved on this device and send when the signal is back.</span></div>`;
 function landing(notFound){return `<section class="card stack narrow"><div class="eyebrow">${t("Welcome")}</div><h2>${t("Enter your event code")}</h2>${notFound?`<p class="small" style="color:var(--bad);margin:0">${t("We couldn't find that event. Check the code and try again.")}</p>`:""}

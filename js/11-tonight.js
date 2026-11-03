@@ -174,11 +174,17 @@ mLive=function(){const items=rosItems().filter(x=>!(D.rosDone||{})[x.k]);const n
  const card=nx?`<section class="card row between gilt"><div><span class="eyebrow">${L.modId&&nx.who===L.modId?"Your next job":"Up next"}</span><div><b>${esc(fmtTime(nx.time))}</b> ${esc(nx.title)}${rosLate(nx)?' <span class="pill warn">Running late</span>':""}</div></div><div class="row"><button class="btn sm primary" data-act="rosDone" data-k="${nx.k}">Done</button><button class="btn sm" data-act="mtab" data-k="tonight">Run of show</button></div></section>`:"";
  return card+_mLiveTonight()};
 
+/* Events made with a host account (meta.host) plan from the host's dashboard: the console has no Plan tab, and the dashboard's
+   Plan button opens this page with only=plan, which shows just the Plan screen. Older events keep Plan in the console. */
+const modPlanOnly=()=>!!(D.meta&&D.meta.host&&QS.get("only")==="plan");
+const planURL=code=>baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+"e="+encodeURIComponent(code)+"&only=plan#moderator";
 moderator=function(){
+ if(modPlanOnly()){if(L.mtab!=="plan")L.mtab="plan";
+  return `${status()}<section class="card row between"><div class="mw0"><div class="eyebrow">Plan</div><b>${esc((D.meta&&D.meta.name)||"Your event")}</b></div><div class="row small"><a class="btn sm" href="${esc(baseURL()+(window.__HMPDEMO?"?pdemo=1&host=1":"")+"#planner")}">My event dashboard</a><a class="btn sm" href="${esc(eventURL(EV,"moderator"))}">Open the console</a></div></section><div class="stack mw0">${mPlan()}</div>`}
  const tab=(k,l)=>`<button data-act="mtab" data-k="${k}" aria-pressed="${L.mtab===k}">${l}</button>`;
  const body=({live:mLive,plan:mPlan,tonight:mTonight,pres:mPres,moments:mMoments,teams:mTeams,scores:mScores,content:mContent,custom:mCustom,event:mEvent,memories:mMemories,menu:mMenu,party:mParty,help:mHelp}[L.mtab]||mLive)();
  const pr=D.meta&&D.meta.practice?`<div class="banner soft"><span><b>Practice run</b> with pretend guests. Open a <a href="${esc(eventURL(EV))}" target="_blank" rel="noopener">guest view</a> or the <a href="${esc(eventURL(EV,"screen"))}" target="_blank" rel="noopener">big screen</a> to see what they see.</span><button class="btn sm" data-act="endPractice">End practice</button></div>`:"";
- return `${status()}${pr}<div class="console"><nav class="side">${tab("live","Live")}${(()=>{const b=plBadge();return tab("plan","Plan"+(b?` <span class="pill bad">${b}</span>`:""))})()}${tab("tonight","Tonight")}${tab("moments","Moments")}${tab("pres","Presentations")}${tab("teams","Teams")}${tab("scores","Scores")}${tab("content","Content")}${tab("menu","Menu")}${tab("party",adultOn()?"Party & 21+":"Party games")}${tab("custom","Custom games")}${tab("event","Event")}${tab("memories","Memories")}${tab("help","Help desk")}</nav><div class="stack mw0">${body}</div></div>`};
+ return `${status()}${pr}<div class="console"><nav class="side">${tab("live","Live")}${D.meta&&D.meta.host?"":(()=>{const b=plBadge();return tab("plan","Plan"+(b?` <span class="pill bad">${b}</span>`:""))})()}${tab("tonight","Tonight")}${tab("moments","Moments")}${tab("pres","Presentations")}${tab("teams","Teams")}${tab("scores","Scores")}${tab("content","Content")}${tab("menu","Menu")}${tab("party",adultOn()?"Party & 21+":"Party games")}${tab("custom","Custom games")}${tab("event","Event")}${tab("memories","Memories")}${tab("help","Help desk")}</nav><div class="stack mw0">${body}</div></div>`};
 
 /* ---- guest list: import, check-in, and name suggestions ---- */
 D.guests={};
