@@ -30,6 +30,7 @@ SCREENS = [
     ("Showcase page", "games.html?pdemo=1&p=northlight&show=1", "low"),
     ("Inquiry form", "games.html?pdemo=1&p=northlight&inquire=1", "low"),
     ("Admin console", "games.html?pdemo=1#host", "normal"),
+    ("Demo host dashboard", "games.html?e=DEMO#planner", "roy"),
     ("Guest view", "games.html?e=demo", "roy"),
     ("Moderator console", "games.html?e=demo#moderator", "roy"),
     ("Big screen", "games.html?e=demo#screen", "roy"),
