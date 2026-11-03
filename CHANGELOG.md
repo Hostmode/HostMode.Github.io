@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-03 · Roy (with Claude) · A host's Plan screen (the dashboard's Plan button, only=plan) now wears the Host Mode dashboard look (navy, orange, green; header "Host Mode · Event plan") instead of the event's theme. The event console, guest phones and big screen keep the event's theme. New regression check.
 - 2026-11-03 · Roy (with Claude) · Admins: Roy can make a support person a full admin (Support → Support team → Make admin). An admin gets every admin console tab and everything Roy can do, except making admins. For Icee. Database rules updated (every owner check also accepts admins; new partygames/admins). Demo Icee is an admin (PDEMO_V 18).
 - 2026-11-03 · Roy (with Claude) · The hosts' live demo now starts on the host's event dashboard (My events with Plan and Run it, Stay & Go with a sample trip) instead of the console; the demo bar has Host, Console, Guest and Big screen. Guest demo data version 5.
 - 2026-11-03 · Roy (with Claude) · Support codes now work when typed in small letters, with spaces, or without the SUP- at the start; the "isn't valid" message says demo codes only work in the demo.
