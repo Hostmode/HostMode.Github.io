@@ -183,13 +183,15 @@ Object.assign(ACT,{
   try{await RT("admins/"+u).set(on?true:null);toast(on?((D.staff[u]||{}).name||"They")+" is now an admin":"Admin access removed")}catch(e){toast("Couldn't change that. Check the database rules are published.")}render(true)},
  stRemove:async el=>{const u=el.dataset.k;if(!supIsOwner())return;if(L.confirm!=="stx"+u){L.confirm="stx"+u;return render(true)}L.confirm=null;if((D.admins||{})[u]===true&&supIsRoy())await RT("admins/"+u).remove().catch(()=>{});await RT("staff/"+u).remove();toast("Support access removed")},
  stName:async()=>{const me=supMe(),n=String(dv("st_me","")).trim().slice(0,40);if(!me||!n)return;await RT("staff/"+me.uid+"/name").set(n);toast("Saved")},
- supJoin:async()=>{const a=AUTH();if(!a)return;const code=String(dv("sj_code","")).toUpperCase().replace(/[^A-Z0-9-]/g,""),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
+ supJoin:async()=>{const a=AUTH();if(!a)return;const code=supCodeNorm(dv("sj_code","")),name=String(dv("sj_name","")).trim().slice(0,40),em=String(dv("ac_email","")).trim(),pw=acPw();
   if(!code)return toast("Type the support code Roy gave you");if(!name)return toast("Type your name");
-  const v=(await RT("sinvites/"+code).once("value").catch(()=>null));const vv=v&&v.val();if(!vv||!vv.active)return toast("That support code isn't valid. Ask Roy for a new one.");if(vv.by)return toast("That support code has already been used.");
+  const v=(await RT("sinvites/"+code).once("value").catch(()=>null));const vv=v&&v.val();if(!vv||!vv.active)return toast("That support code isn't valid. Check it with Roy. A code made in the demo only works in the demo.");if(vv.by)return toast("That support code has already been used.");
   try{let u=a.currentUser;if(!u){if(pw.length<8)return toast("Use a password with at least 8 characters");u=(await a.createUserWithEmailAndPassword(em,pw)).user}
    await RT("sinvites/"+code).update({by:u.uid,usedAt:Date.now(),name});await RT("staff/"+u.uid).set({name,role:"support",code,t:Date.now(),active:Date.now()});
    ["sj_code","sj_name","ac_pw"].forEach(k=>delete L.drafts[k]);toast("Welcome to Host Mode support, "+name+"!");location.reload()}catch(e){toast(authErr(e))}}
 });
+/* support codes look like SUP-AB3CD4: accept them typed in small letters, with spaces, or without the SUP- at the start */
+function supCodeNorm(v){let c=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.startsWith("SUP"))c=c.slice(3);return c?"SUP-"+c:""}
 function supConnect(){if(supDemo()){L.authReady=true;L.supLoaded=true;supSubs();return}
  const a=AUTH();if(!a){L.authReady=true;return}
  RT("owner").on("value",s=>{D.owner=s.val()||null;renderSoon()});
