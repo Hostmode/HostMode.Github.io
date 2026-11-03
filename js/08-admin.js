@@ -6,7 +6,9 @@ const masterLive=()=>!(L.masterHash&&L.masterHash===L.defaultHash&&!window.__HMD
 function checkAuth(){const m=L.masterHash;const hs=store.get("host",null);L.hostOK=!!m&&(hs===m||!!hs&&hs.h===m);
  if(EV&&D.meta){const s=modSession();const mods=D.mods||{};let ok=false,admin=false,name="";
   if(s&&s.h){if(s.h===m&&masterLive()){ok=admin=true;name="Administrator"}else if(s.id&&mods[s.id]&&mods[s.id].pinHash===s.h){ok=true;name=mods[s.id].name}else if(D.meta.pinHash&&s.h===D.meta.pinHash&&!s.id){ok=true;name="Moderator"}}
-  if(L.modOK&&!ok&&VIEW==="moderator")L.kicked=true;L.modOK=ok;L.isAdmin=admin;L.modName=name;L.modId=ok&&s&&s.id||null;L.isOwner=!!(ok&&s&&s.id&&mods[s.id]&&mods[s.id].owner)}}
+  /* the host or planner whose account owns this event is signed in: open as the event's first moderator, no PIN */
+  let acct=null;if(!ok&&L.navUid&&D.meta.planner&&L.navUid===D.meta.planner){acct=Object.keys(mods).find(k=>mods[k]&&mods[k].owner)||null;ok=true;name=(acct&&mods[acct].name)||"Host"}
+  if(L.modOK&&!ok&&VIEW==="moderator")L.kicked=true;L.modOK=ok;L.isAdmin=admin;L.modName=name;L.modId=ok&&(s&&s.id||acct)||null;L.isOwner=!!(ok&&(acct||s&&s.id&&mods[s.id]&&mods[s.id].owner))}}
 function pinScreen(){return `<section class="card stack narrow"><div class="eyebrow">Moderators only</div><h2>Enter your PIN</h2><p class="small muted m0">${esc(D.meta?D.meta.name:"")}</p>${L.kicked?'<div class="nudge">Your moderator access for this event was removed by the administrator.</div>':""}
  <input type="password" id="pin" inputmode="numeric" autocomplete="off" data-draft="pin" value="${esc(dv("pin",""))}"><button class="btn primary" data-act="pin">Open the console</button><p class="small muted m0">Use your personal moderator PIN. The administrator signs in with the host PIN.</p><a class="small muted" href="${esc(eventURL(EV))}">I'm a guest</a></section>`}
 Object.assign(ACT,{
@@ -41,11 +43,24 @@ Object.assign(ACT,{
  nwImg:el=>{const f=el.files[0];if(!f)return;shrinkImage(f,640,.72,img=>{L.drafts.nw_image=img;extractPalette(img,pal=>{L.palette=pal;const th=autoTheme(pal);Object.keys(th).forEach(k=>L.drafts["ts_c_"+k]=th[k]);previewTheme("ts_");render(true)})})},
  nwCreate:async()=>{const d=k=>(L.drafts[k]||"").trim();const name=d("nw_name"),pin=d("nw_pin"),you=d("nw_you");
   if(!name)return toast("Give your event a name");if(!you)return toast("Type your name");if(pin.length<4)return toast("Choose a PIN with at least 4 digits");
-  const inv=L.newInv,plu=L.newPl;
+  const inv=L.newInv,plu=L.newPl;let hu=null,hprof=null,asHost=false;
+  if(nwAcctOn()){const a=AUTH();hu=a.currentUser;
+   /* check the invite code before making an account, so a used code doesn't leave an account with no event */
+   const iv=await RT("invites/"+inv).once("value").then(x=>x.val()).catch(()=>null);if(!iv||!iv.active||(iv.used||0)>=1||iv.event)return toast("That invite code can't be used any more. Ask the host for a new one.");
+   if(!hu){const em=d("nw_email"),pw=nwPw();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast("Type your email for your account");if(pw.length<8)return toast("Choose a password with at least 8 characters");
+    try{hu=(await a.createUserWithEmailAndPassword(em,pw)).user}catch(e){return toast(authErr(e))}}
+   hprof=await RT("planners/"+hu.uid+"/profile").once("value").then(x=>x.val()).catch(()=>null);
+   /* planners and the owner use the same sign-in: only a new account or a host account becomes the event's host.
+      A planner's event is added to their portal as usual (keeping Plan in the console); the owner's isn't linked at all. */
+   const own=await RT("owner").once("value").then(x=>x.val()).catch(()=>null);
+   asHost=hprof?hprof.kind==="host":hu.uid!==own;if(!asHost&&!hprof)hu=null}
   /* a transaction first runs on the phone's local copy, which can be empty (null) before the server answers.
      Returning null there lets Firebase fetch the real code and run this again, instead of giving up. */
-  const ok=plu?true:await new Promise(res=>RT("invites/"+inv).transaction(v=>{if(v===null)return null;if(!v.active||(v.used||0)>=1||v.event)return;v.used=1;return v},(e,c,snap)=>{const x=snap&&snap.val();res(!e&&c&&!!x&&x.used===1&&!x.event)}));
+  const ok=plu?true:await new Promise(res=>RT("invites/"+inv).transaction(v=>{if(v===null)return null;if(!v.active||(v.used||0)>=1||v.event)return;v.used=1;if(asHost)v.host=hu.uid;return v},(e,c,snap)=>{const x=snap&&snap.val();res(!e&&c&&!!x&&x.used===1&&!x.event)}));
   if(!ok)return toast("That invite code can't be used any more. Ask the host for a new one.");
+  if(asHost&&!hprof){const pr={kind:"host",name:you.slice(0,40),email:hu.email||"",code:inv,t:Date.now()};
+   try{await RT("planners/"+hu.uid+"/profile").set(pr);await RT("plist/"+hu.uid).set({name:pr.name,biz:"",email:pr.email,kind:"host",t:pr.t})}catch(e){return toast("We couldn't set up your account. Try again in a moment.")}
+   store.set("hmRoles",{uid:hu.uid,roles:["planner"],host:true})}
   let code=d("nw_code").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,10);const taken=async c=>!!(await ER("meta",c).once("value")).val()||!!(await RT("index/"+c).once("value")).val();
   if(code&&await taken(code))code="";
   if(!code){const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";do{code=[...Array(5)].map(()=>A[rnd(A.length)]).join("")}while(await taken(code))}
@@ -55,7 +70,9 @@ Object.assign(ACT,{
   if(L.drafts.nw_image)content.image=L.drafts.nw_image;Object.assign(content,themeFromDrafts("ts_"));
   const tm=Date.now(),h=await hashPin(pin),u={};
   u["events/"+code+"/meta"]={name,created:tm,invite:inv,setup:{type:true}};u["events/"+code+"/content"]=content;if(plu){u["events/"+code+"/meta"].invite=null;u["events/"+code+"/meta"].planner=plu;u["index/"+code]={name,created:tm,planner:plu,by:you.slice(0,30)};u["planners/"+plu+"/events/"+code]={name,created:tm}}
-  else{u["index/"+code]={name,created:tm,invite:inv,by:you.slice(0,30)};u["invites/"+inv+"/event"]=code;u["invites/"+inv+"/eventName"]=name;u["invites/"+inv+"/usedAt"]=tm}
+  else{u["index/"+code]={name,created:tm,invite:inv,by:you.slice(0,30)};u["invites/"+inv+"/event"]=code;u["invites/"+inv+"/eventName"]=name;u["invites/"+inv+"/usedAt"]=tm;
+   /* the event belongs to the host's account: it shows in their dashboard, and Plan moves there (meta.host) */
+   if(hu){u["events/"+code+"/meta"].planner=hu.uid;if(asHost)u["events/"+code+"/meta"].host=true;u["index/"+code].planner=hu.uid;u["planners/"+hu.uid+"/events/"+code]={name,created:tm}}}
   const mid=ER("mods",code).push().key;u["events/"+code+"/mods/"+mid]={name:you.slice(0,30),pinHash:h,t:tm,owner:true};
   await db.ref(ROOT).update(u);store.set("mod_"+code,{h,id:mid,r:"mod"});location.href=eventURL(code,"moderator")},
  /* theme studio */
@@ -120,8 +137,18 @@ function newEventView(){
  <section class="card stack"><h2>1. Your event</h2><label class="stack tight"><span class="small"><b>Event type</b> ${hint("eventType")}</span><select data-act="nwType">${Object.keys(EVENT_TYPES).map(k=>`<option value="${k}" ${type===k?"selected":""}>${EVENT_TYPES[k].label}</option>`).join("")}</select></label>
  <div class="grid2 g8">${fld("nw_name","Event name","Kim & Lee's Wedding")}${fld("nw_hon","Guests of honor","Kim & Lee")}${fld("nw_date","Date","","date")}${fld("nw_tag","Line under the title (optional)","Celebrating Kim & Lee · June 14")}</div></section>
  <section class="card stack"><h2>2. Look and feel</h2><div class="row top g16">${L.drafts.nw_image?`<img class="invite" src="${L.drafts.nw_image}" alt="">`:'<div class="invite ph0">Flyer or picture</div>'}<div class="stack grow mw200"><p class="small muted m0">Upload your flyer or invitation. We pull up to 8 colors from it and build a matching look. Then fine-tune any part below.</p><label class="btn upl as">Upload a picture<input type="file" accept="image/*" data-act="nwImg"></label></div></div>${themeStudio("ts_",true)}</section>
- <section class="card stack"><h2>3. You</h2><p class="small muted m0">You'll be this event's first moderator. Keep your PIN private.</p><div class="grid2 g8">${fld("nw_you","Your name","Tasha")}${fld("nw_pin","Your moderator PIN","4 or more digits","password")}${fld("nw_code","Event code (optional)","Leave blank to make one")}</div>
+ <section class="card stack"><h2>3. You</h2><p class="small muted m0">You'll be this event's first moderator. Keep your PIN private.</p><div class="grid2 g8">${fld("nw_you","Your name","Tasha")}${fld("nw_pin","Your moderator PIN","4 or more digits","password")}${fld("nw_code","Event code (optional)","Leave blank to make one")}</div>${nwAcctBox()}
  <button class="btn primary big" data-act="nwCreate">Create my event</button><p class="small muted m0">Next, your console opens with a setup checklist and a quick tour.</p>${legalFoot()}</section>`}
+/* hosts get their own account with the event: an email and password open their event dashboard (My events, Plan, Stay & Go).
+   Planners creating from their portal (L.newPl), demos and offline test copies (no sign-in) skip this. */
+const nwAcctOn=()=>!L.newPl&&!!AUTH()&&!window.__HMDEMO&&!window.__HMPDEMO;
+const nwPw=()=>{const el=document.querySelector('[data-draft="nw_pw"]');return el?el.value:""};
+function nwAcctBox(){if(!nwAcctOn())return "";
+ if(L.user)return `<div class="banner soft"><span>Signed in as <b>${esc(L.user.email||"")}</b>. This event will be added to your account.</span></div>`;
+ if(L.acMode==="signin")return `<div class="stack tight"><h3 class="m0">Sign in to your account</h3>${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="new">I need a new account</button></div>`;
+ return `<div class="stack tight"><h3 class="m0">Your account</h3><p class="small muted m0">Your email and password open your event dashboard on any phone or computer. That's where you plan your event and its travel. Your PIN is still how helpers open the console on the night.</p>
+  <div class="grid2 g8"><label class="stack tight"><span class="small"><b>Your email</b></span><input type="email" data-draft="nw_email" value="${esc(dv("nw_email",""))}" autocomplete="email"></label><label class="stack tight"><span class="small"><b>Choose a password</b> (8 or more characters)</span><input type="password" data-draft="nw_pw" value="" autocomplete="new-password"></label></div>
+  <button class="btn xs as" data-act="acMode" data-k="signin">I already have an account</button></div>`}
 const fmtDate=s=>{const d=new Date(s+"T12:00:00");return isNaN(d)?s:d.toLocaleDateString("en-US",{month:"long",day:"numeric"})};
 /* ---- ready-made events for planners ----
    Each one sets the look (every theme color and the fonts), the theme description, the line under the title,

@@ -21,7 +21,10 @@
         ".write": "auth != null && auth.uid === root.child('partygames/owner').val()",
         "$code": {
           ".read": true,
-          ".write": "data.exists() && newData.exists() && data.child('active').val() === true && !data.child('event').exists() && newData.child('used').val() === 1"
+          ".write": "data.exists() && newData.exists() && data.child('active').val() === true && !data.child('event').exists() && newData.child('used').val() === 1",
+          "host": {
+            ".validate": "(!data.exists() && auth != null && newData.val() === auth.uid) || data.val() === newData.val()"
+          }
         }
       },
       "pinvites": {
@@ -50,7 +53,7 @@
           ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('partygames/owner').val() || root.child('partygames/staff/' + auth.uid).exists())",
           ".write": "auth != null && (auth.uid === root.child('partygames/owner').val() || (auth.uid === $uid && newData.child('profile').exists()))",
           "profile": {
-            ".validate": "newData.child('name').isString() && (root.child('partygames/pinvites/' + newData.child('code').val() + '/by').val() === $uid || newData.child('code').val() === 'OWNER' && $uid === root.child('partygames/owner').val())"
+            ".validate": "newData.child('name').isString() && (root.child('partygames/pinvites/' + newData.child('code').val() + '/by').val() === $uid || newData.child('code').val() === 'OWNER' && $uid === root.child('partygames/owner').val() || newData.child('kind').val() === 'host' && root.child('partygames/invites/' + newData.child('code').val() + '/host').val() === $uid)"
           },
           "brand": {
             ".read": true

@@ -46,10 +46,12 @@ const ROLE_LBL={host:["Admin console","Events, support, sales and settings for H
 async function acctRoles(u){if(!u)return [];const get=p=>RT(p).once("value").then(s=>s.val()).catch(()=>null);
  const [ow,pl,st]=await Promise.all([get("owner"),get("planners/"+u.uid+"/profile"),get("staff/"+u.uid)]);D.owner=ow||D.owner;
  const r=[];if(ow&&ow===u.uid)r.push("host");if(pl)r.push("planner");if(st&&ow!==u.uid)r.push("support");
- store.set("hmRoles",{uid:u.uid,roles:r});return r}
+ store.set("hmRoles",{uid:u.uid,roles:r,host:!!(pl&&pl.kind==="host")});return r}
 const goRole=role=>{location.hash=role;location.reload()};
+/* hosts (one event, own account) reuse the planner role and pages, with their own name and a smaller set of tabs */
+const roleLbl=r=>{const c=store.get("hmRoles",null);return r==="planner"&&c&&c.host?["My event dashboard","Your events, travel plans and account"]:ROLE_LBL[r]};
 function roleLinks(cur){const c=store.get("hmRoles",null);if(!c||!L.user||c.uid!==L.user.uid)return "";
- return c.roles.filter(r=>r!==cur&&!(cur==="host"&&r==="planner")&&!(cur==="planner"&&r==="host")).map(r=>`<a class="btn xs" href="${esc(baseURL())}#${r}">${esc(ROLE_LBL[r][0])}</a>`).join("")}
+ return c.roles.filter(r=>r!==cur&&!(cur==="host"&&r==="planner")&&!(cur==="planner"&&r==="host")).map(r=>`<a class="btn xs" href="${esc(baseURL())}#${r}">${esc(roleLbl(r)[0])}</a>`).join("")}
 function signinConnect(){const a=AUTH();if(!a){L.authReady=true;renderSoon();return}
  a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;L.roles=null;renderSoon();if(!u)return;
   L.roles=await acctRoles(u);if(L.roles.length===1)return goRole(L.roles[0]);renderSoon()})}
@@ -57,10 +59,10 @@ function signinView(){
  const card=(h,b)=>`<section class="card stack narrow"><div class="eyebrow">Host Mode</div><h2>${h}</h2>${b}</section>`;
  if(window.__HMPDEMO||window.__HMDEMO)return card("Sign in",`<p class="small muted m0">The demos don't need a sign-in.</p><a class="btn primary" href="games.html?pdemo=1#planner">Planner demo</a><a class="btn" href="games.html?pdemo=1#support">Staff area demo</a>`);
  if(!L.authReady||(L.user&&!L.roles))return loadingView();
- if(!L.user)return card("Sign in",`<p class="small muted m0">For planners, venues and the Host Mode team. One sign-in takes you to the right place.</p>${acctForm("signin")}
-  <div class="stack tight small"><a href="${esc(baseURL())}#planner">New planner with an invite code? Create your account</a><a href="${esc(baseURL())}#support">Have a support code? Create your staff login</a><a href="index.html">Hosting one event? Use your event code on the home page</a></div>`);
+ if(!L.user)return card("Sign in",`<p class="small muted m0">For hosts, planners, venues and the Host Mode team. One sign-in takes you to the right place.</p>${acctForm("signin")}
+  <div class="stack tight small"><a href="${esc(baseURL())}#planner">New planner with an invite code? Create your account</a><a href="${esc(baseURL())}#support">Have a support code? Create your staff login</a><a href="${esc(baseURL())}#new">Hosting one event with an invite code? Create your event and account</a></div>`);
  if(!L.roles.length)return card("This account isn't set up yet",`<p class="small muted m0">You're signed in as ${esc(L.user.email||"")}, but it isn't linked to a planner portal or a staff login yet.</p><div class="stack tight"><a class="btn primary" href="${esc(baseURL())}#planner">I have a planner invite code</a><a class="btn" href="${esc(baseURL())}#support">I have a support code</a><button class="btn xs as" data-act="acOut">Sign out</button></div>`);
- return card("Where to?",`<p class="small muted m0">Signed in as ${esc(L.user.email||"")}.</p><div class="stack tight">${L.roles.map(r=>`<button class="btn ${r===L.roles[0]?"primary":""} as" data-act="goRole" data-k="${r}"><b>${esc(ROLE_LBL[r][0])}</b></button><span class="small muted">${esc(ROLE_LBL[r][1])}</span>`).join("")}</div><button class="btn xs as" data-act="acOut">Sign out</button>`)}
+ return card("Where to?",`<p class="small muted m0">Signed in as ${esc(L.user.email||"")}.</p><div class="stack tight">${L.roles.map(r=>`<button class="btn ${r===L.roles[0]?"primary":""} as" data-act="goRole" data-k="${r}"><b>${esc(roleLbl(r)[0])}</b></button><span class="small muted">${esc(roleLbl(r)[1])}</span>`).join("")}</div><button class="btn xs as" data-act="acOut">Sign out</button>`)}
 ACT.goRole=el=>goRole(el.dataset.k);
 
 /* ---- owner console gate ---- */
@@ -148,7 +150,7 @@ function hPlanners(){const pv=D.pinvites||{},pl=D.plist||{},ks=Object.keys(pv).s
  return `<section class="card stack"><h2>Planners</h2><p class="small muted m0">Planners and venues get their own portal with their own clients, teammates and events. They can't see your owner tools or anyone else's data. Give each one a planner code to create their account at <b>${esc(baseURL())}#planner</b>.</p>
  <div class="row"><input type="text" class="grow" data-draft="pi_label" maxlength="60" value="${esc(dv("pi_label",""))}" placeholder="Who it's for, e.g. Claire at Northlight Events"><button class="btn primary" data-act="piNew">New planner code</button></div>
  ${ks.length?`<div class="stack tight">${ks.map(k=>{const v=pv[k];return `<div class="row between small clrow"><span class="mw0"><b class="mono">${esc(k)}</b> · ${esc(v.label||"")}<span class="db muted">${v.by?`Used by ${esc(v.name||"a planner")}`:v.active?"Not used yet":"Turned off"}${v.ev?` · moves event ${esc(v.ev)} into their portal`:""}</span></span><span class="row">${v.by?"":`<button class="btn xs" data-act="copyText" data-t="${esc(baseURL()+"#planner")}  Planner code: ${esc(k)}">Copy</button><button class="btn xs" data-act="piToggle" data-k="${esc(k)}">${v.active?"Turn off":"Turn on"}</button>`}</span></div>`}).join("")}</div>`:""}</section>
- <section class="card stack"><h3>Planner accounts</h3>${ids.length?`<div class="stack tight">${ids.map(id=>`<div class="clrow small"><div class="row between"><span class="mw0"><b>${esc(pl[id].name||"")}</b>${pl[id].biz?` · ${esc(pl[id].biz)}`:""}<div class="muted">${esc(pl[id].email||"")}${pl[id].t?" · joined "+esc(clAgo(pl[id].t)):""}</div></span><a class="btn xs primary" href="${esc(baseURL()+"?as="+encodeURIComponent(id)+"#planner")}">Open portal</a></div></div>`).join("")}</div>`:'<p class="small muted m0">No planners yet.</p>'}</section>
+ <section class="card stack"><h3>Planner and host accounts</h3>${ids.length?`<div class="stack tight">${ids.map(id=>`<div class="clrow small"><div class="row between"><span class="mw0"><b>${esc(pl[id].name||"")}</b>${pl[id].kind==="host"?' <span class="pill">Host</span>':""}${pl[id].biz?` · ${esc(pl[id].biz)}`:""}<div class="muted">${esc(pl[id].email||"")}${pl[id].t?" · joined "+esc(clAgo(pl[id].t)):""}</div></span><a class="btn xs primary" href="${esc(baseURL()+"?as="+encodeURIComponent(id)+"#planner")}">${pl[id].kind==="host"?"Open dashboard":"Open portal"}</a></div></div>`).join("")}</div>`:'<p class="small muted m0">No planners yet.</p>'}</section>
  ${(lg.c||lg.m)?`<section class="card stack"><h3>Move your earlier clients and teammates</h3><p class="small muted m0">You have ${lg.c} client${lg.c===1?"":"s"} and ${lg.m} teammate${lg.m===1?"":"s"} from before planner portals existed. Move them into your own planner portal so they keep working after the database is locked. Their old links will stop working; send the new ones from your portal.</p><button class="btn primary as" data-act="piMigrate">Move them to my planner portal</button></section>`:""}`}
 Object.assign(ACT,{
  piNew:()=>{const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";const code="P"+[...Array(7)].map(()=>A[rnd(A.length)]).join("");RT("pinvites/"+code).set({label:(dv("pi_label","")).trim().slice(0,60)||"Planner",active:true,t:Date.now()});L.drafts.pi_label="";toast("Planner code "+code+" created")},
@@ -205,6 +207,14 @@ const HELP={
   ["See how your business is doing","Reports shows money collected and new clients by month, best-selling packages and where leads come from.","rep","report reports revenue income money made stats numbers sales"],
   ["Collect reviews and feedback","Feedback gathers ratings from guests and clients. Feature the best ones as testimonials.","fb","feedback review reviews testimonial rating survey stars"],
   ["Change your profile or password","Settings has your profile, account email, password and sign out.","set","settings profile password account email sign out log out name"]],
+ ho:[
+  ["Plan your event","My events → Plan has your date, countdown and to-do list with due dates and reminders.","events","plan planning date countdown checklist to-do todo reminder due"],
+  ["Run your event on the night","My events → Run it opens your console. You're signed in, so you don't need your PIN. Helpers still use their PIN.","events","run console night live games start pin moderator"],
+  ["Plan travel for your guests","Stay & Go keeps where everyone stays, rental cars, shared costs, who has paid and the details each guest is sent.","stay","travel hotel lodging airbnb rental car trip stay go flight"],
+  ["Track who has paid","Stay & Go → Receipts & payments shows what each traveler owes, has paid and still owes. Host Mode only records payments; it never takes or sends money.","stay","money paid payment owe balance receipt venmo zelle cash split"],
+  ["Send travel details to guests","Stay & Go → Guest messages builds each guest's details and opens your own email or texting app to send them.","stay","message email text sms send guest details directions"],
+  ["Create another event","Each event needs its own invite code from Host Mode. Tap New event on My events and type the code. It's added to this account.","events","new event another second invite code create"],
+  ["Change your password or sign out","Settings has your name, email, phone, a link to change your password, and sign out.","set","settings profile password account email sign out log out name forgot"]],
  ad:[
   ["See what the agents are doing","Agents tab. Each helper shows what it is up to: moving means working, waving means finished, and a red flag means something failed. Tap one to see its run on GitHub.","","agents agent robot status nightly builder reviewer backup"],
   ["Fixes waiting for approval","Boxes by Roy's office door are pull requests waiting for you. Tap the Builder or open the pull requests on GitHub.","","pull request pr approve approval waiting fix box"],
@@ -236,8 +246,8 @@ function helpScore(item,q){const words=helpNorm(q).split(" ").filter(w=>w&&!HELP
  const ti=helpNorm(item[0]),hay=(ti+" "+helpNorm(item[1])+" "+helpNorm(item[3])).split(" ");let sc=0;
  for(const w of words){const stem=w.replace(/(ing|es|s)$/,"");const hit=hay.some(h=>h.startsWith(w)||(stem.length>2&&h.startsWith(stem)));if(!hit)continue;sc+=10+(ti.includes(stem)?3:0)}
  return sc}
-function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who==="ad"?["agents","waiting","spending"]:who==="pl"?["invoice","client link","import","teammates","booking link","reports"]:["start games","big screen","guest QR code","check in","scores","practice"];
- const tabName=k=>who==="pl"?((PL_TABS.find(t=>t[0]===k)||[])[1]||""):({live:"Live",plan:"Plan",tonight:"Tonight",moments:"Moments",pres:"Presentations",teams:"Teams",scores:"Scores",content:"Content",menu:"Menu",party:"Party games",custom:"Custom games",event:"Event",memories:"Memories"})[k]||"";
+function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who==="ad"?["agents","waiting","spending"]:who==="ho"?["plan","travel","paid","password"]:who==="pl"?["invoice","client link","import","teammates","booking link","reports"]:["start games","big screen","guest QR code","check in","scores","practice"];
+ const tabName=k=>who==="pl"||who==="ho"?((plTabsNow().find(t=>t[0]===k)||PL_TABS.find(t=>t[0]===k)||[])[1]||""):({live:"Live",plan:"Plan",tonight:"Tonight",moments:"Moments",pres:"Presentations",teams:"Teams",scores:"Scores",content:"Content",menu:"Menu",party:"Party games",custom:"Custom games",event:"Event",memories:"Memories"})[k]||"";
  const rows=list.map((it,i)=>{const go=it[2];let btn="";
   if(go==="@screen")btn=`<a class="btn xs primary" href="${esc(eventURL(EV,"screen"))}" target="_blank" rel="noopener">Open big screen</a>`;
   else if(go)btn=`<button class="btn xs primary" data-act="helpGo" data-v="${who}" data-k="${go}">Go to ${esc(tabName(go))}</button>`;
@@ -247,7 +257,7 @@ function helpView(who){const list=HELP[who]||[],q=dv("help_q_"+who,""),chips=who
  <input type="search" data-help="${who}" data-draft="help_q_${who}" value="${esc(q)}" placeholder="What do you need help with?" aria-label="Search the help desk" autocomplete="off">
  <div class="row small">${chips.map(c=>`<button class="btn xs" data-act="helpChip" data-v="${who}" data-k="${esc(c)}">${esc(c)}</button>`).join("")}</div>
  <div class="stack tight" data-hlist="${who}">${shown.map(r=>r.h).join("")}</div>
- <p class="small muted m0" data-hnone="${who}"${!helpNorm(q)||rows.some(r=>r.sc)?" hidden":""}>Nothing matched. Try other words, like ${who==="pl"?"“client”, “money” or “calendar”":"“games”, “guests” or “screen”"}.</p>
+ <p class="small muted m0" data-hnone="${who}"${!helpNorm(q)||rows.some(r=>r.sc)?" hidden":""}>Nothing matched. Try other words, like ${who==="ho"?"“plan”, “travel” or “password”":who==="pl"?"“client”, “money” or “calendar”":"“games”, “guests” or “screen”"}.</p>
  <p class="small muted m0">${who==="pl"?"Still stuck? Tell Host Mode and we'll help.":"Still stuck? Ask your planner or whoever gave you your event code, or tell Host Mode."}</p><button class="btn sm as" data-act="supOpen" data-k="new">Report a problem</button></section>`}
 function helpFilter(who,q){const box=document.querySelector(`[data-hlist="${who}"]`);if(!box)return;const list=HELP[who]||[],rows=[...box.querySelectorAll("[data-hrow]")];
  const sc=rows.map(r=>({r,i:+r.dataset.hrow,s:helpScore(list[+r.dataset.hrow],q)}));const has=!!helpNorm(q);
@@ -255,10 +265,10 @@ function helpFilter(who,q){const box=document.querySelector(`[data-hlist="${who}
  const none=document.querySelector(`[data-hnone="${who}"]`);if(none)none.hidden=!has||sc.some(x=>x.s)}
 addEventListener("input",e=>{const w=e.target.dataset&&e.target.dataset.help;if(w)helpFilter(w,e.target.value)});
 Object.assign(ACT,{
- helpGo:el=>{if(el.dataset.v==="pl")L.plTab=el.dataset.k;else L.mtab=el.dataset.k;L.confirm=null;render();window.scrollTo({top:0})},
+ helpGo:el=>{if(el.dataset.v==="pl"||el.dataset.v==="ho")L.plTab=el.dataset.k;else L.mtab=el.dataset.k;L.confirm=null;render();window.scrollTo({top:0})},
  helpChip:el=>{L.drafts["help_q_"+el.dataset.v]=el.dataset.k;const i=document.querySelector(`[data-help="${el.dataset.v}"]`);if(i)i.value=el.dataset.k;helpFilter(el.dataset.v,el.dataset.k)}
 });
-const plHelp=()=>helpView("pl"),mHelp=()=>helpView("m");
+const plHelp=()=>helpView(plIsHost()?"ho":"pl"),mHelp=()=>helpView("m");
 
 /* ---- the planner portal ---- */
 let plSubbed=false;
@@ -273,7 +283,7 @@ let tvT=null;function tvSyncSoon(){clearTimeout(tvT);tvT=setTimeout(tvSync,600)}
 function tvSync(){if(!PSP||VIEW!=="planner"||L.viewOnly)return;vpSyncSoon();const out={};Object.keys(D.clients||{}).forEach(cid=>{const ev=D.clients[cid].ev;if(!ev)return;clVendors(cid).filter(v=>v.team).forEach(v=>{(out[ev]=out[ev]||{})[cid+"_"+v.k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}})});
  const j=JSON.stringify(out);if(j===L.tvLast)return;L.tvLast=j;RT(PSP+"tv").set(out)}
 function plConnect(){
- if(window.__HMPDEMO){PSP="planners/northlight/";L.plOK=true;L.authReady=true;plSubs();return}
+ if(window.__HMPDEMO){PSP=QS.get("host")==="1"?"planners/jordan/":"planners/northlight/";L.plOK=true;L.authReady=true;plSubs();return}
  const a=AUTH();if(!a){/* offline test copy without sign-in */PSP="planners/test/";L.authReady=true;L.plOK=true;plSubs();return}
  RT("owner").on("value",s=>{D.owner=s.val()||null;renderSoon()});
  a.onAuthStateChanged(async u=>{L.user=u;L.authReady=true;
@@ -292,19 +302,24 @@ function plannerView(){
   if(L.user){const own=L.user.uid===D.owner;return card(own?"Set up your planner portal":"Finish your planner account",`<p class="small muted m0">${own?"As the owner you can run your own clients here too.":"Signed in as "+esc(L.user.email||"")+". Add your planner code to finish."}</p>${own?`<label class="stack tight"><span class="small">Your name</span><input type="text" data-draft="ac_name" value="${esc(dv("ac_name",""))}"></label><label class="stack tight"><span class="small">Business name</span><input type="text" data-draft="ac_biz" value="${esc(dv("ac_biz",""))}"></label><button class="btn primary" data-act="acPlanner">Open my planner portal</button>`:acctForm("planner").replace(/<label class="stack tight"><span class="small">(Email|Choose a password)[\s\S]*?<\/label>/g,"")}<button class="btn xs as" data-act="acOut">Sign out</button>`)}
   const mode=L.acMode||"signin";
   return card(mode==="new"?"Create your planner account":"Sign in",`${mode==="new"?`<p class="small muted m0">You'll need the planner code Host Mode sent you.</p>${acctForm("planner")}<button class="btn xs as" data-act="acMode" data-k="signin">I already have an account</button>`:`${acctForm("signin")}<button class="btn xs as" data-act="acMode" data-k="new">New planner? Create your account</button>`}`)}
- const cur=PL_TABS.some(([k])=>k===L.plTab)?L.plTab:"home",tab=(k,l)=>`<button data-act="plTab" data-k="${k}" aria-pressed="${cur===k}">${l}${plTabBadge(k)}</button>`;
+ const TB=plTabsNow(),cur=TB.some(([k])=>k===L.plTab)?L.plTab:TB[0][0],tab=(k,l)=>`<button data-act="plTab" data-k="${k}" aria-pressed="${cur===k}">${l}${plTabBadge(k)}</button>`;
  const body=plTabBody(cur);const me=D.plMe||{};
- return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s planner portal ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="Planner sections">${PL_TABS.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}${roleLinks("planner")}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
-function plEvents(){const ev=D.events||{},ks=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0));
- const nu=baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+(L.viewAs?"as="+encodeURIComponent(PLID())+"&":"")+"planner=1#new";
- return `<section class="card stack"><div class="row between"><h2>Your events</h2><a class="btn primary" href="${esc(nu)}">New event</a></div><p class="small muted m0">Each event gets its own code, games, big screen and guest check-in. Link an event to a client in the Clients tab.</p>
- ${ks.length?`<div class="stack tight">${ks.map(k=>{const cl=Object.keys(D.clients||{}).filter(id=>D.clients[id].ev===k).map(id=>D.clients[id].name);return `<div class="clrow"><div class="row between"><div class="mw0"><b>${esc(ev[k].name||k)}</b><div class="small muted">Code ${esc(k)}${cl.length?" · for "+esc(cl.join(", ")):""}</div></div></div><div class="row small"><a class="btn xs" href="${esc(eventURL(k,"moderator"))}">Run it</a><a class="btn xs" href="${esc(eventURL(k,""))}">Guest view</a><a class="btn xs" href="${esc(eventURL(k,"screen"))}">Big screen</a></div></div>`}).join("")}</div>`:'<p class="small muted m0">No events yet. Tap New event to create your first one.</p>'}</section>`}
+ return `${L.viewAs?`<div class="banner soft"><span>You're viewing <b>${esc(me.name||"this planner")}</b>'s ${plIsHost()?"event dashboard":"planner portal"} ${L.viewOnly?"for support. It's read-only, so nothing you tap is saved.":"as the admin. Changes you make save to their account."}</span><a class="btn sm" href="${esc(baseURL())}#${L.viewOnly?"support":"host"}">Back to ${L.viewOnly?"support":"admin console"}</a></div>`:""}${PL_PW?`<div class="stack mw0"><div class="row between small acctbar"><span><b>${esc(plTabLabel(cur))}</b> <span class="muted">· ${esc(me.biz||me.name||"Planner portal")}</span></span><button class="btn xs" data-act="plPopClose">Close window</button></div>${body}</div>`:`<div class="console"><nav class="side" aria-label="${plIsHost()?"Dashboard sections":"Planner sections"}">${TB.map(([k,l])=>tab(k,l)).join("")}</nav><div class="stack mw0"><div class="row between small acctbar"><span class="muted">${esc(me.name||"")}${me.biz?" · "+esc(me.biz):""}</span><span class="row">${plMultiOn()&&cur!=="set"?`<button class="btn xs" data-act="plPop" data-k="${cur}">Pop out ${esc(plTabLabel(cur))}</button>`:""}</span>${window.__HMPDEMO?"":`<span class="row">${L.user&&D.owner&&L.user.uid===D.owner?`<a class="btn xs" href="${esc(baseURL())}#host">Admin console</a>`:""}${roleLinks("planner")}<button class="btn xs" data-act="acOut">Sign out</button></span>`}</div>${body}</div></div>`}`}
+function plEvents(){const ev=D.events||{},ks=Object.keys(ev).sort((a,b)=>(ev[b].created||0)-(ev[a].created||0)),host=plIsHost();
+ /* hosts need a new invite code for each event, so their New event goes to the invite code page */
+ const nu=host?baseURL()+(window.__HMPDEMO?"?pdemo=1":"")+"#new":baseURL()+"?"+(window.__HMPDEMO?"pdemo=1&":"")+(L.viewAs?"as="+encodeURIComponent(PLID())+"&":"")+"planner=1#new";
+ return `<section class="card stack"><div class="row between"><h2>${host?"My events":"Your events"}</h2><a class="btn primary" href="${esc(nu)}">New event</a></div><p class="small muted m0">${host?"Tap Plan for your date, countdown and to-do list. On the night, tap Run it: you're signed in, so the console opens without your PIN. Each new event needs its own invite code from Host Mode.":"Each event gets its own code, games, big screen and guest check-in. Link an event to a client in the Clients tab."}</p>
+ ${ks.length?`<div class="stack tight">${ks.map(k=>{const cl=Object.keys(D.clients||{}).filter(id=>D.clients[id].ev===k).map(id=>D.clients[id].name);return `<div class="clrow"><div class="row between"><div class="mw0"><b>${esc(ev[k].name||k)}</b><div class="small muted">Code ${esc(k)}${cl.length?" · for "+esc(cl.join(", ")):""}</div></div></div><div class="row small">${host?`<a class="btn xs primary" href="${esc(planURL(k))}">Plan</a>`:""}<a class="btn xs" href="${esc(eventURL(k,"moderator"))}">Run it</a><a class="btn xs" href="${esc(eventURL(k,""))}">Guest view</a><a class="btn xs" href="${esc(eventURL(k,"screen"))}">Big screen</a></div></div>`}).join("")}</div>`:'<p class="small muted m0">No events yet. Tap New event to create your first one.</p>'}</section>`}
 ACT.plTab=el=>{L.plTab=el.dataset.k;L.confirm=null;render();scrollTo(0,0)};
 /* ---- planner portal: one tab per part of the business ----
    Home (what needs attention and this week), Clients, Events, Calendar, Teammates, Packages (and every invoice),
    Inventory (what the business owns and pull lists), Venue (spaces, bookings, holds and blocked days),
    Templates (ready-made events and checklists), Import & export, Branding, Feedback, Settings. */
 const PL_TABS=[["home","Home"],["clients","Clients"],["leads","Leads"],["events","Events"],["cal","Calendar"],["inv","Inventory"],["venue","Venue"],["stay","Stay & Go"],["team","Teammates"],["pkg","Packages"],["show","Showcase"],["rep","Reports"],["tpl","Templates"],["data","Import & export"],["brand","Branding"],["fb","Feedback"],["set","Settings"],["help","Help desk"]];
+/* a host's dashboard: their events, Stay & Go, the Help desk and their account (planning tabs move here after Jan 3) */
+const HOST_TABS=[["events","My events"],["stay","Stay & Go"],["help","Help desk"],["set","Settings"]];
+const plIsHost=()=>!!(D.plMe&&D.plMe.kind==="host");
+const plTabsNow=()=>plIsHost()?HOST_TABS:PL_TABS;
 const CAL_K={event:["🎉","Event day"],date:["📌","Key date"],pay:["💵","Payment due"],task:["☑️","Checklist"],venue:["🏛️","Venue booking"],block:["⛔","Venue blocked"],gear:["📦","Rentals out or back"],shift:["👥","Teammate shifts"],trip:["🧳","Travel"]};
 function plCalItems(){const out=[],cs=D.clients||{};
  Object.keys(cs).forEach(id=>{const c=cs[id],nm=c.name||"Client";
@@ -392,12 +407,19 @@ function plSettings(){const me=D.plMe||{},st=D.invSet||{},fld=(k,l,v,ph,tp,mx)=>
  ${plMultiSection()}
  <section class="card stack"><h2>Your account</h2>${L.user&&L.user.email?`<p class="small muted m0">Signed in as ${esc(L.user.email)}</p>`:""}${me.code&&me.code!=="OWNER"&&me.code!=="DEMO"?`<p class="small muted m0">Planner code: ${esc(me.code)}</p>`:""}
  ${window.__HMPDEMO?`<p class="small muted m0">This is the demo, so there's nothing to sign out of.</p>`:`<button class="btn as" data-act="acOut">Sign out</button>`}</section>`}
+/* a host's Settings: their name and contact details, and their account (no business, invoice or window settings) */
+function hostSettings(){const me=D.plMe||{},fld=(k,l,v,ph,tp,mx)=>`<label class="stack tight"><span class="small">${l}</span><input type="${tp||"text"}" data-draft="${k}" maxlength="${mx||80}" value="${esc(dv(k,v||""))}" placeholder="${esc(ph||"")}"></label>`;
+ return `<section class="card stack"><h2>Your profile</h2><div class="grid2 g8">${fld("se_name","Your name",me.name,"Tasha Green","text",40)}${fld("se_email","Your email",me.email,"you@example.com","email",120)}${fld("se_phone","Your phone",me.phone,"704-555-0100","tel",30)}</div>
+ <button class="btn primary as" data-act="seSave">Save profile</button></section>
+ <section class="card stack"><h2>Your account</h2>${L.user&&L.user.email?`<p class="small muted m0">Signed in as ${esc(L.user.email)}. Use this email and your password to sign in on any phone or computer.</p>`:""}
+ ${window.__HMPDEMO?`<p class="small muted m0">This is the demo, so there's nothing to sign out of.</p>`:`<div class="row"><button class="btn" data-act="hostPwReset">Change my password</button><button class="btn" data-act="acOut">Sign out</button></div>`}</section>`}
+ACT.hostPwReset=async()=>{const a=AUTH(),em=L.user&&L.user.email;if(!a||!em)return toast("Sign in first");try{await a.sendPasswordResetEmail(em);toast("We sent a link to "+em+" to choose a new password")}catch(e){toast(authErr(e))}};
 /* ---- multi-window mode: pop planner modules into their own windows (for desktops with more than one monitor) ---- */
 const PL_PW=(()=>{const k=QS.get("pw")||"";return PL_TABS.some(t=>t[0]===k)?k:""})();
 if(PL_PW)L.plTab=PL_PW;
 const plMultiOn=()=>!!store.get("plMulti",false);
 const plDesktop=()=>window.matchMedia&&matchMedia("(pointer:fine)").matches&&window.innerWidth>=900;
-const plTabLabel=k=>(PL_TABS.find(t=>t[0]===k)||[])[1]||"";
+const plTabLabel=k=>(plTabsNow().find(t=>t[0]===k)||PL_TABS.find(t=>t[0]===k)||[])[1]||"";
 async function plPopOut(k){const u=new URL(location.href);u.searchParams.set("pw",k);
  let f="popup,width=1200,height=860";
  if(store.get("plScreen",false)&&"getScreenDetails" in window){try{const sd=await getScreenDetails(),cur=sd.currentScreen,o=sd.screens.find(x=>x!==cur);
