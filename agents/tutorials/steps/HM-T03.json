@@ -1,0 +1,15 @@
+{"id": "HM-T03", "title": "Understanding Your Dashboard", "collection": "Getting Started", "audience": "Hosts who just signed up",
+ "help": ["Plan your event", "Run your event on the night", "Plan travel for your guests", "Change your password or sign out"],
+ "url": "games.html?e=DEMO#planner", "viewport": [430, 860],
+ "steps": [
+  {"say": "This is your event dashboard. It opens right after you sign in.", "do": []},
+  {"say": "My events lists every event on your account.", "do": [{"act": "point", "within": "Rosa's 30th"}]},
+  {"say": "Each event has four buttons. Plan is where you get ready.", "do": [{"act": "click", "text": "Plan", "within": "Rosa's 30th"}]},
+  {"say": "Your date, countdown and to-do list live here, with your budget and vendors.", "do": [{"act": "wait", "s": 1.5}, {"act": "scroll", "y": 450}, {"act": "wait", "s": 1.5}]},
+  {"say": "Tap My event dashboard to go back.", "do": [{"act": "scroll", "y": -900}, {"act": "click", "text": "My event dashboard"}]},
+  {"say": "Stay and Go keeps travel for your guests: where they stay, shared costs, and who has paid.", "do": [{"act": "click", "text": "Stay & Go"}]},
+  {"say": "Help desk answers quick questions. Just type a few words.", "do": [{"act": "click", "text": "Help desk"}]},
+  {"say": "Settings has your name, email, password, and sign out.", "do": [{"act": "click", "text": "Settings"}]},
+  {"say": "On the day, tap Run it. You're signed in, so you don't need a PIN.", "do": [{"act": "click", "text": "My events"}, {"act": "click", "text": "Run it", "within": "Rosa's 30th"}]},
+  {"say": "That opens your event console. Next up: running the night.", "do": [{"act": "wait", "s": 1}]}
+ ]}

@@ -1,0 +1,11 @@
+{"id": "HM-T01", "title": "Welcome to Host Mode", "collection": "Getting Started", "audience": "New visitors: hosts and planners",
+ "help": [], "url": "index.html", "viewport": [430, 860],
+ "steps": [
+  {"say": "Planning a party shouldn't take ten apps. Host Mode keeps it all in one place: plan it, run it, and remember it.", "do": [{"act": "wait", "s": 1}]},
+  {"say": "It works for baby showers, weddings, birthdays, reunions, and company events, right from your phone.", "do": [{"act": "scroll", "y": 500}]},
+  {"say": "Hosting your own event? Start with I'm hosting an event.", "do": [{"act": "point", "text": "I'm hosting an event"}]},
+  {"say": "Planning for clients? I plan events for clients shows client portals, templates, and team tools.", "do": [{"act": "point", "text": "I plan events for clients"}]},
+  {"say": "Got an invite code? Type it here, then tap Create my event.", "do": [{"act": "point", "sel": "#code"}, {"act": "point", "text": "Create my event"}]},
+  {"say": "Want to look around first? Tap Try the live demo. It's a birthday party already in full swing.", "do": [{"act": "click", "text": "Try the live demo"}, {"act": "wait", "s": 2}]},
+  {"say": "That's Host Mode. Next up: creating your first event.", "do": [{"act": "wait", "s": 1}]}
+ ]}

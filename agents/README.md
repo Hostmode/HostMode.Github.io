@@ -75,6 +75,13 @@ debugging, accessibility and wording. If a plugin and CLAUDE.md disagree, CLAUDE
 Spending: builders and the reviewer use the same API key as the nightly agents. The $100 monthly limit in the Anthropic Console
 is the hard stop for all of them together.
 
+## Tutorial videos (daytime, started Nov 3, 2026)
+
+`tutorials.yml` runs 4 times a day while the night agents are off and aims for 4 finished how-to videos a day: Claude writes each
+video's steps from the real demo (only until every topic has steps), a browser records the live demo, a free voice (Piper) reads it,
+and ffmpeg adds captions and the Host Mode look. Videos go in the draft release "tutorial-library" (only people with repo access see it);
+the queue is `queue.md` in the tutorials-data branch. At most $0.40 of credits a slot. Details: agents/tutorials/README.md.
+
 ## The tap-everything check (nightly, free)
 
 After the test customer and technical agent, `crawl.py` opens every demo screen and every tab of the planner portal and admin

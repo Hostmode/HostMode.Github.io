@@ -17,6 +17,7 @@ How the agents fit together, the GitHub traps already hit, and how to add a new 
 | .github/scripts/auto_merge.py | the reviewer, after a review with passing checks | merges only "low risk" issues rated "sure" that touch safe files, 200 lines or fewer |
 | builder-queue | a builder pull request closing, the `queue` label, auto-merge, the tap-everything filer, Run workflow | starts the next `queue` issue, one at a time (`next` goes first, `needs Roy` is skipped, nothing during the Dec 31 to Jan 3 freeze) |
 | nightly-agents | every night | test customer, technical agent, then the tap-everything check (agents/crawl.py) and its filer (agents/file_crawl_issues.py) |
+| tutorials | 4 times a day (about 9:43 AM, 12:43 PM, 3:43 PM, 6:43 PM), Run workflow | agents/tutorials/run.py: writes steps for the next tutorial if needed, records the live demo with a voice, uploads to the draft release tutorial-library, saves the queue to the tutorials-data branch |
 | weekly-report | Monday mornings | one issue @mentioning Roy with the week (.github/scripts/weekly_report.py) |
 | load-issues | a change to .github/issues/*.json or its script | turns lists into issues once each, and makes sure the labels exist |
 

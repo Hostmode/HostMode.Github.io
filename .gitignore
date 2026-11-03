@@ -5,3 +5,4 @@ agent-test-inventory.csv
 backup/
 .agent-*
 __pycache__/
+tutorial-out/

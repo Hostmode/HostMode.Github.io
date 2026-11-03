@@ -1,0 +1,13 @@
+{"id": "HM-T04", "title": "Host Mode, Big Screen, and Guest Experience", "collection": "Getting Started", "audience": "Hosts before their event",
+ "help": ["Start the games", "Open the big screen", "Let guests join"], "url": "games.html?e=DEMO#moderator", "viewport": [430, 860],
+ "steps": [
+  {"say": "On the night, Host Mode runs on three screens at once: your phone, the TV, and every guest's phone.", "do": [{"act": "wait", "s": 1}]},
+  {"say": "Your phone is the console. Live shows what's up next, and tonight's games.", "do": [{"act": "point", "text": "Live"}, {"act": "point", "text": "Tonight's games"}]},
+  {"say": "The big screen goes on the TV or projector. Just open its link in the TV's browser.", "do": [{"act": "goto", "url": "games.html?e=DEMO#screen"}]},
+  {"say": "It welcomes everyone and shows a code to scan, so guests can join the games.", "do": [{"act": "point", "text": "Scan to join the games"}]},
+  {"say": "Guests don't need an app. They type their name and pick a picture.", "do": [{"act": "goto", "url": "games.html?e=DEMO"}, {"act": "type", "sel": "#jName", "value": "Sam K"}, {"act": "click", "sel": "[data-act=jAv][data-e='🌻']"}]},
+  {"say": "Then they answer one fun question about themselves, and tap Join.", "do": [{"act": "click", "text": "Summer"}, {"act": "click", "text": "Join"}, {"act": "wait", "s": 1.5}]},
+  {"say": "Back on your phone, tap Go live on a game. Every phone counts down together.", "do": [{"act": "goto", "url": "games.html?e=DEMO#moderator"}, {"act": "click", "text": "Go live", "within": "Trivia", "in": ".gamerow"}, {"act": "wait", "s": 2}]},
+  {"say": "And the big screen follows along, with team scores and the leaderboard.", "do": [{"act": "goto", "url": "games.html?e=DEMO#screen"}, {"act": "wait", "s": 1.5}]},
+  {"say": "One phone runs the whole room. Next up: connecting and using the big screen.", "do": [{"act": "wait", "s": 1}]}
+ ]}
