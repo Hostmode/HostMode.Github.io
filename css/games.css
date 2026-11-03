@@ -873,28 +873,20 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .rpbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}.rpbar i{display:block;height:100%;background:var(--btn1);border-radius:99px}
 .shcovercard{padding:0!important;overflow:hidden}.shcover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 /* Agents tab: the agent office */
-/* ---- the agent office (js/18-support-staff.js agentsBody): a 400x500 scene; agents are placed by left/top % ---- */
-.agscene{position:relative;width:100%;max-width:560px;margin:0 auto;aspect-ratio:4/5;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:#e9d9bf}
-.agscene .agbg,.agscene .agfg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.agscene .agfg{pointer-events:none;z-index:3}
-.agbulb{opacity:.9}.agscene.night .agbulb{filter:drop-shadow(0 0 3px #ffd98a)}
-.agw{position:absolute;z-index:4;width:12%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;text-decoration:none;color:#16255a}
-.agw.r-tech{z-index:2}
-.agok{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:#2f8a4c;color:#fff;font-size:.7rem;font-weight:800;display:grid;place-items:center;border:2px solid #fff}
-.agw:focus-visible{outline:3px solid #f6892f;outline-offset:2px;border-radius:8px}
-.agfig{display:block;width:100%}.agp{display:block;width:100%;height:auto;overflow:visible}
-.agname{font-size:.62rem;font-weight:700;line-height:1.1;text-align:center;background:rgba(255,255,255,.88);border-radius:6px;padding:1px 4px;margin-top:-2px;white-space:nowrap}
-.agbub{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:4px;width:max-content;max-width:150px;background:#fff;border:2px solid #16255a;border-radius:9px;padding:2px 6px;font-size:.62rem;font-weight:700;line-height:1.2;text-align:center;color:#16255a}
-.agbub:after{content:"";position:absolute;left:50%;bottom:-6px;width:8px;height:8px;background:#fff;border:solid #16255a;border-width:0 2px 2px 0;transform:translateX(-50%) rotate(45deg)}
-.agw.fail .agbub{border-color:#d62d2d;color:#a51d1d}
-.agz{position:absolute;top:18%;right:-6%;font-size:.6rem;font-weight:800;color:#16255a;opacity:.7}
-/* still poses: the parts inside each person are .agbod, .agleg-l, .agleg-r, .agarm (front arm), .agarm-b, .agcarry, .agflag */
+/* ---- the agent office (js/18-support-staff.js agentsBody): an isometric 400x290 SVG venue; people are SVG groups ---- */
+.agscene{width:100%;max-width:640px;margin:0 auto;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:linear-gradient(#dfe6f5,#c9d3ea)}
+.agscene.night{background:linear-gradient(#16255a,#0b1022)}
+.agiso{display:block;width:100%;height:auto}
+.agw{cursor:pointer;outline:none}.agw:focus-visible .agring{stroke:#f6892f;stroke-width:2.4}
+.agbulb{opacity:.9}.agscene.night .agbulb{filter:drop-shadow(0 0 2.5px #ffd98a)}
+/* each person's parts (inside agPerson): .agbod, .agleg-l, .agleg-r, .agarm (front arm), .agarm-b, .agcarry, .agflag; .agmove wraps the person, ring and bubble */
 .agp .agarm{transform-box:view-box;transform-origin:29.5px 25px}.agp .agarm-b{transform-box:view-box;transform-origin:10.5px 25px}
 .agp .agleg-l{transform-box:view-box;transform-origin:16.5px 40px}.agp .agleg-r{transform-box:view-box;transform-origin:23.5px 40px}
 .agp .agflag{display:none}.agw.fail .agflag{display:inline}
-.agw.done .agarm{transform:rotate(-155deg)}
-.agw.fail .agarm{transform:rotate(-140deg)}
-.agw.idle .agfig{opacity:.85}
+.agw.done .agarm{transform:rotate(-155deg)}.agw.fail .agarm{transform:rotate(-140deg)}
+.agpanel{border:2px solid #16255a;border-radius:12px;padding:12px;display:grid;gap:8px;background:#fff}
+.agpanel.fail{border-color:#d62d2d}
+.agneed{display:grid;gap:3px}.agbar{height:10px;border-radius:5px;background:#e3e8f3;overflow:hidden}.agbar i{display:block;height:100%;border-radius:5px}
+.agchips{flex-wrap:wrap;gap:6px}
 .agdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#9aa3b8;vertical-align:middle}
 .agdot.work{background:#f6892f}.agdot.done{background:#2f8a4c}.agdot.fail{background:#d62d2d}
-.agrow{text-decoration:none;color:inherit}

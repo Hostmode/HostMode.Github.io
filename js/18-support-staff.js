@@ -482,13 +482,17 @@ function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.ag
  if(k==="reviewer")return st==="work"?"Reading a change…":st==="idle"?"No news yet":"Finished reading";
  if(k==="checks")return st==="work"?"Checking a change…":st==="idle"?"No news yet":"All clear at the door";
  return st==="work"?"Packing the boxes…":b&&b.t?`Last backup ${supAgo(b.t)}${b.mb?` (${b.mb} MB)`:""}`:st==="idle"?"No news yet":"Backed up"}
-/* the scene: a party venue being set up. Each agent works at its own spot and shows its state by what it does:
-   walking or working = busy, waving = finished, red flag = needs a look, sitting with "z z" = resting.
-   Background and foreground are SVG; the agents are links on top, so each one opens its latest run. */
+/* the agent office: an isometric party venue being set up. Each agent stands at its station (AG_SPOT) and shows its state by its
+   floor ring and thought bubble: orange = working, green check = finished, red flag = needs a look, "z z" = resting.
+   Tapping someone opens their card (agPanel) with mood-style bars. Everything is one SVG, drawn back to front (agScene). */
 const AG_LOOK={tester:{shirt:"#2f8a4c",skin:"#c68c5a",hair:"#3b2416"},tech:{shirt:"#16255a",skin:"#8d5a3b",hair:"#111"},
  builder:{shirt:"#16255a",skin:"#f1c7a1",hair:"#6b3b1f"},reviewer:{shirt:"#e8edf7",skin:"#e0ac7e",hair:"#2a1a10"},
  checks:{shirt:"#111c3d",skin:"#a8714a",hair:"#111"},backup:{shirt:"#f6892f",skin:"#f3cfa8",hair:"#7a4b26"}};
-const AG_HOME={tester:[30,67],tech:[16,82],builder:[76,46],reviewer:[46,76],checks:[36,45],backup:[62,84]};
+/* stations on the 10 x 10 floor grid (i runs down to the right, j down to the left); z lifts onto the stage */
+const AG_SPOT={tester:[4.9,5.6,0],tech:[2.1,6.75,0],builder:[8,1.7,8],reviewer:[7.3,8.7,0],checks:[1.6,3.7,0],backup:[3.2,1.5,0]};
+const AG_ROLE={tester:"Tries the demos every night like a real planner, venue, host or guest.",tech:"Answers support tickets and tries to fix bugs overnight.",
+ builder:"Builds the issues you label \"claude\" and sends them to you as pull requests.",reviewer:"Reads every new pull request and gives it a rating for you.",
+ checks:"Checks every change for broken code and broken screens before it reaches you.",backup:"Packs up an encrypted copy of the whole database every night."};
 function agPerson(k){const c=AG_LOOK[k],pants=k==="checks"?"#0b1022":"#22305e",shoe='<rect x="-1" y="18" width="7" height="4" rx="2" fill="#222"/>';
  const acc={builder:['<path d="M11 10a9 8 0 0 1 18 0h2v2H9v-2z" fill="#f6892f"/><rect x="18" y="2" width="4" height="3" rx="1" fill="#f6892f"/>','<rect x="28.5" y="37" width="2" height="10" fill="#7a4b26"/><rect x="25.5" y="45" width="8" height="3" rx="1" fill="#8a94a6"/>',''],
   checks:['<rect x="12" y="6" width="16" height="4" rx="2" fill="#0b1022"/><rect x="24" y="9" width="8" height="2" rx="1" fill="#0b1022"/>','','<circle cx="15" cy="28" r="2" fill="#f6c343"/>'],
@@ -505,40 +509,81 @@ function agPerson(k){const c=AG_LOOK[k],pants=k==="checks"?"#0b1022":"#22305e",s
  <circle cx="17" cy="12.5" r="1" fill="#16255a"/><circle cx="23" cy="12.5" r="1" fill="#16255a"/><path d="M17 15.5q3 2 6 0" stroke="#16255a" stroke-width="1" fill="none"/>
  ${box}<g class="agarm"><rect x="27" y="24" width="5" height="15" rx="2.5" fill="${c.shirt}"/>${acc[1]}<circle cx="29.5" cy="40" r="2.5" fill="${c.skin}"/></g></g>
  <g class="agflag"><path d="M37 2v30" stroke="#555" stroke-width="1.6"/><path d="M37 2h7l-2.5 3.5 2.5 3.5h-7z" fill="#d62d2d"/></g></svg>`}
-function agSceneBack(night,sky,n){const bulbs=Array.from({length:15},(_,i)=>{const x=10+i*27,y=10+Math.sin(i/14*Math.PI)*16;return `<circle class="agbulb b${i%3}" cx="${x}" cy="${y+4}" r="3.6" fill="${["#f6892f","#2f8a4c","#fff4c2"][i%3]}"/>`}).join("");
- const boxes=Array.from({length:Math.min(n,6)},(_,i)=>`<rect x="${270+(i%2)*14}" y="${136-Math.floor(i/2)*12}" width="13" height="11" rx="1.5" fill="#c98a4a" stroke="#7a4b26"/>`).join("");
- return `<svg class="agbg" viewBox="0 0 400 500" preserveAspectRatio="none" aria-hidden="true" focusable="false">
- <rect width="400" height="152" fill="${night?"#26346b":"#f6efe2"}"/><rect y="148" width="400" height="6" fill="#16255a"/>
- <rect y="154" width="400" height="346" fill="${night?"#a8916d":"#e9d9bf"}"/>${Array.from({length:9},(_,i)=>`<path d="M0 ${190+i*38}H400" stroke="${night?"#97815f":"#dcc8a8"}" stroke-width="2"/>`).join("")}
- <path d="M0 14Q200 44 400 14" stroke="#16255a" stroke-width="1.2" fill="none"/>${bulbs}
- <g><rect x="16" y="40" width="80" height="66" rx="4" fill="${sky}" stroke="#16255a" stroke-width="5"/><circle cx="${night?40:72}" cy="62" r="9" fill="${night?"#f4f4f4":"#ffd24a"}"/>${night?'<circle cx="30" cy="84" r="1.2" fill="#fff"/><circle cx="80" cy="54" r="1.2" fill="#fff"/><circle cx="66" cy="90" r="1" fill="#fff"/>':""}<path d="M56 40v66M16 73h80" stroke="#16255a" stroke-width="3"/></g>
- <g><rect x="112" y="64" width="46" height="88" rx="3" fill="#2f8a4c" stroke="#16255a" stroke-width="3"/><circle cx="150" cy="110" r="2.5" fill="#f6c343"/><rect x="106" y="50" width="58" height="12" rx="3" fill="#16255a"/><text x="135" y="59" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">ENTRANCE</text></g>
- <g><rect x="176" y="34" width="100" height="30" rx="4" fill="#16255a"/><path d="M176 64l10 10 10-10 10 10 10-10 10 10 10-10 10 10 10-10 10 10 10-10" fill="#f6892f"/><text x="226" y="54" text-anchor="middle" font-size="13" font-weight="800" fill="#f6892f">HOST MODE</text></g>
- <g><rect x="302" y="56" width="70" height="96" rx="3" fill="#16255a" stroke="#0b1022" stroke-width="3"/><rect x="308" y="70" width="58" height="22" rx="2" fill="#f6efe2"/><text x="337" y="79" text-anchor="middle" font-size="7.5" font-weight="800" fill="#16255a">ROY'S</text><text x="337" y="88" text-anchor="middle" font-size="7.5" font-weight="800" fill="#16255a">OFFICE</text><circle cx="362" cy="108" r="3" fill="#f6c343"/></g>${boxes}
- <g><rect x="232" y="168" width="162" height="64" rx="4" fill="#16255a"/><rect x="232" y="226" width="162" height="14" fill="#f6892f"/><path d="M240 168v-6h146v6" stroke="#8a94a6" stroke-width="3" fill="none"/><circle cx="262" cy="166" r="3" fill="#fff4c2"/><circle cx="312" cy="166" r="3" fill="#fff4c2"/><circle cx="362" cy="166" r="3" fill="#fff4c2"/><text x="313" y="236" text-anchor="middle" font-size="8" font-weight="800" fill="#16255a">STAGE</text></g>
- <g><ellipse cx="88" cy="286" rx="34" ry="13" fill="#2f8a4c"/><ellipse cx="88" cy="283" rx="34" ry="12" fill="#3aa35e"/><circle cx="88" cy="276" r="5" fill="#f6892f"/><path d="M88 270v-9" stroke="#2f8a4c" stroke-width="2"/></g>
- <g><ellipse cx="178" cy="336" rx="34" ry="13" fill="#2f8a4c"/><ellipse cx="178" cy="333" rx="34" ry="12" fill="#3aa35e"/><circle cx="178" cy="326" r="5" fill="#f6892f"/><path d="M178 320v-9" stroke="#2f8a4c" stroke-width="2"/></g>
- <g><rect x="290" y="384" width="110" height="116" fill="#d8c5a3"/><path d="M290 384H400M290 384v36M290 470v30" stroke="#16255a" stroke-width="5"/><rect x="322" y="420" width="34" height="24" rx="2" fill="#c98a4a" stroke="#7a4b26"/><rect x="360" y="400" width="30" height="22" rx="2" fill="#c98a4a" stroke="#7a4b26"/><rect x="356" y="446" width="36" height="26" rx="2" fill="#c98a4a" stroke="#7a4b26"/><text x="345" y="398" text-anchor="middle" font-size="8" font-weight="800" fill="#16255a">STORAGE</text><path d="M282 438a5 5 0 0 1 10 0" stroke="#555" stroke-width="2" fill="none"/><rect x="280" y="438" width="14" height="10" rx="2" fill="#f6c343"/></g></svg>`}
-function agSceneFront(tk,p,spent){const lamp=tk?'<circle cx="214" cy="410" r="14" fill="#f6892f" opacity=".35"/>':"";
- return `<svg class="agfg" viewBox="0 0 400 500" preserveAspectRatio="none" aria-hidden="true" focusable="false">
- <g><rect x="248" y="296" width="146" height="40" rx="4" fill="#16255a"/><rect x="244" y="290" width="154" height="8" rx="3" fill="#f6892f"/><path d="M362 254h18v34h-18z" fill="#eaf6ff" fill-opacity=".85" stroke="#16255a" stroke-width="2"/><rect x="363" y="${288-Math.round(32*p/100)}" width="16" height="${Math.round(32*p/100)}" fill="#2f8a4c"/><text x="371" y="250" text-anchor="middle" font-size="8" font-weight="800" fill="#16255a">TIPS</text><text x="300" y="322" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">${esc(clMoney(spent))} of $${AG_LIMIT}</text></g>
- <g><rect x="12" y="402" width="122" height="44" rx="4" fill="#16255a"/><rect x="8" y="396" width="130" height="8" rx="3" fill="#2f8a4c"/><rect x="24" y="382" width="22" height="14" rx="2" fill="#2b2b2b"/><rect x="26" y="384" width="18" height="9" fill="#8fd0ff"/><text x="73" y="430" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">FRONT DESK</text></g>
- <g>${lamp}<rect x="146" y="424" width="96" height="40" rx="4" fill="#f6efe2" stroke="#16255a" stroke-width="3"/><rect x="142" y="418" width="104" height="8" rx="3" fill="#16255a"/><path d="M214 418v-14l-6-4" stroke="#16255a" stroke-width="2" fill="none"/><circle cx="208" cy="400" r="5" fill="${tk?"#f6892f":"#9aa3b8"}"/><text x="194" y="448" text-anchor="middle" font-size="9" font-weight="700" fill="#16255a">ICEE · ${tk?tk+" waiting":"all clear"}</text></g></svg>`}
+/* isometric helpers: P(a,b,z) is the screen point of floor spot (a,b) raised by z, in a 400 x 290 scene */
+const agP=(a,b,z)=>[200+(a-b)*18,90+(a+b)*9-(z||0)],agPts=l=>l.map(q=>q.map(v=>Math.round(v*10)/10).join(",")).join(" ");
+function agBox(i,j,w,d,h,top,lf,rt){const A=agP(i,j,h),B=agP(i+w,j,h),C=agP(i+w,j+d,h),Dd=agP(i,j+d,h),Cb=agP(i+w,j+d,0),Db=agP(i,j+d,0),Bb=agP(i+w,j,0);
+ return `<polygon points="${agPts([Dd,C,Cb,Db])}" fill="${lf}"/><polygon points="${agPts([B,C,Cb,Bb])}" fill="${rt}"/><polygon points="${agPts([A,B,C,Dd])}" fill="${top}" stroke="rgba(11,16,34,.25)" stroke-width=".6"/>`}
+function agTable(i,j){const t=agP(i,j,11),f=agP(i,j,0);return `<ellipse cx="${f[0]}" cy="${f[1]}" rx="15" ry="7.5" fill="rgba(0,0,0,.12)"/><rect x="${t[0]-2}" y="${t[1]}" width="4" height="11" fill="#16255a"/><ellipse cx="${t[0]}" cy="${t[1]+2}" rx="17" ry="8.5" fill="#2f8a4c"/><ellipse cx="${t[0]}" cy="${t[1]}" rx="17" ry="8.5" fill="#3aa35e"/><circle cx="${t[0]}" cy="${t[1]-3}" r="3" fill="#f6892f"/>`}
+const AG_ICON={check:'<path d="M-5 0l3.5 3.5L5-3.5" stroke="#2f8a4c" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+ flag:'<path d="M-3 6V-6" stroke="#555" stroke-width="1.6"/><path d="M-3-6h8l-2.5 3 2.5 3h-8z" fill="#d62d2d"/>',zz:'<text y="3" text-anchor="middle" font-size="7" font-weight="800" fill="#16255a">z z</text>',
+ builder:'<path d="M-4 5l6-7" stroke="#7a4b26" stroke-width="2.2" stroke-linecap="round"/><rect x="0" y="-6" width="7" height="3.5" rx="1" transform="rotate(-45 3.5 -4)" fill="#8a94a6"/>',
+ tester:'<rect x="-3.2" y="-5.5" width="6.4" height="11" rx="1.2" fill="#111"/><rect x="-2.2" y="-4" width="4.4" height="7" fill="#8fd0ff"/>',
+ reviewer:'<rect x="-4.5" y="-5.5" width="9" height="11" rx="1" fill="#c98a4a"/><rect x="-3" y="-4" width="6" height="8" fill="#fff"/><path d="M-2-2h4M-2 0h4M-2 2h2.5" stroke="#2f8a4c" stroke-width=".9"/>',
+ checks:'<circle cx="-1" cy="-1" r="3.6" stroke="#16255a" stroke-width="1.8" fill="#eaf6ff"/><path d="M1.8 1.8l3.4 3.4" stroke="#16255a" stroke-width="2" stroke-linecap="round"/>',
+ backup:'<path d="M0-5l5 2.5v5L0 5l-5-2.5v-5z" fill="#c98a4a" stroke="#7a4b26" stroke-width=".8"/><path d="M-5-2.5L0 0l5-2.5M0 0v5" stroke="#7a4b26" stroke-width=".8" fill="none"/>',
+ tech:'<path d="M-4.5 1a4.5 4.5 0 0 1 9 0" stroke="#16255a" stroke-width="1.8" fill="none"/><rect x="-5.5" y="0" width="2.6" height="4" rx="1" fill="#16255a"/><rect x="2.9" y="0" width="2.6" height="4" rx="1" fill="#16255a"/>'};
+const AG_RING={work:"#f6892f",done:"#2f8a4c",fail:"#d62d2d",idle:"#9aa3b8"};
+function agFigure(c,sel){const [i,j,z]=AG_SPOT[c.k],[x,y]=agP(i,j,z),ic=c.st==="done"?"check":c.st==="fail"?"flag":c.st==="idle"?"zz":c.k,
+  label=`${c.l}: ${({work:"working",done:"finished",fail:"needs a look",idle:"resting"})[c.st]}. ${c.news}`;
+ return `<g class="agw r-${c.k} ${c.st}${sel?" sel":""}" data-agk="${c.k}" transform="translate(${x} ${y})" tabindex="0" role="button" aria-pressed="${sel}" aria-label="${esc(label)}"><g class="agmove">
+  <ellipse class="agring" cx="0" cy="0" rx="12" ry="6" fill="${AG_RING[c.st]}" fill-opacity="${sel?.7:.4}" ${sel?'stroke="#fff" stroke-width="1.6"':""}/>
+  <svg class="agp" x="-11.8" y="-37.5" width="26" height="39" viewBox="0 0 44 66" overflow="visible">${agPerson(c.k).replace(/^<svg[^>]*>|<\/svg>$/g,"")}</svg>
+  <g class="agthink" transform="translate(9 -52)"><circle cx="-6" cy="11" r="1.5" fill="#fff" stroke="#16255a" stroke-width=".8"/><circle cx="-3" cy="7.5" r="2.2" fill="#fff" stroke="#16255a" stroke-width=".8"/>
+   <ellipse rx="11" ry="9" fill="#fff" stroke="${c.st==="fail"?"#d62d2d":"#16255a"}" stroke-width="1.4"/>${AG_ICON[ic]}</g>
+  <rect class="aghit" x="-14" y="-62" width="34" height="70" fill="transparent"/>
+ </g></g>`}
+function agScene(cast,sel,night,sky,n,tk,p){const wall=night?"#2a3a72":"#f6efe2",wall2=night?"#22305e":"#ece2cf",fl1=night?"#9c8664":"#ead9bb",fl2=night?"#927c5b":"#e0cba7";
+ const RW=(a,z)=>agP(a,0,z),LW=(b,z)=>agP(0,b,z),parts=[];
+ let floor="";for(let a=0;a<10;a++)for(let b=0;b<10;b++)floor+=`<polygon points="${agPts([agP(a,b),agP(a+1,b),agP(a+1,b+1),agP(a,b+1)])}" fill="${(a+b)%2?fl1:fl2}"/>`;
+ const bulbs=[];for(let a=.5;a<10;a+=1){const q=RW(a,64-Math.sin(a/10*Math.PI)*6);bulbs.push(`<circle class="agbulb b${Math.round(a)%3}" cx="${q[0]}" cy="${q[1]}" r="2.6" fill="${["#f6892f","#2f8a4c","#fff4c2"][Math.round(a)%3]}"/>`)}
+ for(let b=.5;b<10;b+=1){const q=LW(b,64-Math.sin(b/10*Math.PI)*6);bulbs.push(`<circle class="agbulb b${(Math.round(b)+1)%3}" cx="${q[0]}" cy="${q[1]}" r="2.6" fill="${["#f6892f","#2f8a4c","#fff4c2"][(Math.round(b)+1)%3]}"/>`)}
+ const sun=RW(2,40),door=[RW(4.2,0),RW(5.4,0),RW(5.4,46),RW(4.2,46)],ent=[LW(4.4,0),LW(5.6,0),LW(5.6,44),LW(4.4,44)],bn=RW(6.1,60),en=LW(5,50),rd=RW(4.8,38);
+ const back=`<polygon points="${agPts([agP(0,0),agP(0,10),LW(10,70),LW(0,70)])}" fill="${wall2}"/><polygon points="${agPts([agP(0,0),agP(10,0),RW(10,70),RW(0,70)])}" fill="${wall}"/>
+  <polyline points="${agPts([LW(10,70),LW(0,70),RW(10,70)])}" fill="none" stroke="#16255a" stroke-width="3"/>
+  <polygon points="${agPts([RW(1,22),RW(3,22),RW(3,54),RW(1,54)])}" fill="${sky}" stroke="#16255a" stroke-width="3"/><circle cx="${sun[0]}" cy="${sun[1]}" r="6" fill="${night?"#f4f4f4":"#ffd24a"}"/><polyline points="${agPts([RW(2,22),RW(2,54)])}" stroke="#16255a" stroke-width="2"/>
+  <polygon points="${agPts(door)}" fill="#16255a"/><polygon points="${agPts([RW(4.4,32),RW(5.2,32),RW(5.2,42),RW(4.4,42)])}" fill="#f6efe2"/><text transform="translate(${rd[0]} ${rd[1]}) skewY(26.565)" text-anchor="middle" font-size="4.6" font-weight="800" fill="#16255a">ROY</text>
+  <polygon points="${agPts([RW(5.9,52),RW(9.4,52),RW(9.4,66),RW(5.9,66)])}" fill="#16255a"/><text transform="translate(${bn[0]+30} ${bn[1]+15}) skewY(26.565)" text-anchor="middle" font-size="9" font-weight="800" fill="#f6892f">HOST MODE</text>
+  <polygon points="${agPts(ent)}" fill="#2f8a4c" stroke="#16255a" stroke-width="2"/><text transform="translate(${en[0]} ${en[1]}) skewY(-26.565)" text-anchor="middle" font-size="5" font-weight="800" fill="#16255a">ENTRANCE</text>
+  <polygon points="${agPts([LW(7,20),LW(9,20),LW(9,48),LW(7,48)])}" fill="#16255a"/><polygon points="${agPts([LW(7.2,23),LW(8.8,23),LW(8.8,45),LW(7.2,45)])}" fill="#f6892f" fill-opacity=".85"/>
+  ${floor}${bulbs.join("")}`;
+ /* furniture and people, drawn back to front */
+ parts.push([1.1,agBox(2.3,0,.1,1,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(2.3,1.7,.1,.6,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(0,2.3,2.4,.1,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(.3,.4,.9,.9,10,"#d9a466","#b77f43","#c98a4a")+agBox(.4,.5,.7,.7,20,"#d9a466","#b77f43","#c98a4a")+agBox(1.2,.4,.8,.8,9,"#d9a466","#b77f43","#c98a4a")]);
+ {const q=agP(2.42,1.45,14);parts.push([3.8,`<rect x="${q[0]-3}" y="${q[1]}" width="6" height="5" rx="1" fill="#f6c343"/><path d="M${q[0]-2} ${q[1]}a2 2 0 0 1 4 0" stroke="#555" stroke-width="1.2" fill="none"/>`])}
+ parts.push([5,agBox(6,0,4,3.2,8,"#16255a","#0e1a44","#f6892f")]);
+ for(let k=0;k<Math.min(n,6);k++)parts.push([4.4+k*.01,agBox(4.3+(k%2)*.55,.35,.5,.5,7,"#d9a466","#b77f43","#c98a4a").replace(/<polygon/g,`<polygon transform="translate(0 ${-Math.floor(k/2)*7})"`)]);
+ parts.push([8.8,agTable(4.4,4.4)]);parts.push([12.8,agTable(6.3,6.5)]);
+ parts.push([14.3,agBox(8.4,5,1.2,3,16,"#f6892f","#16255a","#22305e")]);
+ {const q=agP(9,5.8,16);parts.push([14.4,`<rect x="${q[0]-4}" y="${q[1]-12}" width="8" height="12" rx="2" fill="#eaf6ff" fill-opacity=".9" stroke="#16255a" stroke-width="1"/><rect x="${q[0]-3}" y="${q[1]-1-Math.round(10*p/100)}" width="6" height="${Math.round(10*p/100)}" fill="#2f8a4c"/>`])}
+ parts.push([9.9,agBox(1,7.2,2.3,.9,14,"#2f8a4c","#16255a","#22305e")+(()=>{const q=agP(1.7,7.5,14);return `<rect x="${q[0]-5}" y="${q[1]-8}" width="10" height="7" rx="1" fill="#2b2b2b"/><rect x="${q[0]-4}" y="${q[1]-7}" width="8" height="5" fill="#8fd0ff"/>`})()]);
+ parts.push([13.9,agBox(4,8.5,1.7,.9,12,"#f6efe2","#c9bfa9","#ddd3bd")+(()=>{const q=agP(5.2,8.8,12);return `${tk?`<circle cx="${q[0]}" cy="${q[1]-10}" r="11" fill="#f6892f" opacity=".3"/>`:""}<path d="M${q[0]} ${q[1]}v-8" stroke="#16255a" stroke-width="1.4"/><circle cx="${q[0]}" cy="${q[1]-9}" r="3.2" fill="${tk?"#f6892f":"#9aa3b8"}"/>`})()]);
+ {const q=agP(9.5,9.4,0);parts.push([19,`<rect x="${q[0]-5}" y="${q[1]-9}" width="10" height="9" rx="2" fill="#c98a4a"/><circle cx="${q[0]}" cy="${q[1]-15}" r="7" fill="#2f8a4c"/><circle cx="${q[0]-4}" cy="${q[1]-12}" r="4.5" fill="#3aa35e"/>`])}
+ cast.forEach(c=>{const [i,j]=AG_SPOT[c.k];parts.push([i+j+.05,agFigure(c,c.k===sel)])});
+ parts.sort((x,y)=>x[0]-y[0]);
+ const sc=cast.find(c=>c.k===sel),tag=sc?(()=>{const [i,j,z]=AG_SPOT[sc.k],[x,y]=agP(i,j,z),w=sc.l.length*5.2+10;return `<g class="agtag" transform="translate(${x} ${y+12})" aria-hidden="true"><rect x="${-w/2}" y="-7" width="${w}" height="12" rx="6" fill="#16255a"/><text y="1.8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">${esc(sc.l)}</text></g>`})():"";
+ return `<svg class="agiso" viewBox="0 0 400 290" role="group" aria-label="The agent office. ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk. Tap an agent to see how it's doing.">${back}${parts.map(x=>x[1]).join("")}${tag}</svg>`}
+function agBar(label,pct,col,txt){return `<div class="agneed"><div class="row between small"><b>${label}</b><span class="muted">${esc(txt)}</span></div><div class="agbar"><i style="width:${Math.max(4,Math.min(100,pct))}%;background:${col}"></i></div></div>`}
+function agPanel(c,spent){const hrs=c.r?(Date.now()-Date.parse(c.r.created_at))/36e5:null,fresh=hrs==null?0:hrs<=24?100:hrs<=48?60:hrs<=72?30:10,left=Math.max(0,100-spent/AG_LIMIT*100);
+ const job={work:[60,"#f6892f","Working on it"],done:[100,"#2f8a4c","Went well"],fail:[15,"#d62d2d","Needs a look"],idle:[0,"#9aa3b8","Hasn't run yet"]}[c.st];
+ return `<div class="agpanel ${c.st}"><div class="row between"><div class="mw0"><h3 class="m0">${esc(c.l)}</h3><div class="small muted">${esc(AG_ROLE[c.k])}</div></div><span class="pill ${c.st==="fail"?"warn":c.st==="done"?"ok":""}">${({work:"Working",done:"Finished",fail:"Needs a look",idle:"Resting"})[c.st]}</span></div>
+ <p class="small m0">“${esc(c.news)}”</p>
+ ${agBar("Last job",job[0],job[1],job[2])}${agBar("Fresh",fresh,fresh>=60?"#2f8a4c":fresh>=30?"#f6892f":"#d62d2d",hrs==null?"No runs yet":"Ran "+supAgo(Date.parse(c.r.created_at)))}${agBar("Budget left",left,left>=40?"#2f8a4c":left>=15?"#f6892f":"#d62d2d",`${clMoney(spent)} of ${clMoney(AG_LIMIT)} used this month`)}
+ <a class="btn sm as" href="${esc(c.url)}" target="_blank" rel="noopener">See its latest run on GitHub</a></div>`}
 function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Date().getMinutes()/60,day=hr>=6.5&&hr<18,mid=(hr>=5&&hr<6.5)||(hr>=18&&hr<20),
   night=!day&&!mid,sky=day?"#8fd0ff":mid?"#f6a45c":"#0e1838",tk=tkNewCount(),n=agPrs().length;
  const mo=new Date().toISOString().slice(0,7);let spent=0;Object.values(D.agentRuns||{}).forEach(r=>{if(r&&r.t&&new Date(r.t).toISOString().slice(0,7)===mo)spent+=+((r.usage||{}).usd)||0});
- const p=Math.min(100,Math.round(spent/AG_LIMIT*100)),cast=AG_CAST.map(([k,l,wf])=>{const r=agLatestRun(wf),st=agState(r);return {k,l,st,url:(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news:agNews(k,r,st)}});
- const SL={work:"Working",done:"Finished",fail:"Needs a look",idle:"Resting"};
+ const p=Math.min(100,Math.round(spent/AG_LIMIT*100)),cast=AG_CAST.map(([k,l,wf])=>{const r=agLatestRun(wf),st=agState(r);return {k,l,st,r,url:(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news:agNews(k,r,st)}});
+ const sel=(cast.find(c=>c.k===L.agSel)||cast.find(c=>c.st==="fail")||cast.find(c=>c.st==="work")||cast[0]).k,cur=cast.find(c=>c.k===sel);
  return `<section class="card stack agoffice"><div class="row between"><h2 class="m0">The agent office</h2><button class="btn xs" data-act="agRefresh">${g.busy?"Looking…":"Refresh"}</button></div>
- <p class="small muted m0">Your helpers setting up the venue. Moving means working, a wave and a green check mean finished, a red flag means it needs a look. Tap anyone to see their latest run on GitHub.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
- <div class="agscene ${night?"night":""}" role="group" aria-label="The agent office: ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk">${agSceneBack(night,sky,n)}
-  ${cast.map(c=>{const h=AG_HOME[c.k];return `<a class="agw r-${c.k} ${c.st}" style="left:${h[0]}%;top:${h[1]}%" href="${esc(c.url)}" target="_blank" rel="noopener" aria-label="${esc(c.l+": "+SL[c.st]+". "+c.news+". Opens its latest run on GitHub.")}">${c.st==="work"||c.st==="fail"?`<span class="agbub">${esc(c.news)}</span>`:c.st==="done"?'<span class="agok" aria-hidden="true">✓</span>':""}<span class="agfig">${agPerson(c.k)}</span>${c.st==="idle"?'<span class="agz">z z</span>':""}<span class="agname">${esc(c.l)}</span></a>`}).join("")}
-  ${agSceneFront(tk,p,spent)}</div>
- <div class="stack tight">${cast.map(c=>`<a class="row between small clrow agrow" href="${esc(c.url)}" target="_blank" rel="noopener"><span class="mw0"><span class="agdot ${c.st}"></span><b>${esc(c.l)}</b><span class="db muted">${esc(c.news)}</span></span><span class="pill ${c.st==="fail"?"warn":c.st==="done"?"ok":""}">${SL[c.st]}</span></a>`).join("")}
-  <div class="row between small clrow"><span class="mw0"><b>Waiting for Roy</b><span class="db muted">Boxes by your office door</span></span><span class="pill ${n?"warn":""}">${n} pull request${n===1?"":"s"}</span></div>
-  <div class="row between small clrow"><span class="mw0"><b>Icee's support desk</b><span class="db muted">The lamp is on when tickets are waiting</span></span><span class="pill ${tk?"warn":""}">${tk} ticket${tk===1?"":"s"}</span></div>
-  <div class="row between small clrow"><span class="mw0"><b>Tip jar</b><span class="db muted">This month's spending from the nightly agents</span></span><span class="pill">${esc(clMoney(spent))} of ${esc(clMoney(AG_LIMIT))}</span></div></div></section>${helpView("ad")}`}
-Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)}});
+ <p class="small muted m0">Your helpers setting up the venue. Tap anyone to see how they're doing.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
+ <div class="agscene ${night?"night":""}">${agScene(cast,sel,night,sky,n,tk,p)}</div>
+ ${agPanel(cur,spent)}
+ <div class="row agchips">${cast.map(c=>`<button class="btn xs ${c.k===sel?"primary":""}" data-act="agPick" data-k="${c.k}"><span class="agdot ${c.st}"></span>${esc(c.l)}</button>`).join("")}</div>
+ <div class="stack tight"><div class="row between small clrow"><span class="mw0"><b>Waiting for Roy</b><span class="db muted">Boxes by your office door</span></span><span class="pill ${n?"warn":""}">${n} pull request${n===1?"":"s"}</span></div>
+  <div class="row between small clrow"><span class="mw0"><b>Icee's support desk</b><span class="db muted">The lamp is on when tickets are waiting</span></span><span class="pill ${tk?"warn":""}">${tk} ticket${tk===1?"":"s"}</span></div></div></section>${helpView("ad")}`}
+Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;render(true)}});
+/* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */
+document.addEventListener("click",e=>{const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){L.agSel=g.getAttribute("data-agk");render(true)}});
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){e.preventDefault();L.agSel=g.getAttribute("data-agk");render(true);setTimeout(()=>{const n=document.querySelector(`.agw[data-agk="${L.agSel}"]`);if(n)n.focus()},0)}});
 const ST_TABS=[["support","Support"],["sales","Sales"],["resources","Resources"]];
 function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
  return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}</button>`).join("")}</div>`}
