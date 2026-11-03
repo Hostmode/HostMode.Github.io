@@ -19,8 +19,8 @@ function askTab() {
   return `<p class="muted">Tell the designer what you want. It shows you the change first, and nothing is kept until you say so.</p>
   <textarea id="ask" placeholder="Arrange ten round tables with eight chairs at each table">${esc(askText)}</textarea>
   <div class="row" style="margin-top:8px"><button class="btn o" id="askGo">Show me</button></div>
-  <h3>Try</h3><div class="row">${EXAMPLES.map(e => `<button class="chip" data-ex="${esc(e)}">${esc(e.length > 46 ? e.slice(0, 44) + "…" : e)}</button>`).join("")}</div>
   ${logHtml()}
+  <h3>Try</h3><div class="row">${EXAMPLES.map(e => `<button class="chip" data-ex="${esc(e)}">${esc(e.length > 46 ? e.slice(0, 44) + "…" : e)}</button>`).join("")}</div>
   <details style="margin-top:16px"><summary class="muted">For Host Mode's AI helpers: send exact steps</summary>
   <p class="muted">A list of steps in JSON, like <code>[{"op":"move_object","id":"stage1","where":"front"}]</code>. Steps: ${Object.keys(S.OPS).join(", ")}. Every step is checked the same way as a tap.</p>
   <textarea id="opsJson" style="font-family:monospace;font-size:12px"></textarea><div class="row"><button class="btn l" id="opsGo">Preview these steps</button></div></details>`;
@@ -28,10 +28,18 @@ function askTab() {
 function logHtml() { return lastLog.length ? `<ul class="log">${lastLog.map(l => `<li class="${l.c || ""}">${esc(l.t.charAt(0).toUpperCase() + l.t.slice(1))}</li>`).join("")}</ul>` : ""; }
 function doAsk(text) {
   askText = text;
+  // close the phone's keyboard so the preview (or the answer) can be seen
+  try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+  if (!String(text || "").trim()) { lastLog = [{ t: "Type what you'd like first, or tap one of the ideas below.", c: "warn" }]; render(); toast("Type what you'd like first"); return; }
   const { ops, notes } = S.interpret(ed.s, text);
   lastLog = notes.map(n => ({ t: n, c: /didn't|couldn't|won't/.test(n) ? "warn" : "" }));
-  if (!ops.length) { lastLog.push({ t: "Nothing to change yet. Try one of the examples.", c: "warn" }); render(); return; }
+  if (!ops.length) { lastLog.push({ t: "Nothing to change yet. Try saying it another way, or tap one of the ideas below.", c: "warn" }); render(); toast("I didn't understand that yet"); return; }
+  render();
   previewSteps(ops);
+}
+// the preview shows at the top of the 3D view: bring it on screen (inside the planner portal, scroll the portal to the designer)
+function showPreviewSpot() {
+  try { if (window.frameElement) window.frameElement.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
 }
 function previewSteps(ops) {
   const del = ops.filter(o => o.op === "delete_object" && !o.confirm);
@@ -40,7 +48,7 @@ function previewSteps(ops) {
   if (!r.ok) { lastLog.push(...r.errors.map(e => ({ t: e, c: "err" }))); render(); return; }
   showBanner(`<b>Preview</b><div>${r.log.map(esc).join("<br>")}</div>${r.warnings.length ? `<div class="muted" style="color:#ffd9b0">${r.warnings.slice(0, 3).map(w => esc(w.msg)).join("<br>")}</div>` : ""}<div class="row"><button class="btn g" id="bnKeep">Keep it</button><button class="btn l" id="bnDrop">Undo this</button></div>`);
 }
-function showBanner(h) { const b = $("#banner"); b.innerHTML = h; b.style.display = "block"; }
+function showBanner(h) { const b = $("#banner"); b.innerHTML = h; b.style.display = "block"; showPreviewSpot(); }
 function hideBanner() { $("#banner").style.display = "none"; }
 $("#banner").addEventListener("click", e => {
   const id = e.target.id;

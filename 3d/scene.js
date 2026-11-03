@@ -623,7 +623,7 @@ export function interpret(scene, text) {
       ops.push({ op: "swap_style", from: "chairs", to: { ghost: "chair_ghost", chiavari: "chair", folding: "chair_folding" }[sw[1]] || "chair_crossback" }); continue;
     }
     // Centerpieces on every table: "put tall centerpieces on every table", "add candles to each table"
-    if (/centerpiece|candles?|votive/.test(p) && /(each|every|all|the) (?:guest )?tables?|tables/.test(p) && !/floor candle/.test(p)) {
+    if (/centerpiece|candles?|votive|flowers?|floral/.test(p) && /(each|every|all|the) (?:guest )?tables?|tables/.test(p) && !/floor candle|flower wall|floral wall/.test(p)) {
       const kind = /tall/.test(p) ? "centerpiece_tall" : /candle|votive/.test(p) && !/flower|floral/.test(p) ? "candle_cluster" : "centerpiece";
       ops.push(Object.assign({ op: "decorate_tables", kind, tables: "all" }, cols.length ? { palette: cols } : {})); continue;
     }
@@ -710,7 +710,7 @@ export function interpret(scene, text) {
       if (kelvin) { ops.push({ op: "modify_lighting", id: "all", kelvin }); continue; }
     }
     // "make the room look more elegant / upscale"
-    if (/elegant|upscale|luxur|classy|fancy|formal/.test(p)) {
+    if (/elegant|upscale|luxur|classy|fancy|formal|romantic|look like a wedding|wedding (?:look|style|feel)/.test(p)) {
       ops.push({ op: "dress_object", kind: "tables", linen: "floor", linenColor: "ivory", runner: "satin", runnerColor: "champagne", charger: "gold", napkin: "ivory" });
       if (scene.items.some(i => CATALOG[i.kind].dress === "chair")) ops.push({ op: "change_material", kind: "chairs", mat: "gold", color: "gold" }, { op: "dress_object", kind: "chairs", sash: "champagne" });
       ops.push({ op: "modify_lighting", id: "all", kelvin: 2700, scale: 0.85 });
