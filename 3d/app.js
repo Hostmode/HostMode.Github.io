@@ -173,7 +173,7 @@ body.addEventListener("click", async e => {
     case "chairs": if (it) { const n = S.CATALOG[it.kind].seats || 6; const kids = ed.s.items.filter(i => i.group === it.id).map(i => i.id); ed.run([...kids.map(id => ({ op: "delete_object", id, confirm: true })), ...S.chairsAround(it, n).map(c => ({ op: "add_item", kind: "chair", x: c.x, z: c.z, rot: c.rot, group: it.id }))]); } break;
     case "del": if (it) { if (confirmDel !== it.id) { confirmDel = it.id; render(); } else { confirmDel = null; ed.run([{ op: "delete_object", id: it.id, confirm: true }]); ed.select(null); } } break;
     case "quality": ed.quality = ed.quality === "high" ? "low" : "high"; localStorage.setItem("hm3d_quality", ed.quality); ed.applyQuality(); render(); break;
-    case "saveView": { const v = ed.currentView(); const name = prompt("Name this view", "View " + (ed.s.views.length + 1)); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target }]); break; }
+    case "saveView": { const v = ed.currentView(); const def = "View " + (ed.s.views.length + 1), name = window.HM3D_PREVIEW ? def : (prompt("Name this view", def) ?? null); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target }]); break; }
     case "png": { const url = ed.snapshot(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + ".png"); break; }
     case "save": { const r = await ed.store.save(ed.s, true); toast(r.cloud ? "Saved to your account" : r.local ? "Saved on this device" : "Couldn't save"); refreshProjects(); break; }
     case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample venue"); break;
