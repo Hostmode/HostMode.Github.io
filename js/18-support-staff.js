@@ -473,7 +473,7 @@ function agLoad(force){const g=L.ag=L.ag||{};if(g.busy||(!force&&g.t&&Date.now()
  g.busy=true;const api="https://api.github.com/repos/"+AG_REPO+"/";
  Promise.all([fetch(api+"actions/runs?per_page=60").then(r=>r.ok?r.json():Promise.reject()),fetch(api+"pulls?state=open&per_page=50").then(r=>r.ok?r.json():Promise.reject())])
   .then(([a,p])=>{g.runs=a.workflow_runs||[];g.prs=Array.isArray(p)?p:[];g.err=false}).catch(()=>{g.err=true}).finally(()=>{g.busy=false;g.t=Date.now();renderSoon()})}
-function agLatestRun(name){return ((L.ag||{}).runs||[]).filter(r=>r.name===name).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]}
+function agLatestRun(name){return ((L.ag||{}).runs||[]).filter(r=>r.name===name&&r.conclusion!=="skipped"&&r.conclusion!=="cancelled").sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]}
 function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.agentRuns&&D.agentRuns[runs[runs.length-1]],ts=(last&&last.tester)||{},tc=(last&&last.tech)||{},n=agPrs().length,b=D.backupStatus;
  if(st==="fail")return "Something went wrong. Tap to see.";
  if(k==="tester")return st==="work"?"Trying the games now…":ts.passed!=null?`${ts.passed} check${ts.passed===1?"":"s"} passed${ts.failed?`, ${ts.failed} failed`:""}`:st==="idle"?"No news yet":"Finished the checks";
