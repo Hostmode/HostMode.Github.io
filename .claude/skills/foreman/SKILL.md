@@ -38,6 +38,16 @@ issue: name the commit to follow, say how the base is built (where things live, 
 not to change. The builder starts from a clear pattern instead of guessing, and each job like this leaves a better example
 for the next one. First example: the agent office (Claude built the scene; the builder makes it move).
 
+## When an issue is replaced
+
+Close the old issue (and any pull request it opened) with a one-line comment naming the new issue, BEFORE the new one is labeled.
+A builder works from main as it is when it starts, so a stale issue builds on old code. Example: #22 was replaced by #23.
+
+## Keep the lessons
+
+After any session where something went wrong or was learned, add one plain line to "Lessons from building" in CLAUDE.md.
+Every agent reads CLAUDE.md, so that is how the builder, reviewer and technical agent learn.
+
 ## Order the queue
 
 1. Anything blocking a live event.

@@ -99,6 +99,17 @@ Follow the pattern of the existing tabs, such as Packages, Leads, Inventory and 
 4. Commit with a short plain-English summary of what changed.
 5. Only Roy's changes push straight to main. Changes from anyone else (including Icee's Claude) go on a branch and are sent to Roy as a pull request for his approval.
 
+## Lessons from building (add one line each time something trips you up; agents read this too)
+
+- `data-act` only works on HTML buttons, links and form fields. On SVG elements, catch taps with one document-level listener (see the agent office).
+- An SVG nested inside another loses its CSS hook unless you give it the class again (`<svg class="agp">`).
+- Small things to tap (people in a scene, icons) need an invisible tap area around them (`fill="transparent"` rect); a finger misses the gaps.
+- In a scene drawn back to front, draw labels and name tags LAST so nothing covers them.
+- Pull requests from the builder come from Claude's bot, so workflows that react to them must allow that bot (`allowed_bots`).
+- A builder run starts from main as it is at that moment. If main changes under an open job, the job builds on the old code: when one issue replaces another, close the old one before labeling the new one.
+- GitHub keeps run logs private; when an agent run fails, catch the error, write it into the overnight report, and keep the rest of the night going.
+- A change isn't checked until it's been seen: screenshot new screens in the headless browser and look at them before calling them done.
+
 ## On hold until the current build is tested
 
 - Email sending and reminders
