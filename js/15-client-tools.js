@@ -272,7 +272,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=15;
+const PDEMO_V=16;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -389,6 +389,28 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   pl.vpages[tok]=vpBuild(Object.assign({k:vk},v),"dublin",pl.clients.dublin,pl.brand,pl.profile)});
  pl.vcheck={demoVendor2x:{here:ago(0.5),issues:{i1:{text:"Our van is 10 minutes out, traffic on the quays.",t:ago(0.6)}}}};
  pl.tv={DUBLIN:{}};Object.keys(pl.clientVendors.dublin).forEach(k=>{const v=pl.clientVendors.dublin[k];if(v.team)pl.tv.DUBLIN["dublin_"+k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}});
+ /* Stay & Go sample trip (made-up people and money; the tab shows a "Sample data" banner in the demo) */
+ {const F=day(18),T=day(21),who=o=>Object.fromEntries(o.map(k=>[k,1])),rc="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><rect width="200" height="260" fill="#fff"/><text x="20" y="40" font-size="16">Harris Teeter</text><text x="20" y="80" font-size="13">Groceries   $186.40</text><text x="20" y="110" font-size="11">SAMPLE RECEIPT</text></svg>');
+  pl.stay={trips:{tw:{name:"Whelan wedding weekend",client:"whelan",place:"Asheville, NC",cur:"USD",from:F,to:T,note:"Guests arrive Friday, wedding Saturday.",t:ago(200)}},
+   mem:{m1:{trip:"tw",name:"Aoife Whelan",email:"aoife.whelan@example.com",phone:"704-555-0181",room:"312",group:"Bride's family",from:F,to:T,t:ago(190)},
+    m2:{trip:"tw",name:"Liam Whelan",email:"liam.whelan@example.com",phone:"704-555-0182",room:"312",group:"Bride's family",from:F,to:T,t:ago(190)},
+    m3:{trip:"tw",name:"Priya Shah",email:"priya.shah@example.com",phone:"",room:"",group:"Wedding party",from:F,to:T,t:ago(180)},
+    m4:{trip:"tw",name:"Marcus Reed",email:"",phone:"980-555-0144",room:"",group:"Wedding party",from:F,to:T,noEmail:true,t:ago(180)},
+    m5:{trip:"tw",name:"Grace Doyle",email:"grace.doyle@example.com",phone:"704-555-0190",room:"",group:"Wedding party",from:day(19),to:T,t:ago(170)}},
+   res:{r1:{trip:"tw",cat:"stay",prov:"booking",name:"The Grove Park Inn",conf:"BK-48213",booked:day(-40),start:F,end:T,inT:"16:00",outT:"11:00",addr:"290 Macon Ave, Asheville, NC",phone:"828-555-0100",email:"",total:126000,due:day(10),status:"confirmed",who:who(["m1","m2"]),split:"even",owe:{m1:63000,m2:63000},oweDue:day(-3),gnote:"Ask for the Whelan wedding group at the front desk. Parking is free.",note:"Group rate expires if we drop below 10 rooms.",ppay:{pp1:{amt:30000,date:day(-40),note:"Deposit"}},t:ago(160)},
+    r2:{trip:"tw",cat:"rental",prov:"airbnb",name:"Montford cottage",conf:"HM9X2KQ",booked:day(-20),start:F,end:T,inT:"15:00",outT:"10:00",addr:"Montford Ave, Asheville, NC",phone:"",email:"",total:98400,due:day(4),status:"pending",who:who(["m3","m4","m5"]),split:"even",owe:{m3:32800,m4:32800,m5:32800},oweDue:day(12),gnote:"Door code comes the day before.",note:"",t:ago(120)},
+    r3:{trip:"tw",cat:"car",prov:"enterprise",name:"Enterprise, minivan",conf:"ENT-77120",booked:day(-15),start:F,end:T,inT:"12:00",outT:"12:00",addr:"Asheville Regional Airport",phone:"828-555-0170",email:"",total:41250,due:"",status:"confirmed",who:who(["m3","m4"]),split:"custom",owe:{m3:20625,m4:20625},oweDue:day(12),gnote:"Pick up at the airport counter. Marcus is the driver.",note:"",ppay:{pp1:{amt:41250,date:day(-15),note:"Paid in full by card"}},t:ago(100)}},
+   exp:{e1:{trip:"tw",title:"Groceries for the cottage",amt:18640,date:day(-2),who:who(["m3","m4","m5"]),split:"even",owe:{m3:6214,m4:6213,m5:6213},oweDue:day(12),note:"",t:ago(40)}},
+   pay:{p1:{trip:"tw",mid:"m1",amt:63000,date:day(-10),method:"Zelle",ref:"ZL-1042",note:"",alloc:{"r:r1":63000},rc:"",t:ago(230)},
+    p2:{trip:"tw",mid:"m2",amt:25000,date:day(-8),method:"Venmo",ref:"",note:"Will send the rest after payday.",alloc:{"r:r1":25000},rc:"",t:ago(190)},
+    p3:{trip:"tw",mid:"m3",amt:59639,date:day(-1),method:"Cash App",ref:"",note:"",alloc:{"r:r2":32800,"r:r3":20625,"e:e1":6214},rc:"rc1",t:ago(20)},
+    p4:{trip:"tw",mid:"m4",amt:10000,date:day(-1),method:"Cash",ref:"",note:"",alloc:{"r:r2":10000},rc:"",t:ago(18)}},
+   rc:{rc1:{trip:"tw",name:"cottage-groceries.svg",type:"image/svg+xml",size:300,hash:"demo1",merchant:"",date:"",amt:0,ref:"",cost:"",pay:"p3",ok:false,t:ago(30)}},
+   rcBlob:{rc1:rc},
+   msg:{g1:{trip:"tw",mid:"m1",ch:"email",kind:"stay",subj:"Whelan wedding weekend: Lodging details",body:"(sample)",t:ago(48),by:"Claire Moran",status:"sent"}},
+   act:{a1:{trip:"tw",ref:"trip",text:"Created the trip Whelan wedding weekend",t:ago(200),by:"Claire Moran"},a2:{trip:"tw",ref:"r:r1",text:"Added hotel or lodging The Grove Park Inn (Confirmed, $1,260.00)",t:ago(160),by:"Claire Moran"},
+    a3:{trip:"tw",ref:"r:r2",text:"Added vacation rental Montford cottage (Pending, $984.00)",t:ago(120),by:"Claire Moran"},a4:{trip:"tw",ref:"p:p3",text:"Recorded payment: Priya Shah paid $596.39 by Cash App",t:ago(20),by:"Claire Moran"},
+    a5:{trip:"tw",ref:"m:m1",text:"Opened an email (Lodging details) to Aoife Whelan",t:ago(48),by:"Claire Moran"}}}}
  const pg={admin:{},index:idx,events:evs,planners:{northlight:pl},plist:{northlight:{name:"Claire Moran",biz:"Northlight Events",email:"claire@northlight.example",t:ago(2000)}}};
  const dev="iPhone/iPad · Safari · screen 390×844 · online · en-US";
  pg.staff={roy:{name:"Roy",role:"owner",t:ago(3000),active:ago(0.01)},icee:{name:"Icee",role:"support",code:"SUP-DEMO1",t:ago(200),active:ago(2.5)}};

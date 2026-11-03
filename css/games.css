@@ -932,3 +932,13 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 /* team messages and onboarding (js/18a-team.js) */
 .tmlist{max-height:60vh;overflow-y:auto}.tmmsg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;max-width:92%}.tmmsg.mine{align-self:flex-end;border-color:#f7941d;background:#fff7ec}.tmtext{white-space:pre-wrap;overflow-wrap:anywhere}
 .onb{border:1px solid var(--line);border-radius:12px;padding:8px 10px}.onb.done{background:#f1faef;border-color:#3dae2b}.onbtick{min-width:34px;height:34px;font-weight:700}.onb.done .onbtick{background:#3dae2b;color:#fff;border-color:#3dae2b}.onbhead{background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:4px 8px}.onbhow{margin:6px 0 0 42px}
+
+/* ---- Stay & Go ---- */
+.sgstats b{font-size:1.2rem;font-family:inherit;font-weight:700;overflow-wrap:anywhere}
+.sgpick{min-width:180px}
+.sgck{gap:6px;align-items:center}.sgck input{width:20px;height:20px;accent-color:var(--leaf)}
+.sgpre{white-space:pre-wrap;font:inherit;font-size:.9rem;background:var(--ground-2);border-radius:10px;padding:10px 12px;margin:6px 0;max-height:320px;overflow:auto}
+.sgprev{border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--card)}.sgprev summary{cursor:pointer}
+.sgfacts{display:grid;grid-template-columns:minmax(100px,max-content) 1fr;gap:4px 12px;font-size:.9rem;margin:0}.sgfacts dt{color:var(--muted)}.sgfacts dd{margin:0}
+.sgwrap{overflow-x:auto}.sgtbl{width:100%;border-collapse:collapse;font-size:.88rem}.sgtbl th,.sgtbl td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}.sgtbl .n{text-align:right;white-space:nowrap}
+.sgperson{align-items:flex-start}.sgdetail{margin-top:8px}
