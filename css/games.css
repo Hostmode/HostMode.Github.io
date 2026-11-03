@@ -877,7 +877,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .agscene{width:100%;max-width:640px;margin:0 auto;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:linear-gradient(#dfe6f5,#c9d3ea)}
 .agscene.night{background:linear-gradient(#16255a,#0b1022)}
 .agiso{display:block;width:100%;height:auto}
-.agw{cursor:pointer;outline:none}.agw:focus-visible .agring{stroke:#f6892f;stroke-width:2.4}
+.agw{cursor:pointer;outline:none}.agtagw{pointer-events:none}.agw:focus-visible .agring{stroke:#f6892f;stroke-width:2.4}
 .agbulb{opacity:.9}.agscene.night .agbulb{filter:drop-shadow(0 0 2.5px #ffd98a)}
 /* each person's parts (inside agPerson): .agbod, .agleg-l, .agleg-r, .agarm (front arm), .agarm-b, .agcarry, .agflag; .agmove wraps the person, ring and bubble */
 .agp .agarm{transform-box:view-box;transform-origin:29.5px 25px}.agp .agarm-b{transform-box:view-box;transform-origin:10.5px 25px}
@@ -890,7 +890,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 @keyframes agf-tester{0%{transform:scaleX(1)}37.89%{transform:scaleX(-1)}59.47%{transform:scaleX(1)}71.58%{transform:scaleX(-1)}}
 @keyframes agm-builder{0%{transform:translate(0,0)}10.34%{transform:translate(-21.6px,-10.8px)}22.76%{transform:translate(-21.6px,-10.8px)}43.45%{transform:translate(21.6px,10.8px)}55.86%{transform:translate(21.6px,10.8px)}72.41%{transform:translate(-16.2px,8.1px)}84.83%{transform:translate(-16.2px,8.1px)}93.1%{transform:translate(0,0)}100%{transform:translate(0,0)}}
 @keyframes agf-builder{0%{transform:scaleX(-1)}22.76%{transform:scaleX(1)}55.86%{transform:scaleX(-1)}84.83%{transform:scaleX(1)}}
-@keyframes agm-reviewer{0%{transform:translate(0,0)}15.38%{transform:translate(45px,-17.1px)}27.18%{transform:translate(66.6px,-47.7px)}40.51%{transform:translate(25.2px,-45px)}48.21%{transform:translate(25.2px,-45px)}68.21%{transform:translate(-36px,-30.6px)}75.9%{transform:translate(-36px,-30.6px)}85.64%{transform:translate(-7.2px,-19.8px)}92.31%{transform:translate(0,0)}100%{transform:translate(0,0)}}
+@keyframes agm-reviewer{0%{transform:translate(0,0)}15.38%{transform:translate(45px,-17.1px)}27.18%{transform:translate(66.6px,-47.7px)}40.51%{transform:translate(25.2px,-45px)}48.21%{transform:translate(25.2px,-45px)}68.21%{transform:translate(-43.2px,-45px)}75.9%{transform:translate(-43.2px,-45px)}85.64%{transform:translate(-7.2px,-19.8px)}92.31%{transform:translate(0,0)}100%{transform:translate(0,0)}}
 @keyframes agf-reviewer{0%{transform:scaleX(1)}27.18%{transform:scaleX(-1)}75.9%{transform:scaleX(1)}}
 @keyframes agm-checks{0%{transform:translate(0,0)}5.88%{transform:translate(-1.8px,15.3px)}15.29%{transform:translate(-1.8px,15.3px)}21.18%{transform:translate(0,0)}30.59%{transform:translate(0,0)}36.47%{transform:translate(-1.8px,15.3px)}44.12%{transform:translate(-3.6px,36px)}60.59%{transform:translate(37.8px,51.3px)}69.41%{transform:translate(37.8px,51.3px)}85.88%{transform:translate(-3.6px,36px)}93.53%{transform:translate(-1.8px,15.3px)}100%{transform:translate(0,0)}}
 @keyframes agf-checks{0%{transform:scaleX(-1)}15.29%{transform:scaleX(1)}30.59%{transform:scaleX(-1)}44.12%{transform:scaleX(1)}69.41%{transform:scaleX(-1)}85.88%{transform:scaleX(1)}}
