@@ -6,8 +6,8 @@ import { CATALOG } from "../scene.js";
 // Detail budget per category: the most triangles and separate drawn parts one piece may use, so phones stay quick.
 // Chairs are small because a room has dozens; installations are big because a room has one or two.
 export const BUDGET = {
-  // Tables and chairs are set at today's numbers (Nov 3, 2026); drawing their repeated parts in one go is a Phase 3 goal.
-  "Tables": { tris: 30000, meshes: 34 }, "Seating": { tris: 6000, meshes: 14 }, "Balloons": { tris: 250000, meshes: 12 },
+  // Tables and chairs: parts sharing a material are joined (mergeParts in decor.js), so a chair is 2 to 3 draws, a dressed table about 5.
+  "Tables": { tris: 30000, meshes: 10 }, "Seating": { tris: 6000, meshes: 6 }, "Balloons": { tris: 250000, meshes: 12 },
   "Backdrops & drapery": { tris: 250000, meshes: 40 }, "Centerpieces": { tris: 40000, meshes: 16 }, "Lighting & candles": { tris: 60000, meshes: 30 },
   "Florals & greenery": { tris: 120000, meshes: 30 }, "Lounge & accents": { tris: 40000, meshes: 30 }, "Stage & floor": { tris: 20000, meshes: 12 },
   "Food & drink": { tris: 30000, meshes: 20 }, "Audio & video": { tris: 20000, meshes: 12 }, "Structure": { tris: 20000, meshes: 8 }

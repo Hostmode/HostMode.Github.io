@@ -135,3 +135,14 @@ Plan and audit: the "3D Designer Upgrade: Audit and Plan" doc. Phases: 1 audit (
 - `3d/library/assets.js`: an asset record for all 50 pieces, detail budgets by category, `searchAssets()`.
 - `agents/venue3d_asset_check.py` (in check_all.sh): builds every piece in a browser, checks its record and budget, self-test with 3 planted problems.
 - Measured: the sample room is 57 pieces, about 40,000 triangles and 696 separately drawn parts. Draw calls, not triangles, are the phone bottleneck (a dressed table is up to 32 parts, a chair 14). Cutting them is a Phase 3 goal.
+
+### Phase 3, prove it on a few pieces — Built, waiting for Roy's OK
+- **Flowers:** real petals (cupped, curled, uneven, darker toward the heart) in three species: rose, peony, garden rose. Plus a "lite" bloom for flower walls. Each species is built once and repeated (instancing). Leaves are curved with a fold. Plants keep leafy balls.
+- **Fewer separate draws:** parts of a piece that share a material are joined after it's built (`mergeParts`). Sample room: 696 → 168 separately drawn parts, including the new contact shadows; decorated test scene: 1,459 → 433. A chair is 2 to 3 draws, a dressed table about 5. Table and chair budgets were tightened to match (10 and 6).
+- **Chiavari chair:** tapered legs with stretchers, a seat frame, a rounded cushion, a back that leans slightly back.
+- **Fabric:** the chair sash is real ribbon: a band round the back, a two-loop bow with a knot, and two tails that fall with a wave.
+- **Rounded edges** (`rbox`): lounge pieces, the bar, the folding chair.
+- **Contact shadows:** a soft shadow under every floor piece.
+- **Tried and dropped:** real glass (transmission) doubled the time to draw a frame, so glass stays see-through.
+- Measured on headless Chrome with software graphics (not a phone): a phone-sized load takes about 9 s (main: 8 s) at about the same frame rate. The drop in draws should show on a real phone's graphics chip; not yet tried on one.
+- Not yet: napkins are still flat slabs; linens could get softer folds; more flower species (hydrangea, ranunculus) and greenery types.
