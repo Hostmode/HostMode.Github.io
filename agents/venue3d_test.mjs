@@ -112,6 +112,17 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   r = S.apply(r.scene, [{ op: "change_material", id: "floor", mat: "oak" }]); ok(!r.scene.room.floorColor, "changing back to a wood floor drops the carpet color");
 }
 
+// Candles and centerpieces sit on tables: put on a chosen table, or set on top when dragged over one.
+{
+  const v0 = S.sampleVenue(), t = v0.items.find(i => i.kind.startsWith("table_round"));
+  let r = S.apply(v0, [{ op: "add_item", kind: "candle_cluster", on: t.id, id: "cc1" }]); let c = r.scene.items.find(i => i.id === "cc1");
+  ok(r.ok && c.group === t.id && c.y > 0.5 && Math.abs(c.x - t.x) < 0.01, "candles put on a chosen table sit on top of it");
+  r = S.apply(v0, [{ op: "add_item", kind: "candle_cluster", x: 1, z: 1, id: "cc2" }, { op: "move_object", id: "cc2", x: t.x, z: t.z }]); c = r.scene.items.find(i => i.id === "cc2");
+  ok(c.group === t.id && c.y > 0.5, "candles dragged onto a table land on top of it");
+  r = S.apply(r.scene, [{ op: "move_object", id: "cc2", x: 1, z: 1 }]); c = r.scene.items.find(i => i.id === "cc2");
+  ok(!c.group && !c.y, "candles dragged off a table go back to the floor");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

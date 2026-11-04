@@ -235,6 +235,12 @@ export class Editor {
   // and tapping a piece of the set that's already selected picks just that piece.
   tapped(id) {
     const root = S.rootOf(this.s, id);
+    // placing a centerpiece or candles: the next tap on a table puts it there
+    if (this.placeOnTable) {
+      if (!root || S.CATALOG[root.kind].dress !== "table") { this.emit({ hint: "Tap a table to put it on" }); return; }
+      const kind = this.placeOnTable, nid = S.uid("i_"); this.placeOnTable = null;
+      const r = this.run([{ op: "add_item", kind, on: root.id, id: nid }]); if (r.ok) this.select(nid); return;
+    }
     if (this.picking) { if (!root) return; const ids = new Set(this.pickIds || []); ids.has(root.id) ? ids.delete(root.id) : ids.add(root.id); this.pickIds = [...ids]; this.selectGroup(this.pickIds, null); return; }
     if (root && root.set && !(this.grp && this.grp.set === root.set)) { this.selectGroup(S.setMembers(this.s, root.set), root.set); return; }
     this.select(id);

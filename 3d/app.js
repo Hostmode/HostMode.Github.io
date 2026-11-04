@@ -61,8 +61,8 @@ $("#banner").addEventListener("click", e => {
 // ---------- Add ----------
 function addTab() {
   const cats = {}; Object.entries(S.CATALOG).forEach(([k, c]) => (cats[c.cat] = cats[c.cat] || []).push([k, c]));
-  return `<p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>` + S.CAT_ORDER.filter(c => cats[c]).map(cat => [cat, cats[cat]]).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
-    `<p class="muted">New things land in the middle of the room. Drag the arrows to move them.</p>`;
+  return (ed.placeOnTable ? placeCard() : "") + `<p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>` + S.CAT_ORDER.filter(c => cats[c]).map(cat => [cat, cats[cat]]).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
+    `<p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on the table you've selected, or the one you tap next.</p>`;
 }
 
 // ---------- Selected ----------
@@ -70,6 +70,19 @@ const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "
 // pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
 const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen"]);
 const CARPET_COLS = ["burgundy", "red", "navy", "blue", "grey", "black", "brown", "champagne", "ivory", "sage", "emerald", "dark purple"];
+// the table the selection is on or is: a selected table, a chair or centerpiece on one, or a set with a table in it
+function selTable() {
+  const isT = i => i && S.CATALOG[i.kind] && S.CATALOG[i.kind].dress === "table";
+  if (ed.sel) { const r = S.rootOf(ed.s, ed.sel); if (isT(r)) return r; }
+  if (ed.grp) { const ts = ed.grp.all.map(id => ed.itemOf(id)).filter(isT); if (ts.length === 1) return ts[0]; }
+  return null;
+}
+function placeCard() {
+  const c = S.CATALOG[ed.placeOnTable];
+  return `<div class="card" style="border-color:#f6892f"><b>Where should the ${esc(c.label.toLowerCase())} go?</b>
+  <p class="muted" style="margin:6px 0">Tap the table you want in the room. Or put one on every table.</p>
+  <div class="row"><button class="btn o" data-x="placeAll">Put one on every table</button><button class="btn l" data-x="placeCancel">Cancel</button></div></div>`;
+}
 function grpCard() {
   const g = ed.grp, n = g.all.length, name = g.set ? ((ed.s.sets || {})[g.set] || {}).name || "Set" : "";
   return `<div class="card"><b>${g.set ? esc(name) : g.ids.length + " picked"}</b> <span class="muted">${n} piece${n === 1 ? "" : "s"} in all</span>
@@ -187,6 +200,7 @@ function render() {
 }
 let lastSel = null;
 ed.on(info => {
+  if (info.hint) { toast(info.hint); return; }
   if (info.errors) { lastLog = info.errors.map(t => ({ t, c: "err" })); toast(info.errors[0]); }
   else if (info.log && info.why !== "assistant") { if (info.warnings && info.warnings.length) toast(info.warnings[0].msg); }
   const selKey = ed.sel || (ed.grp ? "g:" + (ed.grp.set || ed.grp.ids.join(",")) : ed.picking ? "picking" : null);
@@ -206,7 +220,17 @@ body.addEventListener("click", async e => {
   if (e.target.id === "askGo") return doAsk($("#ask").value);
   if (d.ex) { $("#ask").value = d.ex; return doAsk(d.ex); }
   if (e.target.id === "opsGo") { try { const ops = JSON.parse($("#opsJson").value); previewSteps(Array.isArray(ops) ? ops : [ops]); } catch (er) { toast("Those steps aren't valid JSON"); } return; }
-  if (d.add) { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
+  if (d.add) {
+    // centerpieces and candles go on a table: the selected one, or the one you tap next (or every table)
+    if (S.CATALOG[d.add].top) {
+      const t = selTable();
+      if (t) { const id = S.uid("i_"), r = ed.run([{ op: "add_item", kind: d.add, on: t.id, id }]); if (r.ok) { ed.select(id); toast("Put " + S.CATALOG[d.add].label.toLowerCase() + " on the table"); } return; }
+      if (!ed.s.items.some(i => S.CATALOG[i.kind].dress === "table")) { toast("Add a table first, then put this on it"); return; }
+      ed.placeOnTable = d.add; tab = "add"; render(); toast("Tap the table to put it on"); return;
+    }
+    const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
+  if (d.x === "placeAll" && ed.placeOnTable) { const kind = ed.placeOnTable; ed.placeOnTable = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast("Put one on every table"); render(); return; }
+  if (d.x === "placeCancel") { ed.placeOnTable = null; render(); return; }
   if (d.col && it) return ed.run([{ op: "change_material", id: it.id, color: d.col }]);
   if (d.drc && it) return ed.run([{ op: "dress_object", id: it.id, [d.drc]: d.v }]);
   if (d.pal && it) return ed.run([{ op: "dress_object", id: it.id, palette: d.pal }]);

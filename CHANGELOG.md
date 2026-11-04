@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-03 · Roy (with Claude) · 3D designer: centerpieces and candles from Add go on the selected table, or the designer asks which table (tap one, or Put one on every table) instead of dropping them on the floor; dragging one onto a table sets it on top.
 - 2026-11-03 · Roy (with Claude) · 3D designer: carpet floors, patterned or plain, with carpet color buttons on the Room tab (and "Carpet the floor"); the Ask box understands "carpet the room", "navy carpet", "plain gray carpet".
 - 2026-11-03 · Roy (with Claude) · 3D designer: Pick several and Group as a set (like a table with its chairs and decor): a set selects as one, drags, turns, copies, renames, ungroups and removes together (tap a piece again to change just it). The stage now changes material (its top was always drawn as wood); Material is hidden on pieces where it does nothing.
 - 2026-11-03 · Roy (with Claude) · 3D designer's Show me: the answer (or "I didn't understand") now shows right under the button, the phone keyboard closes, and the preview scrolls into view; it also understands "add flowers to the tables" and "make it look like a wedding" / romantic.
