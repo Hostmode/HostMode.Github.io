@@ -1,0 +1,43 @@
+{
+ "id": "tent_40x60",
+ "name": "Frame tent (40 \u00d7 60 ft)",
+ "category": "Tents & shade",
+ "tags": [
+  "tent",
+  "frame tent",
+  "outdoor",
+  "large tent"
+ ],
+ "events": [
+  "wedding",
+  "birthday",
+  "graduation",
+  "community",
+  "corporate",
+  "holiday"
+ ],
+ "styles": [
+  "classic",
+  "garden",
+  "modern"
+ ],
+ "size": {
+  "w": 12.19,
+  "d": 18.29,
+  "h": 5.49
+ },
+ "materials": [
+  "fabric",
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "Outdoors over tables, a stage or a buffet; things under it don't count as bumping into it. Keep generators 20 ft away.",
+ "compatible": [],
+ "modeling": "Legs every 10 ft round the edge, 8 ft tall; a hip roof up to 18 ft; a valance. See-through roof so you can design inside.",
+ "priority": "now",
+ "findings": [
+  "large_frame_tents",
+  "tent_space_per_guest"
+ ],
+ "status": "checked"
+}

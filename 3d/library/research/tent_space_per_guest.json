@@ -1,0 +1,30 @@
+{
+ "id": "tent_space_per_guest",
+ "topic": "Space per guest under a tent",
+ "events": [
+  "wedding",
+  "birthday",
+  "graduation",
+  "community",
+  "corporate",
+  "holiday"
+ ],
+ "summary": "Plan about 12 sq ft per guest for a sit-down meal at round tables and about 8 sq ft per guest for a standing cocktail party, plus room for food, bars and a stage. One rental company keeps 25% of a tent's seating space for a dance floor, stage, buffet or bar. Aisles are usually 5 ft wide.",
+ "sources": [
+  {
+   "url": "https://americantent.com/blogs/best-in-tents/event-tent-sizes",
+   "title": "Event tent sizes (American Tent)"
+  },
+  {
+   "url": "https://knightspartyrental.com/inventory/tents/large-frame-tents",
+   "title": "Large frame tents, with and without a dance floor (Knights Party Rental)"
+  },
+  {
+   "url": "https://americantent.com/blogs/now-trending/40x60-tent-layout",
+   "title": "40x60 tent layouts (American Tent)"
+  }
+ ],
+ "confidence": "high",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-04"
+}

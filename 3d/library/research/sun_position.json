@@ -1,0 +1,25 @@
+{
+ "id": "sun_position",
+ "topic": "Where the sun is, for shade planning",
+ "events": [
+  "wedding",
+  "birthday",
+  "graduation",
+  "community",
+  "corporate",
+  "holiday",
+  "shower",
+  "anniversary",
+  "gala"
+ ],
+ "summary": "NOAA's general solar position equations give the sun's height and direction for any place, date and time from the fractional year, the equation of time and the sun's declination. Accurate to about a degree, which is plenty for planning shade. They say nothing about clouds or weather.",
+ "sources": [
+  {
+   "url": "https://gml.noaa.gov/grad/solcalc/solareqns.PDF",
+   "title": "General solar position calculations (NOAA Global Monitoring Laboratory)"
+  }
+ ],
+ "confidence": "high",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-04"
+}

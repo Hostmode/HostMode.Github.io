@@ -1,0 +1,38 @@
+{
+ "id": "generator",
+ "name": "Towable generator (20 kW)",
+ "category": "Site & power",
+ "tags": [
+  "generator",
+  "power",
+  "electric"
+ ],
+ "events": [
+  "wedding",
+  "birthday",
+  "graduation",
+  "community",
+  "corporate",
+  "holiday"
+ ],
+ "styles": [
+  "minimal"
+ ],
+ "size": {
+  "w": 3.33,
+  "d": 1.51,
+  "h": 1.7
+ },
+ "materials": [
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "Out of the way, downwind, at least 20 ft from tents (the designer warns when it's closer).",
+ "compatible": [],
+ "modeling": "A rounded enclosure on a trailer with two wheels, a tow bar and vents.",
+ "priority": "now",
+ "findings": [
+  "towable_generators"
+ ],
+ "status": "checked"
+}

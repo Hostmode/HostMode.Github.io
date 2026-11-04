@@ -1,6 +1,6 @@
 ---
 name: 3d-designer
-description: Use when changing Host Mode's 3D venue designer (venue3d.html, 3d/), adding library pieces, working on the Photo view, or building anything else on its engine, like the agent office in real 3D (office3d.html).
+description: Use when changing Host Mode's 3D venue designer (venue3d.html, 3d/), adding library pieces, working on the Photo view or outdoor sites, or building anything else on its engine, like the agent office in real 3D (office3d.html).
 ---
 
 # The 3D designer
@@ -61,12 +61,24 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
   - `agents/venue3d_test.mjs`: the model checks.
   - `agents/venue3d_asset_check.py`: every piece built in a browser and held to its budget.
   - `agents/venue3d_photo_check.py`: the photo feature and Start over.
+  - `agents/venue3d_site_check.py`: outdoor sites, tracing, the aerial picture and shade.
   - `agents/office3d_check.py`: the agent office.
 
-  All four are in `check_all.sh`, and each has a self-test with planted mistakes.
+  All five are in `check_all.sh`, and each has a self-test with planted mistakes.
 - **Look at it.** Photograph each new piece alone, close up as well as from a distance. Use `agents/venue3d_shots.py` for before and after pictures. Look at anything turned or placed from straight above too.
 - **In tests, wait for a result, not a fixed time.** Rebuilding a room takes seconds with the test browser's software graphics; a correct Start over looked like a failure because the test checked too early.
 - **Measured speed isn't phone speed.** The sandbox draws in software, so say so and ask Roy to try it on his phone.
+
+## Outdoor sites (Nov 4, 2026)
+
+- **A design is outdoor when it has `s.site`** (`{ground, areas, edge, north, sun, aerial}`); the room is the site's size with a 30 m sky limit and no walls. Never change indoor behavior when adding outdoor features: guard with `s.site`.
+- **North is −z** (up in the Top view), east is +x, unless `site.north` turns it. A compass bearing goes through `S.sunVec()`; don't work out directions by hand.
+- **Shade:** every shading piece has `shade` ("roof", "slats", "round" or "box") and, for roofs, `eave` in CATALOG. A new tent or umbrella needs both, or the shade count silently ignores it.
+- **Tracing** is the editor's `groundTap` hook: while it's set, taps give a ground point instead of picking a piece. Always clear it (`endTrace()`) when leaving.
+- **The aerial picture** is stored like venue photos (a `ph_` ref) and must be deleted with the design (`store.remove`) and on Start over.
+- **Wording:** sun and shade are "worked out, not a forecast"; generator distances say "check with the venue and the fire marshal". Never promise a layout passes inspection.
+- **Checks:** `agents/venue3d_site_check.py`, and the "outdoor:" model checks in `venue3d_test.mjs`.
+- **Traps:** a tent's ridge pole lies right above the middle table, so a tap there picks the tent; test taps away from the ridge. Outdoors a big site has 2 to 3 times the draw calls of the ballroom (mostly chairs): watch it on a real phone.
 
 ## The agent office (office3d.html, 3d/office.js)
 

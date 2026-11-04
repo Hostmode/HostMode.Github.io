@@ -1,0 +1,40 @@
+{
+ "id": "pergola",
+ "name": "Wood pergola (8 \u00d7 8 ft)",
+ "category": "Tents & shade",
+ "tags": [
+  "pergola",
+  "lounge",
+  "shade",
+  "outdoor"
+ ],
+ "events": [
+  "wedding",
+  "corporate",
+  "community",
+  "birthday"
+ ],
+ "styles": [
+  "rustic",
+  "garden",
+  "boho",
+  "modern"
+ ],
+ "size": {
+  "w": 2.44,
+  "d": 2.44,
+  "h": 2.44
+ },
+ "materials": [
+  "wood"
+ ],
+ "colors": "Any color",
+ "placement": "Over a lounge, a bar or a ceremony spot. Gives partial shade.",
+ "compatible": [],
+ "modeling": "Four posts on base plates, two beams and a row of slats on top.",
+ "priority": "now",
+ "findings": [
+  "event_pergolas"
+ ],
+ "status": "checked"
+}
