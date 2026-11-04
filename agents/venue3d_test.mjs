@@ -112,6 +112,19 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   r = S.apply(r.scene, [{ op: "change_material", id: "floor", mat: "oak" }]); ok(!r.scene.room.floorColor, "changing back to a wood floor drops the carpet color");
 }
 
+// Tabletop pieces: they go on a table, sit beside what's already there, and follow the table they're dragged onto.
+{
+  let g = S.sampleVenue(); const ts = g.items.filter(i => i.kind.startsWith("table_round")), t = ts[0], t2 = ts[1];
+  let r = S.apply(g, [{ op: "add_item", kind: "centerpiece", on: t.id, id: "tc1" }, { op: "add_item", kind: "candle_cluster", on: t.id, id: "tc2" }]); g = r.scene;
+  const a = g.items.find(i => i.id === "tc1"), c = g.items.find(i => i.id === "tc2");
+  ok(r.ok && c.group === t.id && Math.abs(c.y - t.h) < 0.01, "candles put on a table sit on that table");
+  ok(Math.hypot(a.x - c.x, a.z - c.z) > 0.2, "a second piece on a table goes beside the first, not inside it");
+  r = S.apply(g, [{ op: "move_object", id: "tc2", x: g.room.w / 2, z: g.room.d / 2 }]); let m = r.scene.items.find(i => i.id === "tc2");
+  ok(m.y === 0 && !m.group, "dragged off every table, the candles sit on the floor");
+  r = S.apply(r.scene, [{ op: "move_object", id: "tc2", x: t2.x, z: t2.z }]); m = r.scene.items.find(i => i.id === "tc2");
+  ok(m.group === t2.id && Math.abs(m.y - t2.h) < 0.01, "dragged onto another table, the candles go on that table");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

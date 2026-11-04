@@ -62,7 +62,7 @@ $("#banner").addEventListener("click", e => {
 function addTab() {
   const cats = {}; Object.entries(S.CATALOG).forEach(([k, c]) => (cats[c.cat] = cats[c.cat] || []).push([k, c]));
   return `<p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>` + S.CAT_ORDER.filter(c => cats[c]).map(cat => [cat, cats[cat]]).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
-    `<p class="muted">New things land in the middle of the room. Drag the arrows to move them.</p>`;
+    `<p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
 }
 
 // ---------- Selected ----------
@@ -81,7 +81,14 @@ function grpCard() {
    ${ed.picking ? "" : `<button class="btn l" data-x="grpTurn">Turn 45°</button><button class="btn l" data-x="grpDup">Copy</button>${g.set ? `<button class="btn l" data-x="grpUn">Ungroup</button>` : ""}
    <button class="btn r" data-x="grpDel">${confirmDel === "grp" ? "Tap again to remove all " + n : "Remove"}</button>`}</div></div>`;
 }
+function placeCard() {
+  const c = S.CATALOG[ed.placeTop];
+  return `<div class="card"><b>Where should the ${esc(c.label.toLowerCase())} go?</b><p class="muted">Tap a table in the room to put it on that table.</p>
+  <div class="row"><button class="btn g" data-x="topAll">Put on every table</button><button class="btn l" data-x="topCancel">Cancel</button></div>
+  <p class="muted" style="margin-top:6px">Every table replaces the centerpieces already on the tables.</p></div>`;
+}
 function selTab() {
+  if (ed.placeTop) return placeCard();
   if (ed.grp) return grpCard();
   const it = ed.sel && ed.itemOf(ed.sel);
   if (!it) return ed.picking ? `<div class="card"><b>Pick several</b><p class="muted">Tap the things you want, like a table and the bar next to it. Then group them as a set, or move, copy or remove them together.</p><div class="row"><button class="btn l" data-x="pickDone">Cancel</button></div></div>`
@@ -187,6 +194,7 @@ function render() {
 }
 let lastSel = null;
 ed.on(info => {
+  if (info.toast) toast(info.toast);
   if (info.errors) { lastLog = info.errors.map(t => ({ t, c: "err" })); toast(info.errors[0]); }
   else if (info.log && info.why !== "assistant") { if (info.warnings && info.warnings.length) toast(info.warnings[0].msg); }
   const selKey = ed.sel || (ed.grp ? "g:" + (ed.grp.set || ed.grp.ids.join(",")) : ed.picking ? "picking" : null);
@@ -206,6 +214,11 @@ body.addEventListener("click", async e => {
   if (e.target.id === "askGo") return doAsk($("#ask").value);
   if (d.ex) { $("#ask").value = d.ex; return doAsk(d.ex); }
   if (e.target.id === "opsGo") { try { const ops = JSON.parse($("#opsJson").value); previewSteps(Array.isArray(ops) ? ops : [ops]); } catch (er) { toast("Those steps aren't valid JSON"); } return; }
+  if (d.add && S.CATALOG[d.add].top) {
+    const sel = ed.sel ? S.rootOf(ed.s, ed.sel) : ed.grp ? ed.grp.ids.map(id => ed.itemOf(id)).find(i => i && S.CATALOG[i.kind].dress === "table") : null;
+    if (sel && S.CATALOG[sel.kind].dress === "table") { const id = S.uid("i_"), r = ed.run([{ op: "add_item", kind: d.add, on: sel.id, id }]); if (r.ok) { ed.select(id); toast("Put on the selected table"); } return; }
+    ed.select(null); ed.placeTop = d.add; tab = "sel"; render(); toast("Tap a table to put it on"); return;
+  }
   if (d.add) { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
   if (d.col && it) return ed.run([{ op: "change_material", id: it.id, color: d.col }]);
   if (d.drc && it) return ed.run([{ op: "dress_object", id: it.id, [d.drc]: d.v }]);
@@ -216,6 +229,8 @@ body.addEventListener("click", async e => {
   if (d.go) return ed.goView(d.go);
   if (d.openp) { const s = await ed.store.open(d.openp); if (s) { ed.load(s); toast("Opened " + s.name); } return; }
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
+  if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
+  if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
   if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
   if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
   // sets and several picked things
