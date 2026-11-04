@@ -125,6 +125,28 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(m.group === t2.id && Math.abs(m.y - t2.h) < 0.01, "dragged onto another table, the candles go on that table");
 }
 
+// The library's shared formats (3d/library/contracts.js) and asset records (3d/library/assets.js).
+{
+  const C = await import("../3d/library/contracts.js"), A = await import("../3d/library/assets.js"), fs = await import("fs");
+  const kinds = Object.keys(S.CATALOG), ids = A.ASSETS.map(a => a.id);
+  ok(kinds.every(k => ids.includes(k)) && ids.length === kinds.length && new Set(ids).size === ids.length, "every library piece has exactly one asset record (" + ids.length + ")");
+  ok(A.metaIds().every(k => S.CATALOG[k]), "no asset record for a piece that doesn't exist");
+  const bad = A.ASSETS.map(r => [r.id, C.checkRecord(r, S.CATALOG)]).filter(x => x[1].length);
+  ok(!bad.length, "every asset record is complete and valid" + (bad.length ? ": " + JSON.stringify(bad.slice(0, 3)) : ""));
+  ok(A.searchAssets("flowers", { event: "wedding" }).every(a => a.events.includes("wedding")) && A.searchAssets("chiavari").some(a => a.id === "chair"), "search finds pieces by words, event and style");
+  // planted bad entries must be caught by each format
+  const goodF = { id: "t_finding", topic: "Test", events: ["wedding"], summary: "A test.", sources: [{ url: "https://example.com", title: "Example" }], confidence: "high", licence: "Linked only", found: "2026-11-03" };
+  ok(!C.checkFinding(goodF).length && C.checkFinding(Object.assign({}, goodF, { sources: [{ url: "http://x", title: "" }] })).length >= 2, "a research finding needs real https sources with titles");
+  const goodS = { id: "t_spec", name: "Test", category: "Seating", tags: ["x"], events: ["wedding"], styles: ["classic"], size: { w: 0.5, d: 0.5, h: 0.9 }, materials: ["wood"], placement: "Around tables", modeling: "Profiles", priority: "now", findings: ["t_finding"], status: "spec" };
+  ok(!C.checkSpec(goodS, new Set(["t_finding"])).length && C.checkSpec(Object.assign({}, goodS, { findings: ["nope"] }), new Set(["t_finding"])).length === 1, "an asset spec must point at findings that exist");
+  ok(C.checkResult({ asset: "chair", pass: false, problems: ["x"] }).length === 1 && !C.checkResult({ asset: "chair", pass: false, problems: ["x"], role: "modeling" }).length, "a failed check says who it goes back to");
+  // every research finding and spec saved in the repo must pass its format, and specs must point at saved findings
+  const read = d => { try { return fs.readdirSync(new URL("../3d/library/" + d + "/", import.meta.url)).filter(f => f.endsWith(".json")).map(f => JSON.parse(fs.readFileSync(new URL("../3d/library/" + d + "/" + f, import.meta.url), "utf8"))); } catch (e) { return []; } };
+  const findings = read("research"), specs = read("specs"), fids = new Set(findings.map(f => f.id));
+  const fb = findings.map(f => [f.id, C.checkFinding(f)]).filter(x => x[1].length), sb = specs.map(s => [s.id, C.checkSpec(s, fids)]).filter(x => x[1].length);
+  ok(!fb.length && !sb.length, findings.length + " saved findings and " + specs.length + " saved specs are valid" + (fb.length || sb.length ? ": " + JSON.stringify(fb.concat(sb).slice(0, 3)) : ""));
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

@@ -125,3 +125,13 @@ Not yet: realistic photo textures (would need licensed or self-made photo scans)
 
 ## 5. Next work after approval
 Live cloud-save test → real phone test → Milestone 6 photo test → planner portal integration plan (Venue tab "Open in 3D", seat counts into guest counts, saved venue templates, client portal view-only, importer/export tabs, Help desk entries, Report a problem button).
+
+## 6. Upgrade from Roy's master brief (Nov 3, 2026)
+
+Plan and audit: the "3D Designer Upgrade: Audit and Plan" doc. Phases: 1 audit (done) · 2 shared contracts · 3 prove it on a few pieces (Roy's OK) · 4 bigger library · 5 venue photo, Stage A · 6 report.
+
+### Phase 2, shared contracts — Done
+- `3d/library/contracts.js`: formats and checks for research findings, asset specs, asset records and check results, plus the event-type and style words.
+- `3d/library/assets.js`: an asset record for all 50 pieces, detail budgets by category, `searchAssets()`.
+- `agents/venue3d_asset_check.py` (in check_all.sh): builds every piece in a browser, checks its record and budget, self-test with 3 planted problems.
+- Measured: the sample room is 57 pieces, about 40,000 triangles and 696 separately drawn parts. Draw calls, not triangles, are the phone bottleneck (a dressed table is up to 32 parts, a chair 14). Cutting them is a Phase 3 goal.

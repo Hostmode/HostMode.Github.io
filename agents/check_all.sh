@@ -10,4 +10,5 @@ python3 -m http.server 8765 >/dev/null 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 2
+python3 agents/venue3d_asset_check.py || exit 1
 python3 agents/tester.py --scripted-only

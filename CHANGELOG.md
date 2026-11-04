@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-03 · Roy (with Claude) · 3D designer upgrade, Phase 2: shared formats for research, asset specs, asset records and check results (3d/library), a record for all 50 pieces with detail budgets and search, and an asset check in check_all.sh that builds every piece in a browser.
 - 2026-11-03 · Roy (with Claude) · 3D designer: centerpieces and candles go on a table (the selected one, or the next table tapped, or Put on every table) instead of the floor, sit beside what's already on the table, and move to whichever table they're dragged onto.
 - 2026-11-03 · Roy (with Claude) · 3D designer: carpet floors, patterned or plain, with carpet color buttons on the Room tab (and "Carpet the floor"); the Ask box understands "carpet the room", "navy carpet", "plain gray carpet".
 - 2026-11-03 · Roy (with Claude) · 3D designer: Pick several and Group as a set (like a table with its chairs and decor): a set selects as one, drags, turns, copies, renames, ungroups and removes together (tap a piece again to change just it). The stage now changes material (its top was always drawn as wood); Material is hidden on pieces where it does nothing.
