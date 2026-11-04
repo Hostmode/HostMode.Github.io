@@ -50,7 +50,7 @@ export class Editor {
     this.root = root; this.gpu = gpuInfo();
     this.quality = localStorage.getItem("hm3d_quality") || (this.gpu.low ? "low" : "high");
     this.units = localStorage.getItem("hm3d_units") || "ft";
-    this.store = new Store(); this.hist = []; this.fut = []; this.sel = null; this.mode = "translate"; this.view = "orbit"; this.preview = null;
+    this.store = new Store(); this.hist = []; this.fut = []; this.sel = null; this.mode = "translate"; this.gestureMode = "object"; this.view = "orbit"; this.preview = null; this.placement = null;
     if (!this.gpu.webgl) { root.innerHTML = '<div class="v3-nogl">This device can’t show 3D. Try a newer browser such as Chrome, Safari or Edge.</div>'; return; }
     this.initGL();
   }
@@ -75,7 +75,7 @@ export class Editor {
     this.scene3.add(this.tc.getHelper());
     this.world = new T.Group(); this.scene3.add(this.world);
     this.selBox = new T.Box3Helper(new T.Box3(), new T.Color("#f6892f")); this.selBox.visible = false; this.scene3.add(this.selBox);
-    this.ray = new T.Raycaster(); this.walk = { yaw: 0, pitch: 0, keys: {}, pos: new T.Vector3() };
+    this.ray = new T.Raycaster(); this.floorPlane = new T.Plane(new T.Vector3(0, 1, 0), 0); this.walk = { yaw: 0, pitch: 0, keys: {}, pos: new T.Vector3() };
     this.bindInput(cv);
     new ResizeObserver(() => this.resize()).observe(cv.parentElement); this.resize();
     // window.HM3D_PAUSED: set by the planner portal while its 3D designer tab is hidden, so the hidden view stops drawing
@@ -90,17 +90,18 @@ export class Editor {
   }
 
   // ---- Scene life cycle ----
-  load(scene) { this.s = S.validateFile(S.clone(scene)); this.hist = []; this.fut = []; this.select(null); this.build(); this.frame(); this.emit(); }
+  load(scene) { this.cancelPlacement(); this.s = S.validateFile(S.clone(scene)); this.hist = []; this.fut = []; this.select(null); this.build(); this.frame(); this.emit(); }
   // Every change, from a tap or from the assistant, goes through here: validated, one undo step, saved locally.
   run(ops, why) {
+    this.cancelPlacement();
     const r = S.apply(this.s, ops);
     if (!r.ok) { this.emit({ errors: r.errors }); return r; }
     this.hist.push(this.s); if (this.hist.length > 100) this.hist.shift(); this.fut = [];
     this.s = r.scene; this.build(); this.store.autosave(this.s); this.emit({ log: r.log, warnings: r.warnings, why });
     return r;
   }
-  undo() { if (!this.hist.length) return; this.fut.push(this.s); this.s = this.hist.pop(); this.build(); this.store.autosave(this.s); this.emit({ log: ["Undone"] }); }
-  redo() { if (!this.fut.length) return; this.hist.push(this.s); this.s = this.fut.pop(); this.build(); this.store.autosave(this.s); this.emit({ log: ["Redone"] }); }
+  undo() { this.cancelPlacement(); if (!this.hist.length) return; this.fut.push(this.s); this.s = this.hist.pop(); this.build(); this.store.autosave(this.s); this.emit({ log: ["Undone"] }); }
+  redo() { this.cancelPlacement(); if (!this.fut.length) return; this.hist.push(this.s); this.s = this.fut.pop(); this.build(); this.store.autosave(this.s); this.emit({ log: ["Redone"] }); }
 
   // Preview: show what a batch would do without keeping it. keep() makes it one undo step; drop() throws it away.
   previewOps(ops) {
@@ -112,6 +113,7 @@ export class Editor {
   drop() { if (!this.preview) return; this.s = this.preview.before; this.preview = null; this.build(); this.emit({ log: ["Preview cancelled"] }); }
 
   build() {
+    this.cancelPlacement();
     const s = this.s, W = this.world; const keepSel = this.sel, keepGrp = this.grp;
     this.tc.detach();
     W.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
@@ -178,8 +180,93 @@ export class Editor {
     }
     if (v === "walk") { const p = this.s.views[0]; this.walkTo(p ? p.pos : [R.w / 2, 1.65, R.d - 1], p ? p.target : [R.w / 2, 1.2, R.d / 2]); this.select(null); }
     this.lightObjs && this.lightObjs.forEach(b => b.visible = v !== "walk" && v !== "photo");
+    this.syncTransformControls();
     this.resize(); this.syncPhoto();
     this.emit();
+  }
+  syncTransformControls() {
+    if (!this.tc) return;
+    const active = this.view !== "walk" && this.gestureMode === "object";
+    this.tc.enabled = active;
+    this.tc.getHelper().visible = active;
+  }
+  setGestureMode(mode) {
+    if (mode !== "object" && mode !== "view") return;
+    this.gestureMode = mode;
+    this.syncTransformControls();
+    this.emit();
+  }
+  centerView() {
+    if (this.view !== "orbit") this.setView("orbit");
+    this.frame();
+  }
+  focusSelection() {
+    const ids = this.grp ? this.grp.all : this.sel ? [this.sel] : [];
+    const objects = ids.map(id => this.objs.get(id)).filter(Boolean);
+    if (!objects.length) return false;
+    if (this.view !== "orbit") this.setView("orbit");
+    const bounds = new T.Box3();
+    objects.forEach(o => bounds.expandByObject(o));
+    const target = bounds.getCenter(new T.Vector3()), shift = target.clone().sub(this.orbit.target);
+    this.persp.position.add(shift);
+    this.orbit.target.copy(target);
+    this.orbit.update();
+    return true;
+  }
+
+  // Place a library piece by moving its see-through preview, then tapping the room.
+  startPlacement(kind) {
+    const c = S.CATALOG[kind];
+    if (!c || c.top) return false;
+    this.cancelPlacement();
+    this.gestureMode = "object"; this.mode = "translate";
+    if (this.view !== "top") this.setView("top");
+    const x = this.s.room.w / 2, z = this.s.room.d / 2;
+    const item = S.mkItem(kind, x, z, 0, { id: "placement_preview" }), ghost = buildItem(item, this.s), mats = [];
+    ghost.traverse(o => {
+      if (o.isLight) { o.visible = false; return; }
+      if (!o.material) return;
+      const fade = m => { const copy = m.clone(); copy.transparent = true; copy.opacity = Math.min(copy.opacity, 0.48); copy.depthWrite = false; mats.push(copy); return copy; };
+      o.material = Array.isArray(o.material) ? o.material.map(fade) : fade(o.material);
+    });
+    ghost.userData.placementPreview = true;
+    this.world.add(ghost);
+    this.placement = { kind, ghost, x, z, mats };
+    this.syncTransformControls();
+    this.emit();
+    return true;
+  }
+  cancelPlacement() {
+    if (!this.placement) return;
+    const { ghost, mats } = this.placement;
+    if (ghost.parent) ghost.parent.remove(ghost);
+    ghost.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
+    mats.forEach(m => m.dispose());
+    this.placement = null;
+  }
+  floorPoint(e) {
+    const rc = this.r.domElement.getBoundingClientRect();
+    const p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
+    this.ray.setFromCamera(p, this.cam);
+    return this.ray.ray.intersectPlane(this.floorPlane, new T.Vector3());
+  }
+  placementPoint(e) {
+    if (!this.placement) return;
+    const point = this.floorPoint(e);
+    if (!point) return;
+    const c = S.CATALOG[this.placement.kind], R = this.s.room;
+    const x = c.w > R.w ? R.w / 2 : T.MathUtils.clamp(point.x, c.w / 2, R.w - c.w / 2);
+    const z = c.d > R.d ? R.d / 2 : T.MathUtils.clamp(point.z, c.d / 2, R.d - c.d / 2);
+    this.placement.x = x; this.placement.z = z;
+    this.placement.ghost.position.set(x, 0, z);
+  }
+  finishPlacement(e) {
+    if (!this.placement) return;
+    this.placementPoint(e);
+    const { kind, x, z } = this.placement, id = S.uid("i_");
+    this.cancelPlacement();
+    const r = this.run([{ op: "add_item", kind, id, x, z }]);
+    if (r.ok) { this.select(id); this.emit({ toast: "Placed. Tap Undo at the top to reverse it." }); }
   }
 
   // ---- Designing over a venue photo (Stage A) ----
@@ -258,12 +345,80 @@ export class Editor {
   // ---- Tapping and dragging ----
   bindInput(cv) {
     let down = null;
+    const stop = e => { e.preventDefault(); e.stopImmediatePropagation(); };
+    cv.addEventListener("pointerdown", e => {
+      down = { x: e.clientX, y: e.clientY, t: Date.now() };
+      if (this.placement) {
+        this.placementPointer = { id: e.pointerId };
+        this.placementPoint(e);
+        cv.setPointerCapture(e.pointerId); stop(e); return;
+      }
+      if (e.isPrimary === false || this.view === "walk" || this.view === "photo" || this.gestureMode !== "object" || this.mode !== "translate" || !(this.sel || this.grp)) return;
+      const rc = cv.getBoundingClientRect(), p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
+      this.ray.setFromCamera(p, this.cam);
+      const helper = this.tc.getHelper(), handles = this.ray.intersectObject(helper, true).some(h => {
+        for (let o = h.object; o && o !== helper; o = o.parent) if (!o.visible) return false;
+        return true;
+      });
+      if (handles) return;
+      const selected = new Set(this.grp ? this.grp.all : [this.sel, ...this.s.items.filter(i => i.group === this.sel).map(i => i.id)]);
+      let hit = null;
+      for (const h of this.ray.intersectObjects(this.world.children, true)) {
+        if (!h.object.visible || h.object.userData.thru) continue;
+        let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent;
+        if (o && selected.has(o.userData.id)) { hit = o.userData.id; break; }
+        if (h.object.userData.floor) break;
+      }
+      const point = hit && this.floorPoint(e);
+      if (!point) return;
+      const ids = this.grp ? this.grp.all : [this.sel, ...this.s.items.filter(i => i.group === this.sel).map(i => i.id)];
+      const objs = ids.map(id => this.objs.get(id)).filter(Boolean);
+      const items = ids.map(id => this.itemOf(id)).filter(i => i && i.w != null && i.d != null);
+      this.directDrag = {
+        id: this.sel, grouped: !!this.grp, pointerId: e.pointerId, x: point.x, z: point.z, startX: e.clientX, startY: e.clientY, moved: false,
+        objs: objs.map(o => ({ o, x: o.position.x, z: o.position.z })),
+        bounds: items.length ? {
+          minX: Math.min(...items.map(i => i.x - i.w / 2)), maxX: Math.max(...items.map(i => i.x + i.w / 2)),
+          minZ: Math.min(...items.map(i => i.z - i.d / 2)), maxZ: Math.max(...items.map(i => i.z + i.d / 2))
+        } : null,
+        target: this.grp ? this.grpTarget() : null
+      };
+      down = null; cv.setPointerCapture(e.pointerId); stop(e);
+    }, true);
+    cv.addEventListener("pointermove", e => {
+      if (this.placementPointer && this.placementPointer.id === e.pointerId) { this.placementPoint(e); stop(e); return; }
+      const d = this.directDrag;
+      if (!d || d.pointerId !== e.pointerId) return;
+      if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 4) d.moved = true;
+      if (!d.moved) { stop(e); return; }
+      const point = this.floorPoint(e); if (!point) { stop(e); return; }
+      let dx = point.x - d.x, dz = point.z - d.z;
+      if (d.bounds) {
+        const R = this.s.room, b = d.bounds;
+        dx = T.MathUtils.clamp(dx, -b.minX, R.w - b.maxX);
+        dz = T.MathUtils.clamp(dz, -b.minZ, R.d - b.maxZ);
+      }
+      d.objs.forEach(x => { x.o.position.x = x.x + dx; x.o.position.z = x.z + dz; });
+      if (this.grp) this.grpBox(); else if (this.sel && this.objs.has(this.sel)) this.selBox.box.setFromObject(this.objs.get(this.sel));
+      stop(e);
+    }, true);
+    cv.addEventListener("pointerup", e => {
+      if (this.placementPointer && this.placementPointer.id === e.pointerId) {
+        this.placementPointer = null; this.finishPlacement(e); down = null; stop(e); return;
+      }
+      if (this.directDrag && this.directDrag.pointerId === e.pointerId) { this.finishDirectDrag(true); down = null; stop(e); }
+    }, true);
+    cv.addEventListener("pointercancel", e => {
+      if (this.placementPointer && this.placementPointer.id === e.pointerId) { this.placementPointer = null; down = null; stop(e); return; }
+      if (this.directDrag && this.directDrag.pointerId === e.pointerId) { this.finishDirectDrag(false); down = null; stop(e); }
+    }, true);
     cv.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY, t: Date.now() }; if (this.view === "walk") { this.walkDrag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); } });
     cv.addEventListener("pointermove", e => { if (this.walkDrag) { this.walk.yaw += (e.clientX - this.walkDrag.x) * 0.005; this.walk.pitch = T.MathUtils.clamp(this.walk.pitch - (e.clientY - this.walkDrag.y) * 0.004, -1.2, 1.2); this.walkDrag = { x: e.clientX, y: e.clientY }; } });
     cv.addEventListener("pointerup", e => {
       this.walkDrag = null;
-      if (!down || this.tc.dragging || this.view === "walk") return;
+      if (!down || this.tc.dragging || this.view === "walk") { down = null; return; }
       if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return; // that was a camera drag, not a tap
+      down = null;
       this.pick(e);
     });
     const map = { KeyW: "f", ArrowUp: "f", KeyS: "b", ArrowDown: "b", KeyA: "l", KeyD: "r", ArrowLeft: "tl", ArrowRight: "tr" };
@@ -271,10 +426,21 @@ export class Editor {
       if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (this.view === "walk" && map[e.code]) { this.walk.keys[map[e.code]] = true; e.preventDefault(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); }
-      if (e.key === "Escape") this.select(null);
+      if (e.key === "Escape") { if (this.placement) this.cancelPlacement(); else this.select(null); this.emit(); }
       if (e.key === "g") this.setMode("translate"); if (e.key === "r") this.setMode("rotate"); if (e.key === "s" && !e.ctrlKey) this.setMode("scale");
     });
     window.addEventListener("keyup", e => { if (map[e.code]) this.walk.keys[map[e.code]] = false; });
+  }
+  finishDirectDrag(commit) {
+    const d = this.directDrag; if (!d) return;
+    this.directDrag = null;
+    if (!commit) { this.build(); return; }
+    if (!d.moved) return;
+    const first = d.objs[0], dx = first ? first.o.position.x - first.x : 0, dz = first ? first.o.position.z - first.z : 0;
+    if (Math.abs(dx) < 1e-3 && Math.abs(dz) < 1e-3) return;
+    const op = d.grouped ? Object.assign({ op: "move_set", dx, dz }, d.target) : { op: "move_object", id: d.id, dx, dz };
+    const r = this.run([op], "drag");
+    if (r.ok) this.emit({ toast: "Moved. Tap Undo at the top to reverse it." });
   }
   pick(e) {
     const rc = this.r.domElement.getBoundingClientRect();
@@ -311,6 +477,7 @@ export class Editor {
       const m = this.mode === "scale" ? "translate" : this.mode; this.tc.attach(this.pivot); this.tc.setMode(m);
       this.tc.showY = m === "rotate"; this.tc.showX = this.tc.showZ = m !== "rotate";
     }
+    this.syncTransformControls();
     this.grpBox(); this.emit();
   }
   grpBox() { const b = new T.Box3(); (this.grpBase ? this.grpBase.objs : []).forEach(x => b.expandByObject(x.o)); this.selBox.box.copy(b); this.selBox.visible = !b.isEmpty(); }
@@ -333,9 +500,10 @@ export class Editor {
       if (this.tc.mode === "scale") { this.tc.showX = this.tc.showZ = true; this.tc.showY = !(this.itemOf(id) || {}).kind?.match(/dance_floor/); }
       this.selBox.box.setFromObject(o); this.selBox.visible = true;
     } else { this.tc.detach(); this.selBox.visible = false; }
+    this.syncTransformControls();
     this.emit();
   }
-  setMode(m) { this.mode = m; if (this.grp) this.selectGroup(this.grp.ids, this.grp.set); else if (this.sel) this.select(this.sel); this.emit(); }
+  setMode(m) { this.mode = m; this.gestureMode = "object"; if (this.grp) this.selectGroup(this.grp.ids, this.grp.set); else if (this.sel) this.select(this.sel); this.syncTransformControls(); this.emit(); }
   itemOf(id) { return this.s.items.find(i => i.id === id) || this.s.lights.find(l => l.id === id); }
   dragLive() {
     const o = this.tc.object; if (!o) return;

@@ -82,7 +82,7 @@ function addTab() {
   <button class="btn l" data-x="libClear" style="align-self:flex-end" ${libQ || libEv || libSt ? "" : "hidden"}>Clear</button></div>
   <p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>
   <div id="libList">${libList()}</div>
-  <p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
+  <p class="muted">Tap a piece, then tap the room to place its preview. Drag a selected piece to move it; drag empty space to turn the view. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
 }
 // Typing only redraws the results, never the search box, so the keyboard stays up on a phone.
 function refreshLib() { const el = $("#libList"); if (el) { el.innerHTML = libList(); wantThumbs(); } const c = $("[data-x=libClear]"); if (c) c.hidden = !(libQ || libEv || libSt); }
@@ -165,10 +165,23 @@ const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "
 // pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
 const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen", "fog", "cold_spark", "led_wall", "projector", "spotlight", "booth_360", "tent", "bud_vases", "table_garland", "bouquet", "branches"]);
 const CARPET_COLS = ["burgundy", "red", "navy", "blue", "grey", "black", "brown", "champagne", "ivory", "sage", "emerald", "dark purple"];
+function movePad() {
+  const step = ed.units === "ft" ? "6 inches" : "25 centimeters";
+  return `<div class="row" style="gap:6px;margin-top:8px" aria-label="Move in small steps">
+    <button class="btn l" data-nudge="back" aria-label="Move toward the back by ${step}">↑ Back</button>
+    <button class="btn l" data-nudge="left" aria-label="Move left by ${step}">← Left</button>
+    <button class="btn l" data-nudge="right" aria-label="Move right by ${step}">Right →</button>
+    <button class="btn l" data-nudge="front" aria-label="Move toward the front by ${step}">↓ Front</button>
+    <button class="btn l" data-turn="-15" aria-label="Turn left 15 degrees">↶ 15°</button>
+    <button class="btn l" data-turn="15" aria-label="Turn right 15 degrees">↷ 15°</button>
+  </div>`;
+}
 function grpCard() {
   const g = ed.grp, n = g.all.length, name = g.set ? ((ed.s.sets || {})[g.set] || {}).name || "Set" : "";
   return `<div class="card"><b>${g.set ? esc(name) : g.ids.length + " picked"}</b> <span class="muted">${n} piece${n === 1 ? "" : "s"} in all</span>
-  <p class="muted" style="margin:6px 0">${ed.picking ? "Tap more things to add them, or tap one again to drop it. Chairs and decor on a table come with it." : g.set ? "Drag the arrows to move the whole set, or tap Turn at the bottom to turn it. To change one piece, tap it again." : "Drag the arrows to move them together, or tap Turn at the bottom to turn them."}</p>
+  <p class="muted" style="margin:6px 0">${ed.picking ? "Tap more things to add them, or tap one again to drop it. Chairs and decor on a table come with it." : "Drag a selected piece to move the whole selection. Drag empty space to turn the view."}</p>
+  ${ed.picking ? "" : movePad()}
+  ${ed.picking ? "" : `<div class="row" style="margin-top:8px"><button class="btn l" data-x="focus">Focus selected</button></div>`}
   ${g.set && !ed.picking ? `<label class="f">Set name<input id="setName" maxlength="40" value="${esc(name)}"></label>` : ""}
   <div class="row" style="margin-top:10px">
    ${ed.picking ? `<button class="btn o" data-x="pickDone">Done picking</button>` : g.set ? "" : `<button class="btn l" data-x="pickMore">Pick more</button>`}
@@ -182,15 +195,23 @@ function placeCard() {
   <div class="row"><button class="btn g" data-x="topAll">Put on every table</button><button class="btn l" data-x="topCancel">Cancel</button></div>
   <p class="muted" style="margin-top:6px">Every table replaces the centerpieces already on the tables.</p></div>`;
 }
+function placementCard() {
+  const c = S.CATALOG[ed.placement.kind];
+  return `<div class="card"><b>Place the ${esc(c.label.toLowerCase())}</b><p class="muted" role="status">Move the see-through preview, then tap where you want it. The view switches to Top for easier placement. Press Escape or cancel to stop.</p>
+  <div class="row"><button class="btn l" data-x="placeCancel">Cancel placement</button></div></div>`;
+}
 function selTab() {
+  if (ed.placement) return placementCard();
   if (ed.placeTop) return placeCard();
   if (ed.grp) return grpCard();
   const it = ed.sel && ed.itemOf(ed.sel);
   if (!it) return ed.picking ? `<div class="card"><b>Pick several</b><p class="muted">Tap the things you want, like a table and the bar next to it. Then group them as a set, or move, copy or remove them together.</p><div class="row"><button class="btn l" data-x="pickDone">Cancel</button></div></div>`
-    : `<p class="muted">Tap something in the room to select it.</p><div class="row"><button class="btn l" data-x="pickStart">Pick several</button></div>`;
+    : `<p class="muted">Tap a piece to select it. In Move object mode, drag a selected piece; drag empty space to turn the view. Choose Move view to navigate without moving a piece.</p><div class="row"><button class="btn l" data-x="pickStart">Pick several</button></div>`;
   if (S.LIGHT_KINDS.includes(it.kind)) return lightCard(it, true);
   const c = S.CATALOG[it.kind], kids = ed.s.items.filter(i => i.group === it.id && i.kind.startsWith("chair")).length;
   return `<div class="card"><b>${esc(it.label || c.label)}</b> <span class="muted">${kids ? kids + " chairs" : ""}</span>${dressCard(it)}
+  <p class="muted" style="margin:6px 0">Drag this piece to move it, or use the small-step controls. Drag empty space to turn the view.</p>${movePad()}
+  <div class="row" style="margin-top:8px"><button class="btn l" data-x="focus">Focus selected</button></div>
   <div class="row" style="margin-top:8px">
    <label class="f">Across (${uL()})<input type="number" step="0.5" data-sz="w" value="${toU(it.w)}"></label>
    <label class="f">Deep (${uL()})<input type="number" step="0.5" data-sz="d" value="${toU(it.d)}"></label>
@@ -257,9 +278,9 @@ function roomTab() {
 
 // ---------- Views ----------
 function viewsTab() {
-  return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
+  return `<div class="row"><button class="btn" data-x="centerView">Center view</button><button class="btn l" data-x="focus" ${ed.sel || ed.grp ? "" : "disabled"}>Focus selected</button><button class="btn l" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
    <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${v.id}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
-   <p class="muted">Walk: drag to look around, use the arrows (or W A S D on a keyboard) to move.</p>`;
+   <p class="muted">In 3D, drag empty space to turn the view. Use two fingers to pan or zoom. In Walk, drag to look around and use the arrows or W A S D to move.</p>`;
 }
 
 // ---------- Save & share ----------
@@ -286,7 +307,8 @@ function render() {
   const pv = $("[data-view=photo]"); if (pv) pv.hidden = !ed.s.photo; placeDots();
   $("#undo").disabled = !ed.hist.length; $("#redo").disabled = !ed.fut.length;
   document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === ed.view));
-  document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === ed.mode));
+  document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", ed.gestureMode === "object" && b.dataset.mode === ed.mode));
+  document.querySelectorAll("[data-gesture]").forEach(b => b.classList.toggle("on", b.dataset.gesture === ed.gestureMode));
   $("#modes").style.display = ed.view === "walk" ? "none" : "flex"; $("#pad").style.display = ed.view === "walk" ? "grid" : "none";
   if (document.activeElement !== $("#name")) $("#name").value = ed.s.name;
   if (tab === "add") wantThumbs();
@@ -304,6 +326,8 @@ ed.on(info => {
 document.querySelector(".tabs").addEventListener("click", e => { const t = e.target.dataset.tab; if (t) { tab = t; if (t === "file") refreshProjects(); render(); } });
 document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => ed.setView(b.dataset.view));
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => ed.setMode(b.dataset.mode));
+document.querySelectorAll("[data-gesture]").forEach(b => b.onclick = () => ed.setGestureMode(b.dataset.gesture));
+$("#centerView").onclick = () => ed.centerView();
 $("#undo").onclick = () => ed.undo(); $("#redo").onclick = () => ed.redo();
 $("#name").addEventListener("change", e => { ed.s.name = e.target.value.trim().slice(0, 60) || "Untitled venue"; ed.store.autosave(ed.s); });
 document.querySelectorAll("#pad button").forEach(b => { const k = b.dataset.k, on = v => e => { e.preventDefault(); ed.walk.keys[k] = v; }; b.addEventListener("pointerdown", on(true)); ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, on(false))); });
@@ -318,7 +342,7 @@ body.addEventListener("click", async e => {
     if (sel && S.CATALOG[sel.kind].dress === "table") { const id = S.uid("i_"), r = ed.run([{ op: "add_item", kind: d.add, on: sel.id, id }]); if (r.ok) { ed.select(id); toast("Put on the selected table"); } return; }
     ed.select(null); ed.placeTop = d.add; tab = "sel"; render(); toast("Tap a table to put it on"); return;
   }
-  if (d.add) { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
+  if (d.add) { if (ed.startPlacement(d.add)) { tab = "sel"; render(); toast("Move the preview, then tap to place it"); } else { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } } return; }
   if (d.col && it) return ed.run([{ op: "change_material", id: it.id, color: d.col }]);
   if (d.drc && it) return ed.run([{ op: "dress_object", id: it.id, [d.drc]: d.v }]);
   if (d.pal && it) return ed.run([{ op: "dress_object", id: it.id, palette: d.pal }]);
@@ -330,6 +354,22 @@ body.addEventListener("click", async e => {
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
+  if (d.x === "placeCancel") { ed.cancelPlacement(); render(); return; }
+  if (d.x === "focus") { if (!ed.focusSelection()) toast("Select a piece first"); return; }
+  if (d.x === "centerView") { ed.centerView(); return; }
+  if (d.nudge) {
+    const step = ed.units === "ft" ? S.FT / 2 : 0.25, v = { left: [-step, 0], right: [step, 0], back: [0, step], front: [0, -step] }[d.nudge];
+    if (!v) return;
+    if (ed.grp) ed.run([Object.assign({ op: "move_set", dx: v[0], dz: v[1] }, ed.grpTarget())]);
+    else if (ed.sel) ed.run([{ op: "move_object", id: ed.sel, dx: v[0], dz: v[1] }]);
+    return;
+  }
+  if (d.turn != null) {
+    const by = +d.turn;
+    if (ed.grp) ed.run([Object.assign({ op: "rotate_set", by }, ed.grpTarget())]);
+    else if (ed.sel) ed.run([{ op: "rotate_object", id: ed.sel, by }]);
+    return;
+  }
   if (d.x === "libClear") { libQ = libEv = libSt = ""; render(); return; }
   if (d.x === "phIn") { ed.setView("photo"); return; }
   if (d.x === "phOut") { ed.photoAlign = false; ed.setView("orbit"); return; }

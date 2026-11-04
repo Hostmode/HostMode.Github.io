@@ -21,8 +21,9 @@ header .name{flex:1;min-width:0;background:transparent;border:1px solid rgba(255
 #stage{position:relative;flex:1 1 55%;min-height:240px;overflow:hidden;background:#dfe3ec}
 #v3-canvas{width:100%;height:100%;display:block;touch-action:none}
 .tb{position:absolute;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
-.tb.top{top:8px;left:8px;right:8px}.tb.bot{bottom:8px;left:8px}
+.tb.top{top:8px;left:8px;right:8px}.tb.bot{bottom:8px;left:8px;right:8px}
 .tb button,.chip{border:0;border-radius:10px;padding:7px 10px;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.15);cursor:pointer}
+.tb button{min-height:40px}
 .tb button.on{background:var(--navy);color:#fff}
 .chip.on{box-shadow:0 0 0 2px var(--orange)}
 .tb .sp{flex:1}
@@ -72,14 +73,14 @@ textarea{width:100%;min-height:70px;resize:vertical}
     <span class="pill" id="saveState">Not saved yet</span>
   </header>
   <div id="stage">
-    <canvas id="v3-canvas" aria-label="3D view of the venue. Tap an object to select it."></canvas>
+    <canvas id="v3-canvas" aria-label="3D venue. Tap a piece to select it. In Move object mode, drag the selected piece. Drag empty space to turn the view."></canvas>
     <div class="tb top">
-      <button data-view="orbit" class="on">3D</button><button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button><button data-view="walk">Walk</button><button data-view="photo" hidden>Photo</button>
+      <button data-view="orbit" class="on">3D</button><button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button><button data-view="walk">Walk</button><button data-view="photo" hidden>Photo</button><button id="centerView" aria-label="Center the view">Center</button>
       <span class="sp"></span>
       <button id="undo" aria-label="Undo">↶</button><button id="redo" aria-label="Redo">↷</button>
     </div>
     <div class="tb bot" id="modes">
-      <button data-mode="translate" class="on">Move</button><button data-mode="rotate">Turn</button><button data-mode="scale">Resize</button>
+      <button data-mode="translate" class="on">Move object</button><button data-gesture="view">Move view</button><button data-mode="rotate">Turn</button><button data-mode="scale">Resize</button>
     </div>
     <div id="pad" aria-label="Walk controls">
       <span></span><button data-k="f" aria-label="Forward">▲</button><span></span>
@@ -94,7 +95,7 @@ textarea{width:100%;min-height:70px;resize:vertical}
     <div class="body" id="body"></div>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- Firebase (for saving to the account) loads only outside the demo; the demo saves on the device -->
 <script>if(!/[?&]demo=1(&|$)/.test(location.search))["app","auth","database"].forEach(n=>document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-'+n+'-compat.js"><\/script>'))</script>
 <script type="module" src="3d/app.js"></script>
