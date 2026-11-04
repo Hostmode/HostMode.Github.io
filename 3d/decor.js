@@ -113,7 +113,7 @@ const matCache = new Map();
 // size: the meters this surface spans, so wood planks and fabric weave stay true to scale on any object.
 export function material(name, color, opts = {}) {
   const M = S.MATERIALS[name] || S.MATERIALS.paint, size = opts.size || 1;
-  const key = [name, color, size, opts.emissive, opts.side, opts.opacity, HI].join("|");
+  const key = [name, color, size, opts.emissive, opts.side, opts.opacity, opts.vc, HI].join("|");
   if (matCache.has(key)) return matCache.get(key);
   const sf = surface(name), phys = HI && (M.sheen || M.coat || name === "glass" || name === "acrylic");
   const P = { roughness: M.rough, metalness: M.metal };
@@ -127,10 +127,11 @@ export function material(name, color, opts = {}) {
   if (phys && M.sheen) { m.sheen = M.sheen; m.sheenRoughness = name === "satin" ? 0.3 : 0.6; m.sheenColor = hex(color || M.color).lerp(new T.Color("#ffffff"), 0.4); }
   if (phys && M.coat) { m.clearcoat = M.coat; m.clearcoatRoughness = 0.08; }
   if (M.opacity || opts.opacity) { m.transparent = true; m.opacity = opts.opacity || M.opacity; m.depthWrite = false; }
-  if (phys && (name === "glass" || name === "acrylic")) { m.ior = 1.5; m.specularIntensity = 1; m.roughness = 0.03; }
+  if (phys && (name === "glass" || name === "acrylic")) { m.ior = 1.5; m.specularIntensity = 1; m.roughness = 0.03; } // real glass (transmission) was tried Nov 3, 2026: it doubled the time to draw a frame, so glass stays see-through instead
   if (opts.emissive) { m.emissive = hex(opts.emissive); m.emissiveIntensity = opts.glow || 2; }
   if (M.metal >= 0.5) m.envMapIntensity = 12; // metals are mostly reflection: gold and chrome need it to read as gold and chrome
   if (opts.side) m.side = opts.side;
+  if (opts.vc) m.vertexColors = true;
   matCache.set(key, m); return m;
 }
 const latex = (c) => { const k = "latex|" + c + HI; if (matCache.has(k)) return matCache.get(k); const chrome = /^#(c9a24a|c0c3c8|d9c08a)$/i.test(c); const m = HI ? new T.MeshPhysicalMaterial({ color: hex(c), roughness: chrome ? 0.15 : 0.4, metalness: chrome ? 0.9 : 0, clearcoat: 0.7, clearcoatRoughness: 0.2 }) : new T.MeshStandardMaterial({ color: hex(c), roughness: 0.4, metalness: chrome ? 0.8 : 0 }); if (chrome) m.envMapIntensity = 12; matCache.set(k, m); return m; };
@@ -139,13 +140,22 @@ const flame = () => flat("#ffcf7a", { emissive: hex("#ffb347"), emissiveIntensit
 
 // ---------- Building blocks ----------
 export function box(w, h, d, m, x = 0, y = 0, z = 0) { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y + h / 2, z); o.castShadow = o.receiveShadow = true; return o; }
+const RBOX = new Map();
+function roundedGeo(w, h, d, r, seg = 2) {
+  const k = [w, h, d, r, seg].map(v => +v.toFixed(3)).join(","); if (RBOX.has(k)) return RBOX.get(k);
+  r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
+  const g = new T.BoxGeometry(w, h, d, seg * 2, seg * 2, seg * 2), p = g.attributes.position, v = new T.Vector3(), c = new T.Vector3(), ix = w / 2 - r, iy = h / 2 - r, iz = d / 2 - r;
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); c.set(Math.max(-ix, Math.min(ix, v.x)), Math.max(-iy, Math.min(iy, v.y)), Math.max(-iz, Math.min(iz, v.z))); const n = v.sub(c); if (n.lengthSq() > 1e-12) n.setLength(r); p.setXYZ(i, c.x + n.x, c.y + n.y, c.z + n.z); }
+  g.computeVertexNormals(); g.userData.shared = true; RBOX.set(k, g); return g;
+}
+export function rbox(w, h, d, r, m, x = 0, y = 0, z = 0) { const o = new T.Mesh(roundedGeo(w, h, d, r), m); o.position.set(x, y + h / 2, z); o.castShadow = o.receiveShadow = true; return o; }
 function cyl(rt, rb, h, m, x = 0, y = 0, z = 0, seg = 32, open = false) { const o = new T.Mesh(new T.CylinderGeometry(rt, rb, h, seg, 1, open), m); o.position.set(x, y + h / 2, z); o.castShadow = o.receiveShadow = true; return o; }
 function ball(r, m, x, y, z, seg = 24) { const o = new T.Mesh(new T.SphereGeometry(r, seg, Math.round(seg * 0.75)), m); o.position.set(x, y, z); o.castShadow = true; return o; }
 function mesh(geo, m) { const o = new T.Mesh(geo, m); o.castShadow = o.receiveShadow = true; return o; }
 // Many copies of one shape: one draw call. list = [{p:[x,y,z], s:number|[x,y,z], r:[x,y,z]}]
 function inst(geo, m, list) {
   const im = new T.InstancedMesh(geo, m, list.length), o = new T.Object3D();
-  list.forEach((t, i) => { o.position.set(...t.p); const s = t.s ?? 1; Array.isArray(s) ? o.scale.set(...s) : o.scale.setScalar(s); o.rotation.set(...(t.r || [0, 0, 0])); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+  list.forEach((t, i) => { o.position.set(...t.p); const s = t.s ?? 1; Array.isArray(s) ? o.scale.set(...s) : o.scale.setScalar(s); if (t.q) o.quaternion.copy(t.q); else o.rotation.set(...(t.r || [0, 0, 0])); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
   im.castShadow = true; im.receiveShadow = true; return im;
 }
 // The same shape in several colors (balloons, roses): one instanced mesh per color.
@@ -174,12 +184,59 @@ function lightHere(g, color, intensity, range, y = 0) { if (!HI || itemLights >=
 
 // ---------- Tables and linens ----------
 const leafShape = new T.Shape(); leafShape.moveTo(0, 0); leafShape.quadraticCurveTo(0.45, 0.22, 1, 0); leafShape.quadraticCurveTo(0.45, -0.22, 0, 0);
-const ROSE = new T.SphereGeometry(1, 14, 10), BALL = new T.SphereGeometry(1, 20, 14), LEAF = new T.ShapeGeometry(leafShape, 6);
-[ROSE, BALL, LEAF].forEach(g => g.userData.shared = true); // reused by every item: never disposed
-function roseBall(g, r, cx, cy, cz, colors, count = 90, seed = 3) { // a dome or ball of blooms with greenery peeking through
+// ---------- Flowers: real petals ----------
+// Each species is built ONCE from petals (cupped, curled at the tip, a little uneven, darker toward the heart) and then
+// repeated with instancing, so a centerpiece of 55 blooms is one draw per color. "lite" blooms (fewer petals, coarser) are
+// for walls with hundreds of flowers. A bloom is about 1 unit across, faces +Y, and is scaled where it's used.
+function petalGeo(w, l, cup, curl, ruffle, nu, nv, seed) {
+  const r = rng(seed), pos = [], sh = [], idx = [], jit = 1 + (r() - 0.5) * 0.18;
+  for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) {
+    const u = i / nu - 0.5, v = j / nv, hw = w / 2 * jit * Math.pow(Math.sin(Math.PI * (0.06 + v * 0.9)), 0.55);
+    pos.push(u * 2 * hw, v * l, cup * hw * (u * u * 4) - curl * l * v * v + ruffle * Math.sin(u * 13 + seed) * v * v); sh.push(0.55 + 0.45 * v);
+  }
+  for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) { const a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  return { pos, sh, idx };
+}
+const SPECIES = {
+  // [petals, width, length, lean from upright (degrees), cup, tip curl, ruffle, distance from the heart]
+  rose:   [[4, 0.36, 0.42, 6, 0.9, 0, 0, 0.02], [5, 0.56, 0.56, 24, 0.75, 0.1, 0, 0.05], [5, 0.7, 0.66, 46, 0.55, 0.22, 0.01, 0.08], [6, 0.78, 0.7, 70, 0.35, 0.35, 0.02, 0.1]],
+  peony:  [[6, 0.32, 0.36, 10, 0.85, 0, 0.04, 0.02], [7, 0.46, 0.52, 28, 0.7, 0.06, 0.05, 0.05], [8, 0.6, 0.62, 50, 0.5, 0.14, 0.08, 0.08], [9, 0.72, 0.7, 76, 0.32, 0.26, 0.1, 0.11]],
+  garden: [[5, 0.4, 0.38, 14, 0.8, 0, 0.02, 0.03], [6, 0.6, 0.55, 40, 0.55, 0.15, 0.03, 0.07], [7, 0.78, 0.66, 66, 0.35, 0.3, 0.04, 0.1], [7, 0.86, 0.68, 84, 0.2, 0.4, 0.05, 0.12]],
+  lite:   [[3, 0.42, 0.42, 10, 0.85, 0, 0, 0.02], [5, 0.66, 0.6, 38, 0.6, 0.15, 0, 0.06], [5, 0.8, 0.68, 68, 0.35, 0.32, 0, 0.1]]
+};
+const BLOOMS = {};
+function bloomGeo(kind) {
+  if (BLOOMS[kind]) return BLOOMS[kind];
+  const L = SPECIES[kind] || SPECIES.rose, lite = kind === "lite", pos = [], col = [], idx = [], e = new T.Euler(), q = new T.Quaternion(), v = new T.Vector3();
+  let seed = 1;
+  L.forEach(([n, w, l, lean, cup, curl, ruf, r0], li) => {
+    const off = li * 0.7 + 0.35;
+    for (let k = 0; k < n; k++) {
+      const P = petalGeo(w, l, cup, curl, ruf, lite ? 2 : 3, 3, seed++), az = (k / n) * Math.PI * 2 + off + Math.sin(seed * 7.1) * 0.12;
+      const lt = (lean + Math.sin(seed * 3.3) * 5) * Math.PI / 180; e.set(-lt, az, 0, "YXZ"); q.setFromEuler(e);
+      const base = pos.length / 3, depth = 0.7 + 0.3 * (li / Math.max(1, L.length - 1));
+      for (let i = 0; i < P.pos.length; i += 3) { v.set(P.pos[i], P.pos[i + 1], P.pos[i + 2] - r0).applyQuaternion(q); pos.push(v.x, v.y, v.z); const c = P.sh[i / 3] * depth; col.push(c, c, c); }
+      P.idx.forEach(x => idx.push(base + x));
+    }
+  });
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new T.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+  g.computeVertexNormals(); g.computeBoundingSphere(); g.userData.shared = true; return (BLOOMS[kind] = g);
+}
+// A curved leaf with a fold down its middle, pointing along +X like the old flat leaf.
+const LEAF = (() => { const P = petalGeo(0.36, 1, -0.5, 0.18, 0, 2, 4, 99), g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(P.pos, 3)); g.setIndex(P.idx); g.rotateZ(-Math.PI / 2); g.computeVertexNormals(); return g; })();
+const SHRUB = new T.SphereGeometry(1, 14, 10), BALL = new T.SphereGeometry(1, 20, 14);
+[SHRUB, BALL, LEAF].forEach(g => g.userData.shared = true); // reused by every item: never disposed
+const petalMat = c => material("velvet", c, { size: 0.2, side: T.DoubleSide, vc: true });
+const UP = new T.Vector3(0, 1, 0);
+const facing = (n, spin) => new T.Quaternion().setFromUnitVectors(UP, n).multiply(new T.Quaternion().setFromAxisAngle(UP, spin));
+// a dome or ball of blooms (rose, peony and garden rose mixed) with greenery peeking through; foliage = leafy balls for plants
+function roseBall(g, r, cx, cy, cz, colors, count = 90, seed = 3, foliage = false) {
   const rr = rng(seed), list = [];
-  for (let i = 0; i < count; i++) { const u = rr() * 2 - 1, a = rr() * Math.PI * 2, s = Math.sqrt(1 - u * u); list.push({ p: [cx + Math.cos(a) * s * r, cy + u * r, cz + Math.sin(a) * s * r], s: r * (0.18 + rr() * 0.08), r: [rr() * 3, rr() * 3, 0] }); }
-  multi(g, ROSE, c => material("velvet", c, { size: 0.2 }), list, colors);
+  for (let i = 0; i < count; i++) { const u = rr() * 2 - 1, a = rr() * Math.PI * 2, s = Math.sqrt(1 - u * u), n = new T.Vector3(Math.cos(a) * s, u, Math.sin(a) * s);
+    list.push({ p: [cx + n.x * r, cy + n.y * r, cz + n.z * r], s: r * (foliage ? 0.2 + rr() * 0.09 : 0.3 + rr() * 0.12), q: facing(n, rr() * 6.3), r: [rr() * 3, rr() * 3, 0] }); }
+  if (foliage) multi(g, SHRUB, c => material("velvet", c, { size: 0.2 }), list, colors);
+  else { const pend = g.userData.blooms = g.userData.blooms || new Map();
+    list.forEach((t, i) => { const k = ["rose", "peony", "garden"][i % 3] + "|" + colors[Math.floor(i / 3) % colors.length]; if (!pend.has(k)) pend.set(k, []); pend.get(k).push(t); }); }
   const leaves = []; for (let i = 0; i < count * 0.6; i++) { const u = rr() * 2 - 1, a = rr() * Math.PI * 2, s = Math.sqrt(1 - u * u); leaves.push({ p: [cx + Math.cos(a) * s * r * 1.05, cy + u * r * 1.05, cz + Math.sin(a) * s * r * 1.05], s: r * 0.32, r: [rr() * 6, rr() * 6, rr() * 6] }); }
   g.add(inst(LEAF, material("velvet", "#4b7a4f", { side: T.DoubleSide, size: 0.2 }), leaves));
 }
@@ -251,13 +308,23 @@ function buildChair(g, it) {
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(0.04, b < 0 ? H : sh, 0.04, m, a * (W / 2 - 0.03), 0, b * (D / 2 - 0.03))));
       g.add(box(W, 0.05, D, material("fabric", "#efe6d2", { size: 0.5 }), 0, sh, 0)); g.add(box(W - 0.04, 0.05, 0.03, m, 0, H - 0.06, back));
       [-1, 1].forEach(s => { const x = box(0.03, Math.hypot(W - 0.08, H - sh - 0.12), 0.02, m, 0, 0, 0); x.position.set(0, sh + (H - sh - 0.06) / 2, back); x.rotation.z = s * Math.atan2(W - 0.08, H - sh - 0.12); g.add(x); });
-    } else { // Chiavari (spindle back, slim legs) and folding chairs
+    } else if (it.kind === "chair") { // Chiavari: slim tapered legs with stretchers, a padded seat on a frame, a back that leans slightly
+      const leg = 0.017, lx = W / 2 - 0.03, lz = D / 2 - 0.03;
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(leg * 0.75, leg, sh - 0.03, m, a * lx, 0, b * lz, 10)));
+      [0.16, 0.3].forEach(y => { [-1, 1].forEach(a => { const st = cyl(0.007, 0.007, D - 0.06, m, 0, 0, 0, 6); st.rotation.x = Math.PI / 2; st.position.set(a * lx, y, 0); g.add(st); }); });
+      { const st = cyl(0.007, 0.007, W - 0.06, m, 0, 0, 0, 6); st.rotation.z = Math.PI / 2; st.position.set(0, 0.16, lz); g.add(st); }
+      g.add(rbox(W, 0.035, D, 0.012, m, 0, sh - 0.035, 0));
+      g.add(rbox(W - 0.03, 0.055, D - 0.03, 0.025, material("fabric", "#f3ead6", { size: 0.5 }), 0, sh, 0.005));
+      const bk = new T.Group(); bk.position.set(0, sh, back); bk.rotation.x = -0.09; g.add(bk); const bh = H - sh;
+      [-1, 1].forEach(a => bk.add(cyl(leg * 0.9, leg, bh, m, a * lx, 0, 0, 10)));
+      [0.12, bh * 0.55, bh - 0.04].forEach((y, k) => bk.add(rbox(W - 0.05, k === 2 ? 0.035 : 0.022, 0.024, 0.009, m, 0, y - 0.011, 0)));
+      for (let k = 1; k < 5; k++) bk.add(cyl(0.007, 0.009, bh - 0.17, m, -lx + k * (2 * lx) / 5, 0.13, 0, 6));
+    } else { // folding chairs
       const leg = 0.018;
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(leg, leg * 0.8, sh, m, a * (W / 2 - 0.03), 0, b * (D / 2 - 0.03), 10)));
-      g.add(box(W, 0.06, D, it.kind === "chair" ? material("fabric", "#f3ead6", { size: 0.5 }) : m, 0, sh, 0));
+      g.add(rbox(W, 0.05, D, 0.015, m, 0, sh, 0));
       [-1, 1].forEach(a => g.add(cyl(leg, leg, H - sh, m, a * (W / 2 - 0.03), sh, back, 10)));
-      if (it.kind === "chair") { for (let k = 0; k < 3; k++) g.add(box(W - 0.06, 0.02, 0.02, m, 0, sh + 0.1 + k * (H - sh - 0.12) / 2, back)); for (let k = 1; k < 5; k++) g.add(cyl(0.008, 0.008, H - sh - 0.1, m, -W / 2 + 0.03 + k * (W - 0.06) / 5, sh + 0.05, back, 6)); }
-      else g.add(box(W - 0.04, 0.18, 0.025, m, 0, H - 0.22, back));
+      g.add(rbox(W - 0.04, 0.18, 0.025, 0.01, m, 0, H - 0.22, back));
     }
   } else { // a cover over the whole chair: banquet covers flare to the floor, spandex hugs the frame
     const cm = material(d.cover === "spandex" ? "satin" : "fabric", d.coverColor || "#f7f5f0", { size: 0.6 }), sp = d.cover === "spandex";
@@ -267,15 +334,59 @@ function buildChair(g, it) {
     const bk = box(W + (sp ? 0.02 : 0.05), H - sh, sp ? 0.06 : 0.09, cm, 0, sh, back); g.add(bk);
     const cap = mesh(new T.CylinderGeometry(sp ? 0.03 : 0.045, sp ? 0.03 : 0.045, W + (sp ? 0.02 : 0.05), 12), cm); cap.rotation.z = Math.PI / 2; cap.position.set(0, H, back); g.add(cap);
   }
-  if (d.sash) { // a satin band round the back, tied in a bow behind the chair
-    const sm = material("satin", d.sash, { size: 0.3 }), y = sh + (H - sh) * 0.45, t = 0.012;
-    g.add(box(W + 0.07, 0.09, t, sm, 0, y, back + 0.05)); g.add(box(W + 0.07, 0.09, t, sm, 0, y, back - 0.05));
-    [-1, 1].forEach(a => { g.add(box(t, 0.09, 0.11, sm, a * (W / 2 + 0.035), y, back)); const loop = ball(0.05, sm, a * 0.055, y + 0.045, back - 0.07, 12); loop.scale.set(1.2, 0.7, 0.35); g.add(loop); const tail = box(0.05, 0.26, t, sm, a * 0.03, y - 0.25, back - 0.07); tail.rotation.z = a * 0.15; g.add(tail); });
+  if (d.sash) { // a satin ribbon wrapped round the back, tied in a bow behind the chair, two tails falling with a little wave
+    const sm = material("satin", d.sash, { size: 0.3, side: T.DoubleSide }), y = (H - sh) * 0.45, sg = new T.Group();
+    sg.position.set(0, sh, back); if (it.kind === "chair" && (d.cover === "none" || !d.cover)) sg.rotation.x = -0.09; g.add(sg);
+    const hw = W / 2 + 0.03, hd = 0.05, band = [];
+    for (let k = 0; k <= 48; k++) { const a = k / 48 * Math.PI * 2, c = Math.cos(a), s2 = Math.sin(a); band.push([Math.sign(c) * Math.pow(Math.abs(c), 0.35) * hw, Math.sign(s2) * Math.pow(Math.abs(s2), 0.35) * hd]); }
+    sg.add(mesh(ribbon(band.map(([x, z]) => [x, y, z]), [0, 1, 0], 0.085, 0.006), sm));
+    const kz = -hd - 0.012;
+    [-1, 1].forEach(a => { // the two loops of the bow, and a tail under each
+      const lp = []; for (let k = 0; k <= 24; k++) { const t = k / 24 * Math.PI * 2; lp.push([a * (0.012 + 0.05 * (1 - Math.cos(t)) / 2 * 1.9), y + 0.03 * Math.sin(t), kz - 0.004 * Math.sin(t)]); }
+      sg.add(mesh(ribbon(lp, [0, 0, 1], 0.03, 0.004), sm));
+      const tl = []; for (let k = 0; k <= 12; k++) { const v = k / 12; tl.push([a * (0.01 + v * 0.06), y - 0.01 - v * 0.27, kz - 0.006 + Math.sin(v * 7) * 0.008]); }
+      sg.add(mesh(ribbon(tl, [1, 0, 0], 0.045, 0), sm));
+    });
+    sg.add(rbox(0.032, 0.03, 0.02, 0.008, sm, 0, y - 0.015, kz));
   }
+}
+// A strip of ribbon along a path: pts = [[x,y,z]...], across = the direction its width runs, bulge = a soft round across its width.
+function ribbon(pts, across, width, bulge) {
+  const pos = [], idx = [], A = new T.Vector3(...across).normalize(), n = pts.length;
+  pts.forEach((p, i) => { for (let j = 0; j <= 2; j++) { const u = j / 2 - 0.5, b = bulge * (1 - 4 * u * u); const q = pts[Math.min(n - 1, i + 1)], r0 = pts[Math.max(0, i - 1)], out = new T.Vector3(q[0] - r0[0], q[1] - r0[1], q[2] - r0[2]).cross(A).normalize(); pos.push(p[0] + A.x * u * width + out.x * b, p[1] + A.y * u * width + out.y * b, p[2] + A.z * u * width + out.z * b); } });
+  for (let i = 0; i < n - 1; i++) for (let j = 0; j < 2; j++) { const a = i * 3 + j, b2 = a + 1, c = a + 3, dd = c + 1; idx.push(a, c, b2, b2, c, dd); }
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
 
 // ---------- Everything else ----------
 const palOf = (it, def) => (it.palette && it.palette.length ? it.palette : def);
+// Parts of one piece that share a material are joined into one mesh, so a phone draws a chair in 2 or 3 goes instead of 14.
+// Instanced parts (flowers, balloons), lights and anything marked userData.keep stay as they are. The look doesn't change.
+function mergeParts(g) {
+  g.updateMatrixWorld(true);
+  const by = new Map();
+  g.traverse(o => { if (o.isMesh && !o.isInstancedMesh && !o.userData.keep && o.geometry && o.geometry.attributes.position) { const k = o.material.uuid + "|" + o.castShadow + "|" + o.receiveShadow + "|" + (o.renderOrder || 0); if (!by.has(k)) by.set(k, []); by.get(k).push(o); } });
+  by.forEach(list => {
+    if (list.length < 2) return;
+    const names = ["position", "normal", "uv"].filter(n => list.every(m => m.geometry.attributes[n])), arrays = names.map(() => []);
+    list.forEach(m => {
+      const ge = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()); ge.applyMatrix4(m.matrixWorld);
+      names.forEach((n, i) => { const a = ge.attributes[n]; for (let j = 0; j < a.count * a.itemSize; j++) arrays[i].push(a.array[j]); });
+      ge.dispose(); m.parent.remove(m); if (!m.geometry.userData.shared) m.geometry.dispose();
+    });
+    const geo = new T.BufferGeometry(); names.forEach((n, i) => geo.setAttribute(n, new T.Float32BufferAttribute(arrays[i], n === "uv" ? 2 : 3)));
+    if (!names.includes("normal")) geo.computeVertexNormals();
+    geo.computeBoundingSphere(); const one = new T.Mesh(geo, list[0].material); one.castShadow = list[0].castShadow; one.receiveShadow = list[0].receiveShadow; one.renderOrder = list[0].renderOrder || 0; g.add(one);
+  });
+}
+let SHADOW_TEX = null;
+function contactShadow(w, d, round) {
+  if (!SHADOW_TEX) { const N = 128, c = document.createElement("canvas"); c.width = c.height = N; const x = c.getContext("2d"), gr = x.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+    gr.addColorStop(0, "rgba(0,0,0,0.55)"); gr.addColorStop(0.55, "rgba(0,0,0,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; x.fillRect(0, 0, N, N); SHADOW_TEX = new T.CanvasTexture(c); }
+  const k = "contact|" + HI; if (!matCache.has(k)) matCache.set(k, new T.MeshBasicMaterial({ map: SHADOW_TEX, transparent: true, depthWrite: false, opacity: HI ? 0.75 : 0.6, color: "#000000" }));
+  const o = new T.Mesh(SHADOW_PLANE, matCache.get(k)); o.rotation.x = -Math.PI / 2; o.position.y = 0.003; o.scale.set(w * (round ? 1.25 : 1.2), d * (round ? 1.25 : 1.2), 1); o.renderOrder = -1; o.userData.contact = true; return o;
+}
+const SHADOW_PLANE = new T.PlaneGeometry(1, 1); SHADOW_PLANE.userData.shared = true;
 export function buildItem(it, scene) {
   const g = new T.Group(), W = it.w, D = it.d, H = it.h, C = S.CATALOG[it.kind] || {};
   const main = material(it.mat, it.color, { size: Math.max(W, D) }), dark = material("metal", "#2e2e33"), gold = material("gold"), white = material("fabric", "#f7f5f0", { size: 0.5 });
@@ -285,8 +396,8 @@ export function buildItem(it, scene) {
     case "table_round": case "table_round72": case "table_rect": case "table_banquet": case "table_farm": case "table_cocktail": case "buffet": case "cake_table": case "gift_table": buildTable(g, it, scene); break;
     case "chair": case "chair_ghost": case "chair_crossback": case "chair_folding": buildChair(g, it); break;
     case "sofa": case "lounge_chair": {
-      const v = material("velvet", it.color || null, { size: 1 }); g.add(box(W, 0.2, D, v, 0, 0.12, 0)); g.add(box(W - 0.1, 0.14, D - 0.2, v, 0, 0.32, 0.08));
-      g.add(box(W, H - 0.32, 0.18, v, 0, 0.32, -D / 2 + 0.09)); [-1, 1].forEach(a => g.add(box(0.16, 0.26, D, v, a * (W / 2 - 0.08), 0.32, 0)));
+      const v = material("velvet", it.color || null, { size: 1 }); g.add(rbox(W, 0.2, D, 0.04, v, 0, 0.12, 0)); g.add(rbox(W - 0.1, 0.14, D - 0.2, 0.06, v, 0, 0.3, 0.08));
+      g.add(rbox(W, H - 0.32, 0.18, 0.06, v, 0, 0.32, -D / 2 + 0.09)); [-1, 1].forEach(a => g.add(rbox(0.16, 0.26, D, 0.06, v, a * (W / 2 - 0.08), 0.32, 0)));
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(0.02, 0.015, 0.12, gold, a * (W / 2 - 0.08), 0, b * (D / 2 - 0.08), 8))); break;
     }
     case "ottoman": { const v = material("velvet", it.color || null, { size: 0.6 }); g.add(cyl(W / 2, W / 2, H - 0.05, v, 0, 0.05, 0, 32)); for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g.add(ball(0.012, gold, Math.cos(a) * W / 4, H, Math.sin(a) * W / 4, 8)); } g.add(cyl(W / 2 - 0.03, W / 2 - 0.03, 0.05, gold, 0, 0, 0, 24)); break; }
@@ -296,7 +407,7 @@ export function buildItem(it, scene) {
     case "rug": { const m = material(it.mat, it.color, { size: Math.max(W, D) }); g.add(box(W, H, D, m)); const b = material("velvet", "#c9a24a", { size: 0.5 }); [[W, 0.08, 0, D / 2 - 0.04], [W, 0.08, 0, -D / 2 + 0.04]].forEach(([w, d, x, z]) => g.add(box(w, H + 0.002, d, b, x, 0, z))); [[W / 2 - 0.04], [-W / 2 + 0.04]].forEach(([x]) => g.add(box(0.08, H + 0.002, D, b, x, 0, 0))); break; }
     case "podium": g.add(box(W, H, D, main)); g.add(box(W + 0.05, 0.04, D + 0.05, main, 0, H - 0.04, 0)); break;
     case "bar": case "dj_booth": case "food_station": {
-      g.add(box(W, H - 0.05, D, main)); g.add(box(W + 0.1, 0.05, D + 0.1, material("marble", null, { size: W }), 0, H - 0.05, 0));
+      g.add(rbox(W, H - 0.05, D, 0.02, main)); g.add(rbox(W + 0.1, 0.05, D + 0.1, 0.02, material("marble", null, { size: W }), 0, H - 0.05, 0));
       if (it.kind === "bar") { g.add(box(W - 0.1, 0.06, 0.02, gold, 0, 0.12, D / 2 + 0.005)); for (let k = 0; k < 6; k++) g.add(cyl(0.035, 0.035, 0.3, material("glass", ["#3d6b3f", "#6d1a2e", "#c9a24a"][k % 3]), -W / 2 + 0.3 + k * 0.35, H, -D / 4, 12)); }
       if (it.kind === "dj_booth") { g.add(box(0.5, 0.06, 0.35, dark, -0.4, H, 0)); g.add(box(0.5, 0.06, 0.35, dark, 0.4, H, 0)); g.add(box(W, 0.06, 0.02, flat("#2f6fd1", { emissive: hex("#2f6fd1"), emissiveIntensity: 2 }), 0, 0.15, D / 2 + 0.01)); }
       break;
@@ -309,8 +420,9 @@ export function buildItem(it, scene) {
     }
     case "flower_wall": {
       g.add(box(W, H, 0.06, material("velvet", "#3f6b44", { size: 1 }), 0, 0, 0)); const r = rng(29), list = [];
-      for (let k = 0; k < Math.round(W * H * 110); k++) list.push({ p: [(r() - 0.5) * (W - 0.08), 0.04 + r() * (H - 0.08), 0.05 + r() * 0.03], s: [0.05 + r() * 0.03, 0.05 + r() * 0.03, 0.035], r: [0, 0, r() * 3] });
-      multi(g, ROSE, c => material("velvet", c, { size: 0.2 }), list, flowers);
+      const out = new T.Vector3(0, 0, 1);
+      for (let k = 0; k < Math.round(W * H * 110); k++) { const n = out.clone().add(new T.Vector3((r() - 0.5) * 0.5, (r() - 0.5) * 0.5, 0)).normalize(); list.push({ p: [(r() - 0.5) * (W - 0.08), 0.04 + r() * (H - 0.08), 0.03 + r() * 0.02], s: 0.1 + r() * 0.045, q: facing(n, r() * 6.3) }); }
+      multi(g, bloomGeo("lite"), petalMat, list, flowers);
       const lv = []; for (let k = 0; k < W * H * 60; k++) lv.push({ p: [(r() - 0.5) * W, r() * H, 0.04], s: 0.09, r: [r() * 0.6, r() * 0.6, r() * 6] }); g.add(inst(LEAF, material("velvet", "#4b7a4f", { side: T.DoubleSide, size: 0.2 }), lv)); break;
     }
     case "shimmer_wall": {
@@ -367,7 +479,7 @@ export function buildItem(it, scene) {
       [[0.45, H - 0.55], [0.32, H - 0.72], [0.18, H - 0.86]].forEach(([rad, y]) => { const ring = mesh(new T.TorusGeometry(rad, 0.012, 8, 48), gold); ring.rotation.x = Math.PI / 2; ring.position.y = y; g.add(ring); const n = Math.round(rad * 40); for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; cr.push({ p: [Math.cos(a) * rad, y - 0.06 - r() * 0.04, Math.sin(a) * rad], s: [0.012, 0.035, 0.012] }); if (k % 3 === 0) bl.push({ p: [Math.cos(a) * rad, y + 0.06, Math.sin(a) * rad], s: [0.015, 0.025, 0.015] }); } });
       g.add(inst(BALL, material("acrylic", "#ffffff"), cr)); g.add(inst(BALL, flat("#fff1cf", { emissive: hex("#ffcf7a"), emissiveIntensity: 3 }), bl)); g.add(ball(0.06, gold, 0, H - 0.95, 0, 12)); lightHere(g, "#ffd89a", 4, 9, H - 0.6); break;
     }
-    case "plant": g.add(cyl(W / 3, W / 4, 0.45, main)); roseBall(g, W / 2, 0, 0.45 + W / 2, 0, ["#3f7a4a", "#4d8d58", "#356b40"], 60, 22); roseBall(g, W / 2.6, 0.1, H - W / 2.6, 0.05, ["#4d8d58", "#3f7a4a"], 40, 23); break;
+    case "plant": g.add(cyl(W / 3, W / 4, 0.45, main)); roseBall(g, W / 2, 0, 0.45 + W / 2, 0, ["#3f7a4a", "#4d8d58", "#356b40"], 60, 22, true); roseBall(g, W / 2.6, 0.1, H - W / 2.6, 0.05, ["#4d8d58", "#3f7a4a"], 40, 23, true); break;
     case "welcome_sign": { // an easel holding a board; it says the label, or "Welcome"
       [[-0.22, 0.05], [0.22, 0.05], [0, -0.25]].forEach(([x, z]) => { const l = box(0.03, H, 0.03, main, 0, 0, 0); l.position.set(x * 0.9, H / 2, z * 0.6); l.rotation.x = z < 0 ? -0.18 : 0.12; g.add(l); });
       const [c, x2] = cv(512); x2.fillStyle = "#fbf9f4"; x2.fillRect(0, 0, 512, 512); x2.strokeStyle = "#c9a24a"; x2.lineWidth = 10; x2.strokeRect(24, 24, 464, 464); x2.fillStyle = "#16255a"; x2.textAlign = "center"; x2.font = "italic 92px Georgia, serif"; x2.fillText("Welcome", 256, 240); x2.font = "38px Georgia, serif"; x2.fillText((it.label || "to the celebration").slice(0, 22), 256, 320);
@@ -387,6 +499,9 @@ export function buildItem(it, scene) {
     default: g.add(box(W, H, D, main));
   }
   if (C.ceiling) g.traverse(o => { if (o.isMesh) o.castShadow = false; }); // hanging decor doesn't darken the whole floor
+  if (!C.floor && !C.ceiling && !C.top && W && D) g.add(contactShadow(W, D, /round|cocktail|cake/.test(it.kind) || it.kind.startsWith("balloon_column")));
+  if (g.userData.blooms) { g.userData.blooms.forEach((l, k) => { const [sp, c] = k.split("|"); g.add(inst(bloomGeo(sp), petalMat(c), l)); }); delete g.userData.blooms; }
+  mergeParts(g);
   g.position.set(it.x, it.y || 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 180;
   g.userData = { id: it.id, item: true };
   return g;
