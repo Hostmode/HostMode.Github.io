@@ -499,10 +499,14 @@ function agLoad(force){const g=L.ag=L.ag||{};if(g.busy||(!force&&g.t&&Date.now()
  if(window.__HMPDEMO){const n=Date.now(),h=x=>new Date(n-x*36e5).toISOString(),u="https://github.com/"+AG_REPO+"/actions";
   g.runs=[["Nightly agents","completed","success",6],["Claude builder","in_progress","",0.1],["Claude reviewer","completed","success",2],["Pull request checks","completed","failure",3],["Nightly backup","completed","success",4]].map(([name,status,conclusion,a])=>({name,status,conclusion,html_url:u,created_at:h(a),updated_at:h(a)}));
   const pr=(t,ref,st,m)=>({title:t,head:{ref},state:st,merged_at:m?h(30):null,html_url:"https://github.com/"+AG_REPO+"/pulls",draft:false});
-  g.prs=[pr("Add the calendar download","claude/issue-1","open"),pr("Keepsake art","claude/issue-2","open"),pr("Agents tab","claude/issue-20","closed",1),pr("Old office movement","claude/issue-22","closed"),pr("Thank-you cards","claude/issue-3","closed",1)];g.t=n;return}
+  g.prs=[pr("Add the calendar download","claude/issue-1","open"),pr("Keepsake art","claude/issue-2","open"),pr("Agents tab","claude/issue-20","closed",1),pr("Old office movement","claude/issue-22","closed"),pr("Thank-you cards","claude/issue-3","closed",1),
+   pr("3D designer upgrade, Phase 4: new pieces","claude/3d-phase4","closed",1),pr("3D designer: a photo of the venue","claude/3d-phase5","closed",1),pr("Stay & Go: group travel","stay-and-go","closed",1)];
+  g.runs.push({name:"Pull request checks",status:"completed",conclusion:"success",display_title:"3D designer: a photo of the venue",head_branch:"claude/3d-phase5",html_url:u,created_at:h(5),updated_at:h(5)});g.research=12;g.t=n;return}
  g.busy=true;const api="https://api.github.com/repos/"+AG_REPO+"/";
  Promise.all([fetch(api+"actions/runs?per_page=60").then(r=>r.ok?r.json():Promise.reject()),fetch(api+"pulls?state=all&per_page=100").then(r=>r.ok?r.json():Promise.reject())])
-  .then(([a,p])=>{g.runs=a.workflow_runs||[];g.prs=Array.isArray(p)?p:[];g.err=false}).catch(()=>{g.err=true}).finally(()=>{g.busy=false;g.t=Date.now();renderSoon()})}
+  .then(([a,p])=>{g.runs=a.workflow_runs||[];g.prs=Array.isArray(p)?p:[];g.err=false}).catch(()=>{g.err=true}).finally(()=>{g.busy=false;g.t=Date.now();renderSoon()});
+ /* the researcher's count: research notes with sources saved in the repo (3d/library/research) */
+ fetch(api+"contents/3d/library/research").then(r=>r.ok?r.json():null).then(l=>{if(Array.isArray(l)){g.research=l.filter(f=>/\.json$/.test(f.name)).length;renderSoon()}}).catch(()=>{})}
 function agLatestRun(name){return ((L.ag||{}).runs||[]).filter(r=>r.name===name&&r.conclusion!=="skipped"&&r.conclusion!=="cancelled").sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]}
 function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.agentRuns&&D.agentRuns[runs[runs.length-1]],ts=(last&&last.tester)||{},tc=(last&&last.tech)||{},n=agPrs().length,b=D.backupStatus;
  if(st==="fail")return "Something went wrong. Tap to see.";
@@ -512,137 +516,64 @@ function agNews(k,r,st){const runs=Object.keys(D.agentRuns||{}).sort(),last=D.ag
  if(k==="reviewer")return st==="work"?"Reading a change…":st==="idle"?"No news yet":"Finished reading";
  if(k==="checks")return st==="work"?"Checking a change…":st==="idle"?"No news yet":"All clear at the door";
  return st==="work"?"Packing the boxes…":b&&b.t?`Last backup ${supAgo(b.t)}${b.mb?` (${b.mb} MB)`:""}`:st==="idle"?"No news yet":"Backed up"}
-/* the agent office: an isometric party venue being set up. Each agent stands at its station (AG_SPOT) and shows its state by its
-   floor ring and thought bubble: orange = working, green check = finished, red flag = needs a look, "z z" = resting.
-   Tapping someone opens their card (agPanel) with mood-style bars. Everything is one SVG, drawn back to front (agScene). */
+/* the agent office, in real 3D: office3d.html with 3d/office.js, built with the 3D venue designer's engine and library.
+   Two rooms joined by a corridor: the venue, where the nightly helpers on GitHub work (AG_CAST), and the studio, where the crew
+   who built the 3D designer and Stay & Go in sessions with Roy work (AG_CREW). This file owns the data: each render it puts the
+   cast in L.agMsg and agPost sends it to the 3D window; a tap on a person there comes back as a pick. The panel, chips and
+   scorecard under the window are plain HTML, so everyone can use them. */
 const AG_LOOK={tester:{shirt:"#2f8a4c",skin:"#c68c5a",hair:"#3b2416"},tech:{shirt:"#16255a",skin:"#8d5a3b",hair:"#111"},
  builder:{shirt:"#16255a",skin:"#f1c7a1",hair:"#6b3b1f"},reviewer:{shirt:"#e8edf7",skin:"#e0ac7e",hair:"#2a1a10"},
- checks:{shirt:"#111c3d",skin:"#a8714a",hair:"#111"},backup:{shirt:"#f6892f",skin:"#f3cfa8",hair:"#7a4b26"}};
-/* stations on the 10 x 10 floor grid (i runs down to the right, j down to the left); z lifts onto the stage;
-   an optional 4th number sets the drawing order (default i + j), for agents whose walk takes them in front of furniture */
-const AG_SPOT={tester:[4.9,5.6,0,13],tech:[2.1,6.75,0],builder:[8,1.7,8],reviewer:[7.3,8.7,0],checks:[1.6,3.7,0],backup:[3.2,1.5,0]};
+ checks:{shirt:"#111c3d",skin:"#a8714a",hair:"#111"},backup:{shirt:"#f6892f",skin:"#f3cfa8",hair:"#7a4b26"},
+ research:{shirt:"#7a4fa0",skin:"#e8b98f",hair:"#2a1a10"},modeler:{shirt:"#f6892f",skin:"#8d5a3b",hair:"#111"},
+ qa3d:{shirt:"#2f8a4c",skin:"#f1c7a1",hair:"#c9a24a"},stay:{shirt:"#5aa9e6",skin:"#c68c5a",hair:"#3b2416"}};
 const AG_ROLE={tester:"Tries the demos every night like a real planner, venue, host or guest.",tech:"Answers support tickets and tries to fix bugs overnight.",
  builder:"Builds the issues you label \"claude\" and sends them to you as pull requests.",reviewer:"Reads every new pull request and gives it a rating for you.",
- checks:"Checks every change for broken code and broken screens before it reaches you.",backup:"Packs up an encrypted copy of the whole database every night."};
-function agPerson(k){const c=AG_LOOK[k],pants=k==="checks"?"#0b1022":"#22305e",shoe='<rect x="-1" y="18" width="7" height="4" rx="2" fill="#222"/>';
- const acc={builder:['<path d="M11 10a9 8 0 0 1 18 0h2v2H9v-2z" fill="#f6892f"/><rect x="18" y="2" width="4" height="3" rx="1" fill="#f6892f"/>','<rect x="28.5" y="37" width="2" height="10" fill="#7a4b26"/><rect x="25.5" y="45" width="8" height="3" rx="1" fill="#8a94a6"/>',''],
-  checks:['<rect x="12" y="6" width="16" height="4" rx="2" fill="#0b1022"/><rect x="24" y="9" width="8" height="2" rx="1" fill="#0b1022"/>','','<circle cx="15" cy="28" r="2" fill="#f6c343"/>'],
-  tech:['<path d="M11.5 12a8.5 8.5 0 0 1 17 0" stroke="#111" stroke-width="1.6" fill="none"/><rect x="10" y="10" width="3" height="5" rx="1.5" fill="#111"/><path d="M11.5 15q0 5 6 5" stroke="#111" stroke-width="1.2" fill="none"/>','',''],
-  reviewer:['','<rect x="24" y="30" width="10" height="13" rx="1" fill="#c98a4a"/><rect x="25.5" y="32" width="7" height="9" fill="#fff"/><path d="M26.5 34.5h5M26.5 37h5M26.5 39.5h3" stroke="#2f8a4c" stroke-width=".9"/>','<path d="M20 23v12" stroke="#16255a" stroke-width="2"/>'],
-  tester:['','<rect x="28" y="35" width="5" height="8" rx="1" fill="#111"/><rect x="28.8" y="36" width="3.4" height="5.6" fill="#8fd0ff"/>',''],
-  backup:['','','']}[k];
- const box=k==="backup"?'<g class="agcarry"><rect x="9" y="27" width="22" height="14" rx="1.5" fill="#c98a4a" stroke="#7a4b26"/><path d="M9 32h22" stroke="#7a4b26"/></g>':"";
- return `<svg class="agp" viewBox="0 0 44 66" aria-hidden="true" focusable="false"><ellipse cx="20" cy="63" rx="10" ry="2.5" fill="rgba(0,0,0,.18)"/>
- <g class="agbod"><g class="agleg-l"><g transform="translate(14 40)"><rect width="5" height="20" rx="2" fill="${pants}"/>${shoe}</g></g><g class="agleg-r"><g transform="translate(21 40)"><rect width="5" height="20" rx="2" fill="${pants}"/>${shoe}</g></g>
- <g class="agarm-b"><rect x="8" y="24" width="5" height="15" rx="2.5" fill="${c.shirt}"/><circle cx="10.5" cy="40" r="2.5" fill="${c.skin}"/></g>
- <rect x="11" y="22" width="18" height="21" rx="6" fill="${c.shirt}" ${c.shirt==="#e8edf7"?'stroke="#c3cbe0"':""}/>${acc[2]}<rect x="18" y="18" width="4" height="5" fill="${c.skin}"/>
- <circle cx="20" cy="12" r="8" fill="${c.skin}"/><path d="M12 11a8 8 0 0 1 16 0c-3-2.5-6-3.2-8-3.2s-5 .7-8 3.2z" fill="${c.hair}"/>${acc[0]}
- <circle cx="17" cy="12.5" r="1" fill="#16255a"/><circle cx="23" cy="12.5" r="1" fill="#16255a"/><path d="M17 15.5q3 2 6 0" stroke="#16255a" stroke-width="1" fill="none"/>
- ${box}<g class="agarm"><rect x="27" y="24" width="5" height="15" rx="2.5" fill="${c.shirt}"/>${acc[1]}<circle cx="29.5" cy="40" r="2.5" fill="${c.skin}"/></g></g>
- <g class="agflag"><path d="M37 2v30" stroke="#555" stroke-width="1.6"/><path d="M37 2h7l-2.5 3.5 2.5 3.5h-7z" fill="#d62d2d"/></g></svg>`}
-/* isometric helpers: P(a,b,z) is the screen point of floor spot (a,b) raised by z, in a 400 x 290 scene */
-const agP=(a,b,z)=>[200+(a-b)*18,90+(a+b)*9-(z||0)],agPts=l=>l.map(q=>q.map(v=>Math.round(v*10)/10).join(",")).join(" ");
-function agBox(i,j,w,d,h,top,lf,rt){const A=agP(i,j,h),B=agP(i+w,j,h),C=agP(i+w,j+d,h),Dd=agP(i,j+d,h),Cb=agP(i+w,j+d,0),Db=agP(i,j+d,0),Bb=agP(i+w,j,0);
- return `<polygon points="${agPts([Dd,C,Cb,Db])}" fill="${lf}"/><polygon points="${agPts([B,C,Cb,Bb])}" fill="${rt}"/><polygon points="${agPts([A,B,C,Dd])}" fill="${top}" stroke="rgba(11,16,34,.25)" stroke-width=".6"/>`}
-function agTable(i,j){const t=agP(i,j,11),f=agP(i,j,0);return `<ellipse cx="${f[0]}" cy="${f[1]}" rx="15" ry="7.5" fill="rgba(0,0,0,.12)"/><rect x="${t[0]-2}" y="${t[1]}" width="4" height="11" fill="#16255a"/><ellipse cx="${t[0]}" cy="${t[1]+2}" rx="17" ry="8.5" fill="#2f8a4c"/><ellipse cx="${t[0]}" cy="${t[1]}" rx="17" ry="8.5" fill="#3aa35e"/><circle cx="${t[0]}" cy="${t[1]-3}" r="3" fill="#f6892f"/>`}
-const AG_ICON={check:'<path d="M-5 0l3.5 3.5L5-3.5" stroke="#2f8a4c" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
- flag:'<path d="M-3 6V-6" stroke="#555" stroke-width="1.6"/><path d="M-3-6h8l-2.5 3 2.5 3h-8z" fill="#d62d2d"/>',zz:'<text y="3" text-anchor="middle" font-size="7" font-weight="800" fill="#16255a">z z</text>',
- builder:'<path d="M-4 5l6-7" stroke="#7a4b26" stroke-width="2.2" stroke-linecap="round"/><rect x="0" y="-6" width="7" height="3.5" rx="1" transform="rotate(-45 3.5 -4)" fill="#8a94a6"/>',
- tester:'<rect x="-3.2" y="-5.5" width="6.4" height="11" rx="1.2" fill="#111"/><rect x="-2.2" y="-4" width="4.4" height="7" fill="#8fd0ff"/>',
- reviewer:'<rect x="-4.5" y="-5.5" width="9" height="11" rx="1" fill="#c98a4a"/><rect x="-3" y="-4" width="6" height="8" fill="#fff"/><path d="M-2-2h4M-2 0h4M-2 2h2.5" stroke="#2f8a4c" stroke-width=".9"/>',
- checks:'<circle cx="-1" cy="-1" r="3.6" stroke="#16255a" stroke-width="1.8" fill="#eaf6ff"/><path d="M1.8 1.8l3.4 3.4" stroke="#16255a" stroke-width="2" stroke-linecap="round"/>',
- backup:'<path d="M0-5l5 2.5v5L0 5l-5-2.5v-5z" fill="#c98a4a" stroke="#7a4b26" stroke-width=".8"/><path d="M-5-2.5L0 0l5-2.5M0 0v5" stroke="#7a4b26" stroke-width=".8" fill="none"/>',
- tech:'<path d="M-4.5 1a4.5 4.5 0 0 1 9 0" stroke="#16255a" stroke-width="1.8" fill="none"/><rect x="-5.5" y="0" width="2.6" height="4" rx="1" fill="#16255a"/><rect x="2.9" y="0" width="2.6" height="4" rx="1" fill="#16255a"/>'};
-const AG_RING={work:"#f6892f",done:"#2f8a4c",fail:"#d62d2d",idle:"#9aa3b8"};
-function agFigure(c,sel){const [i,j,z]=AG_SPOT[c.k],[x,y]=agP(i,j,z),ic=c.st==="done"?"check":c.st==="fail"?"flag":c.st==="idle"?"zz":c.k,
-  label=`${c.l}: ${({work:"working",done:"finished",fail:"needs a look",idle:"resting"})[c.st]}. ${c.news}`;
- return `<g class="agw r-${c.k} ${c.st}${sel?" sel":""}" data-agk="${c.k}" transform="translate(${x} ${y})" tabindex="0" role="button" aria-pressed="${sel}" aria-label="${esc(label)}"><g class="agmove">
-  <ellipse class="agring" cx="0" cy="0" rx="12" ry="6" fill="${AG_RING[c.st]}" fill-opacity="${sel?.7:.4}" ${sel?'stroke="#fff" stroke-width="1.6"':""}/>
-  <svg class="agp" x="-11.8" y="-37.5" width="26" height="39" viewBox="0 0 44 66" overflow="visible">${agPerson(c.k).replace(/^<svg[^>]*>|<\/svg>$/g,"")}</svg>
-  <g class="agthink" transform="translate(9 -52)"><circle cx="-6" cy="11" r="1.5" fill="#fff" stroke="#16255a" stroke-width=".8"/><circle cx="-3" cy="7.5" r="2.2" fill="#fff" stroke="#16255a" stroke-width=".8"/>
-   <ellipse rx="11" ry="9" fill="#fff" stroke="${c.st==="fail"?"#d62d2d":"#16255a"}" stroke-width="1.4"/>${AG_ICON[ic]}</g>
-  <rect class="aghit" x="-14" y="-62" width="34" height="70" fill="transparent"/>
- </g></g>`}
-function agScene(cast,sel,night,sky,n,tk,p){const wall=night?"#2a3a72":"#f6efe2",wall2=night?"#22305e":"#ece2cf",fl1=night?"#9c8664":"#ead9bb",fl2=night?"#927c5b":"#e0cba7";
- const RW=(a,z)=>agP(a,0,z),LW=(b,z)=>agP(0,b,z),parts=[];
- let floor="";for(let a=0;a<10;a++)for(let b=0;b<10;b++)floor+=`<polygon points="${agPts([agP(a,b),agP(a+1,b),agP(a+1,b+1),agP(a,b+1)])}" fill="${(a+b)%2?fl1:fl2}"/>`;
- const bulbs=[];for(let a=.5;a<10;a+=1){const q=RW(a,64-Math.sin(a/10*Math.PI)*6);bulbs.push(`<circle class="agbulb b${Math.round(a)%3}" cx="${q[0]}" cy="${q[1]}" r="2.6" fill="${["#f6892f","#2f8a4c","#fff4c2"][Math.round(a)%3]}"/>`)}
- for(let b=.5;b<10;b+=1){const q=LW(b,64-Math.sin(b/10*Math.PI)*6);bulbs.push(`<circle class="agbulb b${(Math.round(b)+1)%3}" cx="${q[0]}" cy="${q[1]}" r="2.6" fill="${["#f6892f","#2f8a4c","#fff4c2"][(Math.round(b)+1)%3]}"/>`)}
- const sun=RW(2,40),door=[RW(4.2,0),RW(5.4,0),RW(5.4,46),RW(4.2,46)],ent=[LW(4.4,0),LW(5.6,0),LW(5.6,44),LW(4.4,44)],bn=RW(6.1,60),en=LW(5,50),rd=RW(4.8,38);
- const back=`<polygon points="${agPts([agP(0,0),agP(0,10),LW(10,70),LW(0,70)])}" fill="${wall2}"/><polygon points="${agPts([agP(0,0),agP(10,0),RW(10,70),RW(0,70)])}" fill="${wall}"/>
-  <polyline points="${agPts([LW(10,70),LW(0,70),RW(10,70)])}" fill="none" stroke="#16255a" stroke-width="3"/>
-  <polygon points="${agPts([RW(1,22),RW(3,22),RW(3,54),RW(1,54)])}" fill="${sky}" stroke="#16255a" stroke-width="3"/><circle cx="${sun[0]}" cy="${sun[1]}" r="6" fill="${night?"#f4f4f4":"#ffd24a"}"/><polyline points="${agPts([RW(2,22),RW(2,54)])}" stroke="#16255a" stroke-width="2"/>
-  <polygon points="${agPts(door)}" fill="#16255a"/><polygon points="${agPts([RW(4.4,32),RW(5.2,32),RW(5.2,42),RW(4.4,42)])}" fill="#f6efe2"/><text transform="translate(${rd[0]} ${rd[1]}) skewY(26.565)" text-anchor="middle" font-size="4.6" font-weight="800" fill="#16255a">ROY</text>
-  <polygon points="${agPts([RW(5.9,52),RW(9.4,52),RW(9.4,66),RW(5.9,66)])}" fill="#16255a"/><text transform="translate(${bn[0]+30} ${bn[1]+15}) skewY(26.565)" text-anchor="middle" font-size="9" font-weight="800" fill="#f6892f">HOST MODE</text>
-  <polygon points="${agPts(ent)}" fill="#2f8a4c" stroke="#16255a" stroke-width="2"/><text transform="translate(${en[0]} ${en[1]}) skewY(-26.565)" text-anchor="middle" font-size="5" font-weight="800" fill="#16255a">ENTRANCE</text>
-  <polygon points="${agPts([LW(7,20),LW(9,20),LW(9,48),LW(7,48)])}" fill="#16255a"/><polygon points="${agPts([LW(7.2,23),LW(8.8,23),LW(8.8,45),LW(7.2,45)])}" fill="#f6892f" fill-opacity=".85"/>
-  ${floor}${bulbs.join("")}`;
- /* furniture and people, drawn back to front */
- parts.push([1.1,agBox(2.3,0,.1,1,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(2.3,1.7,.1,.6,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(0,2.3,2.4,.1,14,"#dfe6f5","#c3cbe0","#d3dbeb")+agBox(.3,.4,.9,.9,10,"#d9a466","#b77f43","#c98a4a")+agBox(.4,.5,.7,.7,20,"#d9a466","#b77f43","#c98a4a")+agBox(1.2,.4,.8,.8,9,"#d9a466","#b77f43","#c98a4a")]);
- {const q=agP(2.42,1.45,14);parts.push([3.8,`<rect x="${q[0]-3}" y="${q[1]}" width="6" height="5" rx="1" fill="#f6c343"/><path d="M${q[0]-2} ${q[1]}a2 2 0 0 1 4 0" stroke="#555" stroke-width="1.2" fill="none"/>`])}
- parts.push([5,agBox(6,0,4,3.2,8,"#16255a","#0e1a44","#f6892f")]);
- for(let k=0;k<Math.min(n,6);k++)parts.push([4.4+k*.01,agBox(4.3+(k%2)*.55,.35,.5,.5,7,"#d9a466","#b77f43","#c98a4a").replace(/<polygon/g,`<polygon transform="translate(0 ${-Math.floor(k/2)*7})"`)]);
- parts.push([8.8,agTable(4.4,4.4)]);parts.push([12.8,agTable(6.3,6.5)]);
- parts.push([14.3,agBox(8.4,5,1.2,3,16,"#f6892f","#16255a","#22305e")]);
- {const q=agP(9,5.8,16);parts.push([14.4,`<rect x="${q[0]-4}" y="${q[1]-12}" width="8" height="12" rx="2" fill="#eaf6ff" fill-opacity=".9" stroke="#16255a" stroke-width="1"/><rect x="${q[0]-3}" y="${q[1]-1-Math.round(10*p/100)}" width="6" height="${Math.round(10*p/100)}" fill="#2f8a4c"/>`])}
- parts.push([9.9,agBox(1,7.2,2.3,.9,14,"#2f8a4c","#16255a","#22305e")+(()=>{const q=agP(1.7,7.5,14);return `<rect x="${q[0]-5}" y="${q[1]-8}" width="10" height="7" rx="1" fill="#2b2b2b"/><rect x="${q[0]-4}" y="${q[1]-7}" width="8" height="5" fill="#8fd0ff"/>`})()]);
- parts.push([13.9,agBox(4,8.5,1.7,.9,12,"#f6efe2","#c9bfa9","#ddd3bd")+(()=>{const q=agP(5.2,8.8,12);return `${tk?`<circle cx="${q[0]}" cy="${q[1]-10}" r="11" fill="#f6892f" opacity=".3"/>`:""}<path d="M${q[0]} ${q[1]}v-8" stroke="#16255a" stroke-width="1.4"/><circle cx="${q[0]}" cy="${q[1]-9}" r="3.2" fill="${tk?"#f6892f":"#9aa3b8"}"/>`})()]);
- {const q=agP(9.5,9.4,0);parts.push([19,`<rect x="${q[0]-5}" y="${q[1]-9}" width="10" height="9" rx="2" fill="#c98a4a"/><circle cx="${q[0]}" cy="${q[1]-15}" r="7" fill="#2f8a4c"/><circle cx="${q[0]-4}" cy="${q[1]-12}" r="4.5" fill="#3aa35e"/>`])}
- cast.forEach(c=>{const [i,j,,d]=AG_SPOT[c.k];parts.push([d!=null?d:i+j+.05,agFigure(c,c.k===sel)])});
- parts.sort((x,y)=>x[0]-y[0]);
- const sc=cast.find(c=>c.k===sel),tag=sc?(()=>{const [i,j,z]=AG_SPOT[sc.k],[x,y]=agP(i,j,z),w=sc.l.length*5.2+10;return `<g class="agw agtagw r-${sc.k} ${sc.st}" transform="translate(${x} ${y})" aria-hidden="true"><g class="agmove"><g class="agtag" transform="translate(0 12)"><rect x="${-w/2}" y="-7" width="${w}" height="12" rx="6" fill="#16255a"/><text y="1.8" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff">${esc(sc.l)}</text></g></g></g>`})():"";
- return `<svg class="agiso" viewBox="${agV().join(" ")}" role="group" aria-label="The agent office. ${n} pull request${n===1?"":"s"} waiting at Roy's office, ${tk} ticket${tk===1?"":"s"} at Icee's desk. Tap an agent to see how it's doing.">${back}${parts.map(x=>x[1]).join("")}${tag}</svg>`}
+ checks:"Checks every change for broken code and broken screens before it reaches you.",backup:"Packs up an encrypted copy of the whole database every night.",
+ research:"Looks up real event pieces and trends, with the pages they came from, before anything is built.",modeler:"Builds the 3D designer's furniture, decor and screens, in sessions with you.",
+ qa3d:"Runs the 3D designer's checks on every 3D change: every piece built in a browser, the photo test, the model checks.",stay:"Built Stay & Go, the group travel tab, in a session with you."};
+/* the studio crew: their news comes from their real pull requests (and, for the checker, the checks run on 3D branches) */
+const AG_CREW=[["research","Researcher",p=>/^3D designer upgrade, Phase [24]\b/.test(p.title||"")],["modeler","3D modeler",p=>/^3D (designer|venue)/.test(p.title||"")],
+ ["qa3d","3D checker",null],["stay","Stay & Go builder",p=>/Stay & Go/.test(p.title||"")||/^stay/i.test((p.head||{}).ref||"")]];
+const AG_KEYS=AG_CAST.map(c=>c[0]).concat(AG_CREW.map(c=>c[0]));
+function agCrew([k,l,match]){const g=L.ag||{},prq="https://github.com/"+AG_REPO+"/pulls?q="+encodeURIComponent(k==="stay"?'is:pr "Stay & Go"':'is:pr "3D"');
+ if(!match){const r=(g.runs||[]).filter(x=>x.name==="Pull request checks"&&(/^3D /.test(x.display_title||"")||/3d/i.test(x.head_branch||""))&&x.conclusion!=="skipped"&&x.conclusion!=="cancelled").sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0],st=agState(r);
+  return {k,l,st,r,crew:true,url:(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news:st==="work"?"Checking a 3D change…":st==="fail"?"A 3D change failed a check. Tap to see.":st==="done"?"The last 3D change passed every check":"No news yet"}}
+ const mine=(g.prs||[]).filter(match),open=mine.filter(p=>p.state==="open"&&!p.draft),merged=mine.filter(p=>p.merged_at).sort((a,b)=>Date.parse(b.merged_at)-Date.parse(a.merged_at)),last=open[0]||merged[0];
+ const st=open.length?"work":merged.length?"done":"idle",r=last?{created_at:open.length?last.created_at:last.merged_at,html_url:last.html_url}:null,n=merged.length;
+ const news=st==="work"?`${open.length} change${open.length===1?"":"s"} waiting for Roy`:k==="research"&&g.research?`${g.research} research notes with sources, ${n} researched change${n===1?"":"s"} merged`:n?`${n} change${n===1?"":"s"} merged, the last ${supAgo(Date.parse(merged[0].merged_at))}`:"No news yet";
+ return {k,l,st,r,crew:true,url:prq,news}}
 function agBar(label,pct,col,txt){return `<div class="agneed"><div class="row between small"><b>${label}</b><span class="muted">${esc(txt)}</span></div><div class="agbar"><i style="width:${Math.max(4,Math.min(100,pct))}%;background:${col}"></i></div></div>`}
 function agPanel(c,spent){const hrs=c.r?(Date.now()-Date.parse(c.r.created_at))/36e5:null,fresh=hrs==null?0:hrs<=24?100:hrs<=48?60:hrs<=72?30:10,left=Math.max(0,100-spent/AG_LIMIT*100);
- const job={work:[60,"#f6892f","Working on it"],done:[100,"#2f8a4c","Went well"],fail:[15,"#d62d2d","Needs a look"],idle:[0,"#9aa3b8","Hasn't run yet"]}[c.st];
+ const job={work:[60,"#f6892f","Working on it"],done:[100,"#2f8a4c",c.crew?"Merged":"Went well"],fail:[15,"#d62d2d","Needs a look"],idle:[0,"#9aa3b8",c.crew?"Nothing yet":"Hasn't run yet"]}[c.st];
  return `<div class="agpanel ${c.st}"><div class="row between"><div class="mw0"><h3 class="m0">${esc(c.l)}</h3><div class="small muted">${esc(AG_ROLE[c.k])}</div></div><span class="pill ${c.st==="fail"?"warn":c.st==="done"?"ok":""}">${({work:"Working",done:"Finished",fail:"Needs a look",idle:"Resting"})[c.st]}</span></div>
  <p class="small m0">“${esc(c.news)}”</p>
- ${agBar("Last job",job[0],job[1],job[2])}${agBar("Fresh",fresh,fresh>=60?"#2f8a4c":fresh>=30?"#f6892f":"#d62d2d",hrs==null?"No runs yet":"Ran "+supAgo(Date.parse(c.r.created_at)))}${agBar("Budget left",left,left>=40?"#2f8a4c":left>=15?"#f6892f":"#d62d2d",`${clMoney(spent)} of ${clMoney(AG_LIMIT)} used this month`)}
- <a class="btn sm as" href="${esc(c.url)}" target="_blank" rel="noopener">See its latest run on GitHub</a></div>`}
+ ${agBar("Last job",job[0],job[1],job[2])}${agBar("Fresh",fresh,fresh>=60?"#2f8a4c":fresh>=30?"#f6892f":"#d62d2d",hrs==null?(c.crew?"No changes yet":"No runs yet"):(c.crew?"Last change ":"Ran ")+supAgo(Date.parse(c.r.created_at)))}
+ ${c.crew&&c.k!=="qa3d"?`<p class="small muted m0">Works in Claude sessions with you, on your plan, so it uses no API credits.</p>`:agBar("Budget left",left,left>=40?"#2f8a4c":left>=15?"#f6892f":"#d62d2d",`${clMoney(spent)} of ${clMoney(AG_LIMIT)} used this month`)}
+ <a class="btn sm as" href="${esc(c.url)}" target="_blank" rel="noopener">${c.crew&&c.k!=="qa3d"?"See its pull requests on GitHub":"See its latest run on GitHub"}</a></div>`}
 function agentsBody(){agLoad();const g=L.ag||{},hr=new Date().getHours()+new Date().getMinutes()/60,day=hr>=6.5&&hr<18,mid=(hr>=5&&hr<6.5)||(hr>=18&&hr<20),
-  night=!day&&!mid,sky=day?"#8fd0ff":mid?"#f6a45c":"#0e1838",tk=tkNewCount(),n=agPrs().length;
+  night=!day&&!mid,tk=tkNewCount(),n=agPrs().length;
  const mo=new Date().toISOString().slice(0,7);let spent=0;Object.values(D.agentRuns||{}).forEach(r=>{if(r&&r.t&&new Date(r.t).toISOString().slice(0,7)===mo)spent+=+((r.usage||{}).usd)||0});
- const p=Math.min(100,Math.round(spent/AG_LIMIT*100)),cast=AG_CAST.map(([k,l,wf])=>{const r=agLatestRun(wf),st=agState(r);return {k,l,st,r,url:(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news:agNews(k,r,st)}});
+ const p=Math.min(100,Math.round(spent/AG_LIMIT*100)),cast=AG_CAST.map(([k,l,wf])=>{const r=agLatestRun(wf),st=agState(r);return {k,l,st,r,url:(r&&r.html_url)||"https://github.com/"+AG_REPO+"/actions",news:agNews(k,r,st)}}).concat(AG_CREW.map(agCrew));
  const sel=(cast.find(c=>c.k===L.agSel)||cast.find(c=>c.st==="fail")||cast.find(c=>c.st==="work")||cast[0]).k,cur=cast.find(c=>c.k===sel);
+ L.agMsg={hmOffice:"state",cast:cast.map(c=>({k:c.k,l:c.l,st:c.st,look:AG_LOOK[c.k]})),sel,night,prs:n,tickets:tk,budget:p,look:!!L.agLook};
+ const chips=list=>list.map(c=>`<button class="btn xs ${c.k===sel?"primary":""}" data-act="agPick" data-k="${c.k}"><span class="agdot ${c.st}"></span>${esc(c.l)}</button>`).join("");
  return `<section class="card stack agoffice"><div class="row between"><h2 class="m0">The agent office</h2><button class="btn xs" data-act="agRefresh">${g.busy?"Looking…":"Refresh"}</button></div>
- <p class="small muted m0">Your helpers setting up the venue. Tap anyone to see how they're doing.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
- <div class="agscene ${night?"night":""}">${agScene(cast,sel,night,sky,n,tk,p)}<div class="agzoom" role="group" aria-label="Zoom the agent office"><button class="btn xs" data-act="agZoom" data-d="in" aria-label="Zoom in">+</button><button class="btn xs" data-act="agZoom" data-d="out" aria-label="Zoom out">−</button><button class="btn xs" data-act="agZoom" data-d="all" aria-label="Show the whole room">Whole room</button></div></div>
+ <p class="small muted m0">Two rooms joined by a corridor. In the venue, the helpers who run on their own every night; in the studio, the crew who built the 3D designer and Stay & Go with you. When the crew's work is merged, they carry it down the corridor to your office. Drag to turn, pinch to zoom, tap anyone to see how they're doing.${g.err?" <b>Couldn't reach GitHub just now, so some news may be old.</b>":""}</p>
+ <div class="agoffice3d hmfloat" data-key="office" data-src="office3d.html" data-title="The agent office in 3D"></div>
  ${agPanel(cur,spent)}
- <div class="row agchips">${cast.map(c=>`<button class="btn xs ${c.k===sel?"primary":""}" data-act="agPick" data-k="${c.k}"><span class="agdot ${c.st}"></span>${esc(c.l)}</button>`).join("")}</div>
+ <div class="stack tight"><b class="small">The venue</b><div class="row agchips">${chips(cast.filter(c=>!c.crew))}</div><b class="small">The studio</b><div class="row agchips">${chips(cast.filter(c=>c.crew))}</div></div>
  <div class="stack tight"><div class="row between small clrow"><span class="mw0"><b>Waiting for Roy</b><span class="db muted">Boxes by your office door</span></span><span class="pill ${n?"warn":""}">${n} pull request${n===1?"":"s"}</span></div>
   ${(()=>{const sc=agScore();return `<div class="small clrow agscore"><div class="row between"><b>Builder scorecard</b><span class="muted">Phase 2 needs 5 merged, none undone</span></div>
    <div class="row agscorerow"><span class="pill ok">${sc.merged} merged</span><span class="pill">${sc.closed} closed without merging</span><span class="pill ${sc.undone?"warn":""}">${sc.undone} undone</span><span class="pill">${sc.open} waiting</span></div>
    ${agBar("Toward Phase 2",sc.gate/5*100,"#2f8a4c",`${sc.gate} of 5`)}</div>`})()}
   <div class="row between small clrow"><span class="mw0"><b>Icee's support desk</b><span class="db muted">The lamp is on when tickets are waiting</span></span><span class="pill ${tk?"warn":""}">${tk} ticket${tk===1?"":"s"}</span></div></div></section>${helpView("ad")}`}
-Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;render(true);agGlideTo(L.agSel)},
- agZoom:el=>{const v=agV(),d=el.dataset.d;if(d==="all")return agGlide([0,0,400,290]);const w=v[2]/(d==="in"?1.5:1/1.5);agGlide(agFit(v[0]+v[2]/2-w/2,v[1]+v[3]/2-w*.725/2,w))}});
-/* zoom and move: the view is the SVG's viewBox [x,y,w,h], kept in L.agView so a refresh doesn't reset it. Whole room is 400 wide; 3 times in is about 133 */
-function agV(){const v=L.agView;return Array.isArray(v)&&v.length===4?v:[0,0,400,290]}
-function agFit(x,y,w){w=Math.max(400/3,Math.min(400,w));const h=w*.725;return [Math.max(0,Math.min(400-w,x)),Math.max(0,Math.min(290-h,y)),w,h]}
-function agApply(v){L.agView=v[2]>=400?null:v;const s=document.querySelector(".agiso");if(s)s.setAttribute("viewBox",agV().join(" "))}
-let agAnim=0;
-function agGlide(to){const from=agV(),t0=performance.now(),my=++agAnim;const step=t=>{if(my!==agAnim)return;const k=Math.min(1,(t-t0)/280),e=k*(2-k);agApply(to.map((b,i)=>from[i]+(b-from[i])*e));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
-function agGlideTo(k){const v=agV();if(v[2]>=400||!AG_SPOT[k])return;const [i,j,z]=AG_SPOT[k],[x,y]=agP(i,j,z);agGlide(agFit(x-v[2]/2,y-12-v[3]/2,v[2]))}
-(()=>{const pts=new Map();let g=null,moved=false;
- const svg=e=>e.target&&e.target.closest&&e.target.closest(".agiso");
- const dist=()=>{const a=[...pts.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1};
- const mid=()=>{const a=[...pts.values()];return [(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2]};
- const begin=s=>{const r=s.getBoundingClientRect(),v=agV(),k=v[2]/r.width,m=pts.size>1?mid():[...pts.values()][0];g={s,v,d:pts.size>1?dist():0,m,px:v[0]+(m[0]-r.left)*k,py:v[1]+(m[1]-r.top)*k}};
- document.addEventListener("pointerdown",e=>{const s=svg(e);if(!s||(e.pointerType==="mouse"&&e.button!==0))return;agAnim++;pts.set(e.pointerId,[e.clientX,e.clientY]);moved=false;begin(s)});
- document.addEventListener("pointermove",e=>{if(!g||!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);const r=g.s.getBoundingClientRect(),m=pts.size>1?mid():[e.clientX,e.clientY];
-  if(!moved&&Math.hypot(m[0]-g.m[0],m[1]-g.m[1])<6&&(pts.size<2||Math.abs(dist()-g.d)<6))return;
-  if(!moved){moved=true;try{g.s.setPointerCapture(e.pointerId)}catch(x){}}
-  e.preventDefault();let w=g.v[2];if(pts.size>1&&g.d)w=g.v[2]*g.d/dist();w=Math.max(400/3,Math.min(400,w));
-  agApply(agFit(g.px-(m[0]-r.left)/r.width*w,g.py-(m[1]-r.top)/r.height*w*.725,w))});
- const up=e=>{if(!pts.delete(e.pointerId))return;if(pts.size&&g)begin(g.s);else g=null;setTimeout(()=>{if(!pts.size)moved=false},60)};
- document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up);
- document.addEventListener("click",e=>{if(moved&&e.target.closest&&e.target.closest(".agscene")){e.stopPropagation();e.preventDefault();moved=false}},true);
- document.addEventListener("wheel",e=>{const s=svg(e);if(!s)return;e.preventDefault();agAnim++;const r=s.getBoundingClientRect(),v=agV(),w=Math.max(400/3,Math.min(400,v[2]*(e.deltaY<0?1/1.15:1.15))),fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
-  agApply(agFit(v[0]+v[2]*fx-w*fx,v[1]+v[3]*fy-w*.725*fy,w))},{passive:false});
- document.addEventListener("keydown",e=>{if(!e.target.closest||!e.target.closest(".agscene")||e.ctrlKey||e.metaKey)return;const d=e.key==="+"||e.key==="="?"in":e.key==="-"||e.key==="_"?"out":"";if(d){e.preventDefault();ACT.agZoom({dataset:{d}})}})})();
-/* the people in the scene are SVG, so taps and keys are caught here rather than with data-act */
-document.addEventListener("click",e=>{const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){L.agSel=g.getAttribute("data-agk");render(true)}});
-document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const g=e.target&&e.target.closest&&e.target.closest(".agw[data-agk]");if(g){e.preventDefault();L.agSel=g.getAttribute("data-agk");render(true);setTimeout(()=>{const n=document.querySelector(`.agw[data-agk="${L.agSel}"]`);if(n)n.focus()},0)}});
+Object.assign(ACT,{agRefresh:()=>{agLoad(true);render(true)},agPick:el=>{L.agSel=el.dataset.k;L.agLook=true;render(true)}});
+/* the 3D window: sent the cast whenever it changes; tells us when it's ready and when someone is tapped */
+let agSent="";
+function agPost(force){const f=FLOATS.office;if(!f||!L.agMsg||f.style.display==="none")return;const s=JSON.stringify(L.agMsg);if(!force&&s===agSent)return;agSent=s;try{f.contentWindow.postMessage(L.agMsg,location.origin)}catch(e){}if(L.agLook){L.agLook=false;L.agMsg.look=false}}
+FLOAT_HOOKS.push(agPost);
+addEventListener("message",e=>{if(e.origin!==location.origin||!e.data)return;if(e.data.hmOffice==="ready"){agSent="";agPost(true)}
+ if(e.data.hmOffice==="pick"&&AG_KEYS.includes(e.data.k)){L.agSel=e.data.k;render(true)}});
 const ST_TABS=[["support","Support"],["team","Team"],["onboard","Onboarding"],["sales","Sales"],["resources","Resources"]];
 function staffTabs(){const cur=L.stTab||"support",due=slDue(),nw=tkNewCount();
  return `<div class="row sttabs" role="tablist">${ST_TABS.map(([k,l])=>`<button class="btn sm ${cur===k?"primary":""}" role="tab" aria-selected="${cur===k}" data-act="stTab" data-k="${k}">${l}${k==="support"&&nw?` <span class="pill warn">${nw}</span>`:""}${k==="sales"&&due?` <span class="pill warn">${due}</span>`:""}${k==="team"&&tmUnreadAll()?` <span class="pill warn">${tmUnreadAll()}</span>`:""}</button>`).join("")}</div>`}

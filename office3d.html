@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Host Mode agent office</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#dfe3ec}
+#stage{position:relative;width:100%;height:100%}
+#v3-canvas{width:100%;height:100%;display:block;touch-action:none}
+.rooms{position:absolute;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.rooms button{border:0;border-radius:10px;padding:8px 12px;min-height:36px;background:rgba(255,255,255,.94);color:#16255a;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer}
+.hint{position:absolute;right:8px;bottom:8px;margin:0;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.85);color:#4a5470;font-size:12px;z-index:2}
+.v3-nogl{padding:40px 20px;text-align:center;color:#16255a}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="v3-canvas" aria-label="The agent office in 3D: the venue and the studio, joined by a corridor. Tap a person to see how they're doing; the list under the office has the same people."></canvas>
+  <div class="rooms" role="group" aria-label="Go to a room"><button data-room="venue">Venue</button><button data-room="studio">Studio</button><button data-room="both">Both rooms</button></div>
+  <p class="hint">Drag to turn · pinch to zoom · tap someone</p>
+</div>
+<script type="module" src="3d/office.js"></script>
+</body>
+</html>

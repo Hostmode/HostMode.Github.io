@@ -26,20 +26,21 @@ function buildWall(s, w) {
   for (const o of ops) {
     const a = o.at - o.w / 2, b = o.at + o.w / 2; seg(cur, a, 0, H); seg(a, b, o.sill + o.h, H); seg(a, b, 0, o.sill);
     if (o.type === "window") { const gl = new T.Mesh(new T.PlaneGeometry(o.w, o.h), material("glass")); gl.position.set(o.at, o.sill + o.h / 2, 0); gl.userData.glass = true; g.add(gl); g.add(box(o.w, 0.05, t + 0.06, material("paint", "#ffffff"), o.at, o.sill - 0.05, 0)); [o.sill + o.h, o.sill].forEach(y => g.add(box(o.w + 0.1, 0.05, t + 0.04, material("paint", "#ffffff"), o.at, y - 0.025, 0))); [-1, 1].forEach(sd => g.add(box(0.05, o.h, t + 0.04, material("paint", "#ffffff"), o.at + sd * o.w / 2, o.sill, 0))); g.add(box(0.03, o.h, 0.04, material("paint", "#ffffff"), o.at, o.sill, 0)); }
+    else if (o.type === "opening") { /* an open doorway: just the gap, nothing in it */ }
     else { const dm = material("wood", "#7a5233", { size: 1 }), fr = material("paint", "#ffffff"), gold = material("gold"); const leaves = o.w > 1.2 ? 2 : 1; for (let k = 0; k < leaves; k++) { const lw = o.w / leaves, cx = a + lw * (k + 0.5); g.add(box(lw - 0.02, o.h - 0.02, 0.05, dm, cx, 0, 0)); [0.25, 0.62].forEach(f => g.add(box(lw - 0.2, o.h * 0.3, 0.06, dm, cx, o.h * f, 0))); g.add(box(0.02, 0.25, 0.08, gold, cx + (k ? -1 : 1) * (lw / 2 - 0.1), 1.0, 0)); } g.add(box(o.w + 0.12, 0.08, t + 0.04, fr, o.at, o.h, 0)); [-1, 1].forEach(sd => g.add(box(0.06, o.h, t + 0.04, fr, o.at + sd * (o.w / 2 + 0.03), 0, 0))); }
     cur = b;
   }
   seg(cur, L, 0, H);
   // Baseboard and crown molding, broken at the doors.
   const trim = material("paint", "#ffffff"); let c0 = 0;
-  [...ops.filter(o => o.type === "door"), { at: L + 10, w: 0 }].forEach(o => { const a = Math.min(L, o.at - o.w / 2) - 0.06; if (a - c0 > 0.05) g.add(box(a - c0, 0.14, t + 0.03, trim, (c0 + a) / 2, 0, 0)); c0 = Math.max(c0, o.at + o.w / 2 + 0.06); });
+  [...ops.filter(o => o.type === "door" || o.type === "opening"), { at: L + 10, w: 0 }].forEach(o => { const a = Math.min(L, o.at - o.w / 2) - 0.06; if (a - c0 > 0.05) g.add(box(a - c0, 0.14, t + 0.03, trim, (c0 + a) / 2, 0, 0)); c0 = Math.max(c0, o.at + o.w / 2 + 0.06); });
   g.add(box(L, 0.12, t + 0.05, trim, L / 2, H - 0.12, 0));
   const ang = Math.atan2(w.b[1] - w.a[1], w.b[0] - w.a[0]);
   g.position.set(w.a[0], 0, w.a[1]); g.rotation.y = -ang;
   // Which side is outside the room, so the "dollhouse" view can hide walls between the camera and the room.
   const mid = new T.Vector3((w.a[0] + w.b[0]) / 2, 0, (w.a[1] + w.b[1]) / 2);
   const n = new T.Vector3(Math.sin(ang), 0, -Math.cos(ang)); if (n.dot(new T.Vector3(s.room.w / 2, 0, s.room.d / 2).sub(mid)) > 0) n.negate();
-  g.userData = { wall: w.id, mid, out: n };
+  g.userData = { wall: w.id, mid, out: n, knee: w.h < 1.5 }; // a knee wall can't block the view, so the dollhouse never hides it
   return g;
 }
 
@@ -250,7 +251,7 @@ export class Editor {
     const cp = this.cam.position;
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
     this.ceil.visible = this.view === "walk";
-    if (this.view === "photo") this.walls.forEach(g => g.visible = false);
+    if (this.view === "photo") this.walls.forEach(g => g.visible = false); else this.walls.forEach(g => { if (g.userData.knee) g.visible = true; });
     this.r.render(this.scene3, this.cam);
   }
 
