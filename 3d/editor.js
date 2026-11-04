@@ -111,7 +111,7 @@ export class Editor {
   drop() { if (!this.preview) return; this.s = this.preview.before; this.preview = null; this.build(); this.emit({ log: ["Preview cancelled"] }); }
 
   build() {
-    const s = this.s, W = this.world; const keepSel = this.sel;
+    const s = this.s, W = this.world; const keepSel = this.sel, keepGrp = this.grp;
     this.tc.detach();
     W.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
     W.clear(); this.objs = new Map();
@@ -138,6 +138,11 @@ export class Editor {
       this.objs.set(L.id, bulb); this.lightObjs.push(bulb);
     });
     this.lightObjs.forEach(b => b.visible = this.showLights !== false && this.view !== "walk");
+    if (keepGrp) {
+      const set = keepGrp.set && s.sets && s.sets[keepGrp.set] ? keepGrp.set : null;
+      const ids = set ? S.setMembers(s, set) : keepGrp.ids.filter(id => this.objs.has(id));
+      if (ids.length) { this.selectGroup(ids, set); return; }
+    }
     if (keepSel && this.objs.has(keepSel)) this.select(keepSel); else this.select(null);
   }
 
@@ -223,10 +228,46 @@ export class Editor {
     const p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
     this.ray.setFromCamera(p, this.cam);
     const hits = this.ray.intersectObjects(this.world.children, true).filter(h => h.object.visible);
-    for (const h of hits) { let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent; if (o && o.userData.id) { this.select(o.userData.id); return; } if (h.object.userData.floor) break; }
-    this.select(null);
+    for (const h of hits) { let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent; if (o && o.userData.id) { this.tapped(o.userData.id); return; } if (h.object.userData.floor) break; }
+    if (!this.picking) this.select(null);
   }
+  // In "pick several" mode a tap adds or drops a thing. Otherwise tapping a piece of a set selects the whole set,
+  // and tapping a piece of the set that's already selected picks just that piece.
+  tapped(id) {
+    const root = S.rootOf(this.s, id);
+    if (this.picking) { if (!root) return; const ids = new Set(this.pickIds || []); ids.has(root.id) ? ids.delete(root.id) : ids.add(root.id); this.pickIds = [...ids]; this.selectGroup(this.pickIds, null); return; }
+    if (root && root.set && !(this.grp && this.grp.set === root.set)) { this.selectGroup(S.setMembers(this.s, root.set), root.set); return; }
+    this.select(id);
+  }
+  // Several things selected at once: grp = {ids (main pieces), set (its id, or null for a loose pick), all (with attached chairs and decor)}.
+  // The arrows move a stand-in point at their center; on release the change is one move_set / rotate_set step.
+  selectGroup(ids, set) {
+    this.sel = null; this.tc.detach();
+    if (!ids || !ids.length) { this.grp = null; this.selBox.visible = false; this.emit(); return; }
+    const all = S.setClosure(this.s, ids), its = all.map(id => this.itemOf(id)).filter(Boolean), [cx, cz] = S.setCenter(its);
+    this.grp = { ids: [...ids], set: set || null, all };
+    if (!this.pivot) this.pivot = new T.Object3D();
+    this.world.add(this.pivot); this.pivot.position.set(cx, 0, cz); this.pivot.rotation.set(0, 0, 0); this.pivot.scale.set(1, 1, 1);
+    this.grpBase = { x: cx, z: cz, objs: all.map(id => { const o = this.objs.get(id); return o && { o, x: o.position.x, z: o.position.z, ry: o.rotation.y }; }).filter(Boolean) };
+    if (this.view !== "walk" && !this.picking) {
+      const m = this.mode === "scale" ? "translate" : this.mode; this.tc.attach(this.pivot); this.tc.setMode(m);
+      this.tc.showY = m === "rotate"; this.tc.showX = this.tc.showZ = m !== "rotate";
+    }
+    this.grpBox(); this.emit();
+  }
+  grpBox() { const b = new T.Box3(); (this.grpBase ? this.grpBase.objs : []).forEach(x => b.expandByObject(x.o)); this.selBox.box.copy(b); this.selBox.visible = !b.isEmpty(); }
+  setPicking(on) {
+    this.picking = !!on;
+    if (on) {
+      const r = this.sel && S.rootOf(this.s, this.sel);
+      this.pickIds = this.grp && !this.grp.set ? this.grp.ids.slice() : r ? [r.id] : [];
+      if (this.pickIds.length) this.selectGroup(this.pickIds, null); else { this.tc.detach(); this.sel = null; this.grp = null; this.selBox.visible = false; }
+    } else if (this.grp) this.selectGroup(this.grp.ids, this.grp.set);
+    this.emit();
+  }
+  grpTarget() { return this.grp ? (this.grp.set ? { set: this.grp.set } : { ids: this.grp.ids.slice() }) : null; }
   select(id) {
+    this.grp = null; if (!id) this.picking = false;
     this.sel = id; const o = id && this.objs.get(id);
     if (o && this.view !== "walk") {
       this.tc.attach(o); this.tc.setMode(o.userData.light ? "translate" : this.mode); this.tc.showY = !!o.userData.light;
@@ -236,11 +277,27 @@ export class Editor {
     } else { this.tc.detach(); this.selBox.visible = false; }
     this.emit();
   }
-  setMode(m) { this.mode = m; if (this.sel) this.select(this.sel); this.emit(); }
+  setMode(m) { this.mode = m; if (this.grp) this.selectGroup(this.grp.ids, this.grp.set); else if (this.sel) this.select(this.sel); this.emit(); }
   itemOf(id) { return this.s.items.find(i => i.id === id) || this.s.lights.find(l => l.id === id); }
-  dragLive() { const o = this.tc.object; if (o) { this.selBox.box.setFromObject(o); } }
+  dragLive() {
+    const o = this.tc.object; if (!o) return;
+    if (o === this.pivot && this.grpBase) {
+      // move and turn every piece with the stand-in, the same way move_set and rotate_set will
+      const b = this.grpBase, dx = o.position.x - b.x, dz = o.position.z - b.z, phi = o.rotation.y, da = -phi;
+      b.objs.forEach(x => { const rx = x.x - b.x, rz = x.z - b.z; x.o.position.x = b.x + dx + rx * Math.cos(da) + rz * Math.sin(da); x.o.position.z = b.z + dz - rx * Math.sin(da) + rz * Math.cos(da); x.o.rotation.y = x.ry + phi; });
+      this.grpBox(); return;
+    }
+    this.selBox.box.setFromObject(o);
+  }
   commitDrag() {
-    const o = this.tc.object; if (!o) return; const it = this.itemOf(o.userData.id); if (!it) return;
+    const o = this.tc.object; if (!o) return;
+    if (o === this.pivot && this.grp) {
+      const b = this.grpBase, t = this.grpTarget(), ops = [], dx = o.position.x - b.x, dz = o.position.z - b.z, by = -T.MathUtils.radToDeg(o.rotation.y);
+      if (Math.abs(by) > 0.5) ops.push(Object.assign({ op: "rotate_set", by }, t));
+      if (Math.abs(dx) > 1e-3 || Math.abs(dz) > 1e-3) ops.push(Object.assign({ op: "move_set", dx, dz }, t));
+      if (ops.length) { const r = this.run(ops, "drag"); if (!r.ok) this.build(); }
+      return;
+    } const it = this.itemOf(o.userData.id); if (!it) return;
     const ops = [];
     if (o.userData.light) ops.push({ op: "move_object", id: it.id, x: o.position.x, z: o.position.z, y: o.position.y });
     else {

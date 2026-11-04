@@ -75,6 +75,34 @@ tryIt("Add a chandelier", s => s.items.some(i => i.kind === "chandelier"), "chan
 }
 ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Object.values(S.CATALOG).every(x => S.CAT_ORDER.includes(x.cat)), "every library category is listed in order");
 
+// Sets: a table with its chairs plus the bar, grouped, then moved, turned, copied, renamed, saved and removed together.
+{
+  let g = S.sampleVenue(); const t = g.items.find(i => i.kind.startsWith("table")), bar = g.items.find(i => i.kind === "bar");
+  const chairs = g.items.filter(i => i.group === t.id).length;
+  let r = S.apply(g, [{ op: "group_objects", ids: [t.id, bar.id], id: "set_t1" }]); ok(r.ok && r.scene.sets.set_t1, "grouped a table and the bar into a set");
+  g = r.scene; const all = S.setClosure(g, S.setMembers(g, "set_t1")); ok(all.length === 2 + chairs, "the set includes the table's " + chairs + " chairs (" + all.length + " pieces)");
+  const before = new Map(all.map(id => { const i = g.items.find(x => x.id === id); return [id, [i.x, i.z]]; }));
+  r = S.apply(g, [{ op: "move_set", set: "set_t1", dx: 1, dz: -0.5 }]); g = r.scene;
+  ok(all.every(id => { const i = g.items.find(x => x.id === id), b = before.get(id); return Math.abs(i.x - b[0] - 1) < 0.02 && Math.abs(i.z - b[1] + 0.5) < 0.02; }), "every piece moved together");
+  const c0 = S.setCenter(all.map(id => g.items.find(x => x.id === id)));
+  r = S.apply(g, [{ op: "rotate_set", set: "set_t1", by: 90 }]); g = r.scene; const c1 = S.setCenter(all.map(id => g.items.find(x => x.id === id)));
+  ok(r.ok && Math.abs(c0[0] - c1[0]) < 0.05 && Math.abs(c0[1] - c1[1]) < 0.05, "turning the set keeps it in place around its center");
+  const n0 = g.items.length; r = S.apply(g, [{ op: "duplicate_set", set: "set_t1" }]); const nu = Object.keys(r.scene.sets).find(k => k !== "set_t1");
+  ok(r.ok && r.scene.items.length === n0 + all.length && nu && S.setClosure(r.scene, S.setMembers(r.scene, nu)).length === all.length, "copying the set makes a second set with every piece");
+  ok(r.scene.items.filter(i => i.group && !r.scene.items.some(p => p.id === i.group)).length === 0, "copied chairs belong to the copied table");
+  g = r.scene; r = S.apply(g, [{ op: "rename_set", set: "set_t1", name: "Head table" }]); ok(r.ok && r.scene.sets.set_t1.name === "Head table", "a set can be renamed"); g = r.scene;
+  const back = S.validateFile(JSON.parse(JSON.stringify(g))); ok(Object.keys(back.sets).length === 2 && back.items.filter(i => i.set).length === 4, "sets survive saving and reopening");
+  ok(!S.apply(g, [{ op: "delete_set", set: "set_t1" }]).ok, "removing a set needs an OK first");
+  r = S.apply(g, [{ op: "delete_set", set: "set_t1", confirm: true }]); ok(r.ok && r.scene.items.length === g.items.length - all.length && !r.scene.sets.set_t1, "removing the set removes every piece and the set");
+  r = S.apply(r.scene, [{ op: "ungroup_objects", set: nu }]); ok(r.ok && !Object.keys(r.scene.sets).length && !r.scene.items.some(i => i.set), "ungrouping keeps the pieces and drops the set");
+  ok(!S.apply(S.sampleVenue(), [{ op: "group_objects", ids: [bar.id] }]).ok, "grouping needs at least two things");
+  ok(S.rootOf(g, g.items.find(i => i.group === t.id).id).id === t.id, "tapping a chair finds its table");
+}
+
+// The stage's deck follows its material (it used to always be wood).
+{ const src = (await import("fs")).readFileSync(new URL("../3d/decor.js", import.meta.url), "utf8"); const line = src.split("\n").find(l => l.includes('case "stage"'));
+  ok(line && !/material\("wood", it\.color/.test(line) && /material\(it\.mat \|\| "wood"/.test(line), "the stage is drawn with its chosen material"); }
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");
