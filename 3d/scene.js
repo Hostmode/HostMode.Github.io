@@ -424,7 +424,8 @@ const RUN = {
     if (C.top) { // land on the table it's put on, or the one under it
       const t = o.on ? s.items.find(i => i.id === o.on) : s.items.find(i => CATALOG[i.kind].dress === "table" && (() => { const f = footprint(i); return it.x > f.x0 && it.x < f.x1 && it.z > f.z0 && it.z < f.z1; })());
       if (o.on && !t) throw new Error("there's no table called " + o.on);
-      if (t) { it.y = t.h; it.group = t.id; if (o.on) { it.x = t.x; it.z = t.z; } }
+      if (t) { it.y = t.h; it.group = t.id; if (o.on) { const k = s.items.filter(i => i.group === t.id && CATALOG[i.kind].top).length, rr = Math.min(t.w, t.d) * 0.22, a = k * 2.1;
+        it.x = r2(t.x + (k ? Math.cos(a) * rr : 0)); it.z = r2(t.z + (k ? Math.sin(a) * rr : 0)); } }
     }
     if (C.ceiling) it.y = r2(s.room.h - it.h);
     s.items.push(it);
@@ -440,6 +441,10 @@ const RUN = {
     const dx = x - it.x, dz = z - it.z; it.x = r2(x); it.z = r2(z);
     if (o.where && it.w) snapInside(s, it, o.where);
     if (it.w) moveGroup(s, it, it.x - (it.x - dx), it.z - (it.z - dz));
+    if (it.kind && CATALOG[it.kind] && CATALOG[it.kind].top && o.y == null) {
+      const t = s.items.find(i => CATALOG[i.kind].dress === "table" && (() => { const f = footprint(i); return it.x > f.x0 && it.x < f.x1 && it.z > f.z0 && it.z < f.z1; })());
+      if (t) { it.y = t.h; it.group = t.id; } else { it.y = 0; delete it.group; }
+    }
     if (it.kind && LIGHT_KINDS.includes(it.kind)) { if (o.y != null) it.y = o.y; }
     return "Moved " + label(it).toLowerCase() + (o.where ? " to the " + o.where : "");
   },
