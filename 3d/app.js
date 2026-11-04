@@ -221,7 +221,7 @@ function selTab() {
    <label class="f">From front wall (${uL()})<input type="number" step="0.5" data-pos="z" value="${toU(it.z)}"></label>
    <label class="f">Turn (°)<input type="number" step="15" data-rot value="${Math.round(it.rot)}"></label></div>
   ${c.palette || c.dress || NO_MAT.has(it.kind) ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress || NO_MAT.has(it.kind) ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
-  ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
+  ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${esc(it.color || S.MATERIALS[it.mat].color)}" aria-label="Any color"></div>
   <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button><button class="btn l" data-x="pickStart">Pick several</button>${it.kind.startsWith("table") ? `<button class="btn l" data-x="chairs">${kids ? "Reset" : "Add"} chairs</button>` : ""}
    <button class="btn r" data-x="del">${confirmDel === it.id ? "Tap again to remove" : "Remove"}</button></div></div>`;
 }
@@ -249,8 +249,8 @@ function dressCard(it) {
 function lightCard(L, solo) {
   const k = L.kelvin || 0;
   return `<div class="card" style="margin-bottom:8px"><div class="row"><b style="flex:1">${esc(L.name || L.kind)}</b><span class="src">${L.kind}</span></div>
-   <label class="f">Brightness<input type="range" min="0" max="${L.kind === "spot" ? 120 : L.kind === "point" ? 30 : 4}" step="0.1" value="${L.intensity}" data-li="${L.id}" data-lk="intensity"></label>
-   ${L.kind !== "ambient" ? `<label class="f">Warm ↔ cool (${k ? k + " K" : "color"})<input type="range" min="2000" max="6500" step="100" value="${k || 3500}" data-li="${L.id}" data-lk="kelvin"></label>` : ""}
+   <label class="f">Brightness<input type="range" min="0" max="${L.kind === "spot" ? 120 : L.kind === "point" ? 30 : 4}" step="0.1" value="${esc(L.intensity)}" data-li="${esc(L.id)}" data-lk="intensity"></label>
+   ${L.kind !== "ambient" ? `<label class="f">Warm ↔ cool (${esc(k ? k + " K" : "color")})<input type="range" min="2000" max="6500" step="100" value="${esc(k || 3500)}" data-li="${esc(L.id)}" data-lk="kelvin"></label>` : ""}
    ${solo ? `<div class="row"><button class="btn r" data-x="del">${confirmDel === L.id ? "Tap again to remove" : "Remove light"}</button></div>` : ""}</div>`;
 }
 function lightTab() {
@@ -259,7 +259,7 @@ function lightTab() {
 }
 
 // ---------- Room ----------
-function srcSel(k) { const v = ed.s.room.dimSrc[k] || "unknown"; return `<select data-src="${k}" aria-label="Where this number came from">${S.DIM_SRC.map(x => `<option ${x === v ? "selected" : ""}>${x}</option>`).join("")}</select> <span class="src ${v}">${v}</span>`; }
+function srcSel(k) { const v = ed.s.room.dimSrc[k] || "unknown"; return `<select data-src="${k}" aria-label="Where this number came from">${S.DIM_SRC.map(x => `<option ${x === v ? "selected" : ""}>${x}</option>`).join("")}</select> <span class="src ${esc(v)}">${esc(v)}</span>`; }
 function roomTab() {
   const R = ed.s.room, n = S.counts(ed.s);
   return `<div class="card"><b>${n.tables} tables · ${n.seats} seats</b><div class="muted">${fmt(R.w)} × ${fmt(R.d)} room, ${Math.round(R.w * R.d / S.FT / S.FT).toLocaleString()} sq ft</div></div>
@@ -268,18 +268,18 @@ function roomTab() {
   <p class="muted">Mark each size as measured, confirmed by the venue, or estimated, so nobody plans around a guess.</p>
   <h3>Surfaces</h3><div class="row">
    ${[["floor", "Floor"], ["walls", "Walls"], ["ceiling", "Ceiling"]].map(([k, l]) => `<label class="f">${l}<select data-surf="${k}">${Object.entries(S.MATERIALS).map(([m, M]) => `<option value="${m}" ${R[k] === m ? "selected" : ""}>${esc(M.label)}</option>`).join("")}</select></label>`).join("")}</div>
-  ${/carpet/.test(R.floor) ? `<h3>Carpet color</h3><div class="row">${CARPET_COLS.map(n => `<button class="sw" title="${n}" aria-label="${n} carpet" data-fcol="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="floorCol" aria-label="Any carpet color" value="${R.floorColor || S.MATERIALS[R.floor].color}"></div>`
+  ${/carpet/.test(R.floor) ? `<h3>Carpet color</h3><div class="row">${CARPET_COLS.map(n => `<button class="sw" title="${n}" aria-label="${n} carpet" data-fcol="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="floorCol" aria-label="Any carpet color" value="${esc(R.floorColor || S.MATERIALS[R.floor].color)}"></div>`
     : `<div class="row" style="margin-top:6px"><button class="btn l" data-x="carpet">Carpet the floor</button></div>`}
-  <label class="f" style="margin-top:6px">Wall color<input type="color" id="wallCol" value="${R.wallColor}"></label>
+  <label class="f" style="margin-top:6px">Wall color<input type="color" id="wallCol" value="${esc(R.wallColor)}"></label>
   <h3>Doors and windows</h3>
-  ${ed.s.walls.map(w => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(w.name)} <span class="muted">${fmt(S.wallLen(w))} · ${ed.s.openings.filter(o => o.wall === w.id).map(o => o.type).join(", ") || "plain"}</span></span><button class="btn l" data-open="door" data-wall="${w.id}">+ Door</button><button class="btn l" data-open="window" data-wall="${w.id}">+ Window</button></div>`).join("")}
+  ${ed.s.walls.map(w => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(w.name)} <span class="muted">${fmt(S.wallLen(w))} · ${ed.s.openings.filter(o => o.wall === w.id).map(o => esc(o.type)).join(", ") || "plain"}</span></span><button class="btn l" data-open="door" data-wall="${esc(w.id)}">+ Door</button><button class="btn l" data-open="window" data-wall="${esc(w.id)}">+ Window</button></div>`).join("")}
   <h3>Units</h3><div class="row"><button class="btn ${U() === "ft" ? "" : "l"}" data-units="ft">Feet</button><button class="btn ${U() === "m" ? "" : "l"}" data-units="m">Meters</button></div>`;
 }
 
 // ---------- Views ----------
 function viewsTab() {
   return `<div class="row"><button class="btn" data-x="centerView">Center view</button><button class="btn l" data-x="focus" ${ed.sel || ed.grp ? "" : "disabled"}>Focus selected</button><button class="btn l" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
-   <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${v.id}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
+   <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${esc(v.id)}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
    <p class="muted">In 3D, drag empty space to turn the view. Use two fingers to pan or zoom. In Walk, drag to look around and use the arrows or W A S D to move.</p>`;
 }
 
@@ -294,7 +294,7 @@ function fileTab() {
    ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh sample ballroom. It can't be undone.</p>` : ""}</div>
    <h3>Share or back up</h3><div class="row"><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
-   <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${p.id}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
+   <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${esc(p.id)}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
    <h3>Earlier versions</h3>${revs.map(r => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${new Date(r.t).toLocaleString()} <span class="muted">${r.items} objects</span></span><button class="btn l" data-rev="${r.t}">Go back to this</button></div>`).join("") || `<p class="muted">Tap “Save a version” to keep a copy you can go back to.</p>`}
    <p class="muted">Graphics: ${ed.gpu.webgl2 ? "WebGL 2" : "WebGL 1"}${ed.gpu.webgpu ? " (this device also has WebGPU)" : ""}. Preview build: not part of Host Mode yet.</p>`;
 }
