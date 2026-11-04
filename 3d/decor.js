@@ -76,6 +76,10 @@ function surface(name) {
     const [hc, hg] = cv(N); hg.fillStyle = "#e0e0e0"; hg.fillRect(0, 0, N, N);
     if (name === "tile") { const g = col.getContext("2d"); g.strokeStyle = "rgba(90,85,80,.45)"; hg.strokeStyle = "#000"; g.lineWidth = hg.lineWidth = 3; for (let k = 0; k <= N; k += 256) { [g, hg].forEach(x => { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, N); x.moveTo(0, k); x.lineTo(N, k); x.stroke(); }); } }
     hgt = hc; span = name === "tile" ? 1.2 : 2; bump = 2;
+  } else if (name === "carpet_plain") { // plain plush carpet: no pattern, a soft even pile
+    const n = fbm(N, 96, 2, 17), fine = fbm(N, 220, 1, 23), h = new Float32Array(N * N);
+    for (let i = 0; i < N * N; i++) h[i] = n[i] * 0.6 + fine[i] * 0.4;
+    col = fromField(N, h, v => { const b = 226 + v * 26; return [b, b, b]; }); hgt = fromField(N, h, v => [v * 255, v * 255, v * 255]); span = 1.2; bump = 5;
   } else if (name === "carpet") { // patterned banquet carpet with a deep pile
     const n = fbm(N, 64, 2, 9), [c, g] = cv(N);
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, N, N); g.strokeStyle = "rgba(0,0,0,.28)"; g.fillStyle = "rgba(0,0,0,.14)"; g.lineWidth = 6;
@@ -287,7 +291,7 @@ export function buildItem(it, scene) {
     }
     case "ottoman": { const v = material("velvet", it.color || null, { size: 0.6 }); g.add(cyl(W / 2, W / 2, H - 0.05, v, 0, 0.05, 0, 32)); for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g.add(ball(0.012, gold, Math.cos(a) * W / 4, H, Math.sin(a) * W / 4, 8)); } g.add(cyl(W / 2 - 0.03, W / 2 - 0.03, 0.05, gold, 0, 0, 0, 24)); break; }
     case "coffee_table": g.add(box(W, 0.02, D, material("glass"), 0, H - 0.02, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(0.025, H - 0.02, 0.025, main, a * (W / 2 - 0.02), 0, b * (D / 2 - 0.02)))); g.add(box(W, 0.02, 0.02, main, 0, H - 0.04, D / 2 - 0.02)); g.add(box(W, 0.02, 0.02, main, 0, H - 0.04, -D / 2 + 0.02)); break;
-    case "stage": g.add(box(W, H - 0.025, D, material("velvet", "#1b1b22", { size: 2 }))); g.add(box(W, 0.025, D, material("wood", it.color, { size: W }), 0, H - 0.025, 0)); for (let k = 0; k < 2; k++) g.add(box(1.2, (H / 3) * (k + 1), 0.3, material("wood", it.color, { size: 1.2 }), W / 2 - 1, 0, D / 2 + 0.6 - k * 0.3)); break;
+    case "stage": g.add(box(W, H - 0.025, D, material("velvet", "#1b1b22", { size: 2 }))); /* the deck and steps use the stage's chosen material (wood unless changed) */ g.add(box(W, 0.025, D, material(it.mat || "wood", it.color, { size: W }), 0, H - 0.025, 0)); for (let k = 0; k < 2; k++) g.add(box(1.2, (H / 3) * (k + 1), 0.3, material(it.mat || "wood", it.color, { size: 1.2 }), W / 2 - 1, 0, D / 2 + 0.6 - k * 0.3)); break;
     case "dance_floor": g.add(box(W, H, D, material(it.mat, it.color, { size: W }))); g.add(box(W + 0.06, H * 0.7, 0.03, gold, 0, 0, D / 2 + 0.015)); g.add(box(W + 0.06, H * 0.7, 0.03, gold, 0, 0, -D / 2 - 0.015)); g.add(box(0.03, H * 0.7, D, gold, W / 2 + 0.015, 0, 0)); g.add(box(0.03, H * 0.7, D, gold, -W / 2 - 0.015, 0, 0)); break;
     case "rug": { const m = material(it.mat, it.color, { size: Math.max(W, D) }); g.add(box(W, H, D, m)); const b = material("velvet", "#c9a24a", { size: 0.5 }); [[W, 0.08, 0, D / 2 - 0.04], [W, 0.08, 0, -D / 2 + 0.04]].forEach(([w, d, x, z]) => g.add(box(w, H + 0.002, d, b, x, 0, z))); [[W / 2 - 0.04], [-W / 2 + 0.04]].forEach(([x]) => g.add(box(0.08, H + 0.002, D, b, x, 0, 0))); break; }
     case "podium": g.add(box(W, H, D, main)); g.add(box(W + 0.05, 0.04, D + 0.05, main, 0, H - 0.04, 0)); break;

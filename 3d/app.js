@@ -67,9 +67,25 @@ function addTab() {
 
 // ---------- Selected ----------
 const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "navy", "dark purple", "lavender", "burgundy", "emerald", "sage", "orange"];
+// pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
+const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen"]);
+const CARPET_COLS = ["burgundy", "red", "navy", "blue", "grey", "black", "brown", "champagne", "ivory", "sage", "emerald", "dark purple"];
+function grpCard() {
+  const g = ed.grp, n = g.all.length, name = g.set ? ((ed.s.sets || {})[g.set] || {}).name || "Set" : "";
+  return `<div class="card"><b>${g.set ? esc(name) : g.ids.length + " picked"}</b> <span class="muted">${n} piece${n === 1 ? "" : "s"} in all</span>
+  <p class="muted" style="margin:6px 0">${ed.picking ? "Tap more things to add them, or tap one again to drop it. Chairs and decor on a table come with it." : g.set ? "Drag the arrows to move the whole set, or tap Turn at the bottom to turn it. To change one piece, tap it again." : "Drag the arrows to move them together, or tap Turn at the bottom to turn them."}</p>
+  ${g.set && !ed.picking ? `<label class="f">Set name<input id="setName" maxlength="40" value="${esc(name)}"></label>` : ""}
+  <div class="row" style="margin-top:10px">
+   ${ed.picking ? `<button class="btn o" data-x="pickDone">Done picking</button>` : g.set ? "" : `<button class="btn l" data-x="pickMore">Pick more</button>`}
+   ${!g.set && n >= 2 ? `<button class="btn g" data-x="grpMake">Group as a set</button>` : ""}
+   ${ed.picking ? "" : `<button class="btn l" data-x="grpTurn">Turn 45°</button><button class="btn l" data-x="grpDup">Copy</button>${g.set ? `<button class="btn l" data-x="grpUn">Ungroup</button>` : ""}
+   <button class="btn r" data-x="grpDel">${confirmDel === "grp" ? "Tap again to remove all " + n : "Remove"}</button>`}</div></div>`;
+}
 function selTab() {
+  if (ed.grp) return grpCard();
   const it = ed.sel && ed.itemOf(ed.sel);
-  if (!it) return `<p class="muted">Tap something in the room to select it.</p>`;
+  if (!it) return ed.picking ? `<div class="card"><b>Pick several</b><p class="muted">Tap the things you want, like a table and the bar next to it. Then group them as a set, or move, copy or remove them together.</p><div class="row"><button class="btn l" data-x="pickDone">Cancel</button></div></div>`
+    : `<p class="muted">Tap something in the room to select it.</p><div class="row"><button class="btn l" data-x="pickStart">Pick several</button></div>`;
   if (S.LIGHT_KINDS.includes(it.kind)) return lightCard(it, true);
   const c = S.CATALOG[it.kind], kids = ed.s.items.filter(i => i.group === it.id && i.kind.startsWith("chair")).length;
   return `<div class="card"><b>${esc(it.label || c.label)}</b> <span class="muted">${kids ? kids + " chairs" : ""}</span>${dressCard(it)}
@@ -81,9 +97,9 @@ function selTab() {
    <label class="f">From left wall (${uL()})<input type="number" step="0.5" data-pos="x" value="${toU(it.x)}"></label>
    <label class="f">From front wall (${uL()})<input type="number" step="0.5" data-pos="z" value="${toU(it.z)}"></label>
    <label class="f">Turn (°)<input type="number" step="15" data-rot value="${Math.round(it.rot)}"></label></div>
-  ${c.palette || c.dress ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
+  ${c.palette || c.dress || NO_MAT.has(it.kind) ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress || NO_MAT.has(it.kind) ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
   ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
-  <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button>${it.kind.startsWith("table") ? `<button class="btn l" data-x="chairs">${kids ? "Reset" : "Add"} chairs</button>` : ""}
+  <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button><button class="btn l" data-x="pickStart">Pick several</button>${it.kind.startsWith("table") ? `<button class="btn l" data-x="chairs">${kids ? "Reset" : "Add"} chairs</button>` : ""}
    <button class="btn r" data-x="del">${confirmDel === it.id ? "Tap again to remove" : "Remove"}</button></div></div>`;
 }
 
@@ -129,6 +145,8 @@ function roomTab() {
   <p class="muted">Mark each size as measured, confirmed by the venue, or estimated, so nobody plans around a guess.</p>
   <h3>Surfaces</h3><div class="row">
    ${[["floor", "Floor"], ["walls", "Walls"], ["ceiling", "Ceiling"]].map(([k, l]) => `<label class="f">${l}<select data-surf="${k}">${Object.entries(S.MATERIALS).map(([m, M]) => `<option value="${m}" ${R[k] === m ? "selected" : ""}>${esc(M.label)}</option>`).join("")}</select></label>`).join("")}</div>
+  ${/carpet/.test(R.floor) ? `<h3>Carpet color</h3><div class="row">${CARPET_COLS.map(n => `<button class="sw" title="${n}" aria-label="${n} carpet" data-fcol="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="floorCol" aria-label="Any carpet color" value="${R.floorColor || S.MATERIALS[R.floor].color}"></div>`
+    : `<div class="row" style="margin-top:6px"><button class="btn l" data-x="carpet">Carpet the floor</button></div>`}
   <label class="f" style="margin-top:6px">Wall color<input type="color" id="wallCol" value="${R.wallColor}"></label>
   <h3>Doors and windows</h3>
   ${ed.s.walls.map(w => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(w.name)} <span class="muted">${fmt(S.wallLen(w))} · ${ed.s.openings.filter(o => o.wall === w.id).map(o => o.type).join(", ") || "plain"}</span></span><button class="btn l" data-open="door" data-wall="${w.id}">+ Door</button><button class="btn l" data-open="window" data-wall="${w.id}">+ Window</button></div>`).join("")}
@@ -171,7 +189,8 @@ let lastSel = null;
 ed.on(info => {
   if (info.errors) { lastLog = info.errors.map(t => ({ t, c: "err" })); toast(info.errors[0]); }
   else if (info.log && info.why !== "assistant") { if (info.warnings && info.warnings.length) toast(info.warnings[0].msg); }
-  if (ed.sel !== lastSel) { lastSel = ed.sel; confirmDel = null; if (ed.sel && tab !== "light") tab = "sel"; }
+  const selKey = ed.sel || (ed.grp ? "g:" + (ed.grp.set || ed.grp.ids.join(",")) : ed.picking ? "picking" : null);
+  if (selKey !== lastSel) { lastSel = selKey; confirmDel = null; if (selKey && tab !== "light") tab = "sel"; }
   render();
 });
 
@@ -197,6 +216,20 @@ body.addEventListener("click", async e => {
   if (d.go) return ed.goView(d.go);
   if (d.openp) { const s = await ed.store.open(d.openp); if (s) { ed.load(s); toast("Opened " + s.name); } return; }
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
+  if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
+  if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
+  // sets and several picked things
+  const gt = ed.grpTarget();
+  switch (d.x) {
+    case "pickStart": case "pickMore": ed.setPicking(true); render(); return;
+    case "pickDone": ed.setPicking(false); render(); return;
+    case "grpMake": if (ed.grp) { const id = S.uid("set_"), r = ed.run([{ op: "group_objects", ids: ed.grp.ids, id }]); if (r.ok) { ed.picking = false; ed.selectGroup(S.setMembers(ed.s, id), id); toast(r.log[0]); } } return;
+    case "grpTurn": if (gt) ed.run([Object.assign({ op: "rotate_set", by: 45 }, gt)]); return;
+    case "grpDup": if (gt) { const before = new Set(Object.keys(ed.s.sets || {})), r = ed.run([Object.assign({ op: "duplicate_set" }, gt)]);
+      if (r.ok) { const nu = Object.keys(ed.s.sets || {}).find(k => !before.has(k)); if (nu) ed.selectGroup(S.setMembers(ed.s, nu), nu); toast("Copied. The copy is selected, so you can drag it where you want it."); } } return;
+    case "grpUn": if (ed.grp && ed.grp.set) { const ids = ed.grp.ids.slice(); const r = ed.run([{ op: "ungroup_objects", set: ed.grp.set }]); if (r.ok) { ed.selectGroup(ids, null); toast("Ungrouped. They're still picked, so you can move them together once more."); } } return;
+    case "grpDel": if (gt) { if (confirmDel !== "grp") { confirmDel = "grp"; render(); } else { confirmDel = null; const r = ed.run([Object.assign({ op: "delete_set", confirm: true }, gt)]); if (r.ok) { ed.select(null); toast(r.log[0]); } } } return;
+  }
   switch (d.x) {
     case "dressAll": if (it) { const C = S.CATALOG[it.kind], dd = S.dressOf(it), o = { op: "dress_object", kind: C.dress === "table" ? "tables" : "chairs" }; Object.keys(S.DRESS[C.dress]).forEach(k => { if (dd[k] == null && k !== "linenColor" && !S.DRESS[C.dress][k].none) return; o[k] = k === "linenColor" ? (dd.linenColor || it.color || "white") : dd[k] == null ? "none" : dd[k]; }); const r = ed.run([o]); if (r.ok) toast(r.log[0]); } break;
     case "dup": if (it) { ed.run([{ op: "duplicate_object", id: it.id }]); } break;
@@ -213,6 +246,8 @@ body.addEventListener("click", async e => {
 });
 body.addEventListener("change", async e => {
   const t = e.target, it = ed.sel && ed.itemOf(ed.sel);
+  if (t.id === "floorCol") { ed.run([{ op: "change_material", id: "floor", color: t.value }]); return; }
+  if (t.id === "setName" && ed.grp && ed.grp.set) { ed.run([{ op: "rename_set", set: ed.grp.set, name: t.value }]); return; }
   if (t.dataset.sz && it) ed.run([{ op: "resize_object", id: it.id, [t.dataset.sz]: fromU(t.value) }]);
   if (t.dataset.pos && it) ed.run([{ op: "move_object", id: it.id, [t.dataset.pos]: fromU(t.value) }]);
   if (t.dataset.rot != null && it) ed.run([{ op: "rotate_object", id: it.id, rot: +t.value }]);

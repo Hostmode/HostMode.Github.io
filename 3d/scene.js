@@ -16,7 +16,8 @@ export const MATERIALS = {
   concrete: { label: "Concrete", color: "#9a9a96", rough: 0.9, metal: 0 },
   polished: { label: "Polished concrete", color: "#a7a7a3", rough: 0.25, metal: 0, coat: 0.6 },
   tile:     { label: "Tile",     color: "#e6e2da", rough: 0.3, metal: 0, coat: 0.3 },
-  carpet:   { label: "Carpet",   color: "#5a2f3f", rough: 1, metal: 0 },
+  carpet:   { label: "Carpet, patterned", color: "#5a2f3f", rough: 1, metal: 0 },
+  carpet_plain: { label: "Carpet, plain", color: "#5b6478", rough: 1, metal: 0 },
   glass:    { label: "Glass",    color: "#bcd8e6", rough: 0.05, metal: 0, opacity: 0.35 },
   acrylic:  { label: "Clear acrylic", color: "#eef4f7", rough: 0.08, metal: 0, opacity: 0.3 },
   metal:    { label: "Metal",    color: "#b9bcc2", rough: 0.3, metal: 1 },
@@ -264,8 +265,44 @@ export const OPS = {
   dress_object: "id or kind ('tables'|'chairs'|a kind), linen, linenColor, overlay, overlayColor, runner, runnerColor, charger, napkin, cover, coverColor, sash, palette",
   decorate_tables: "kind (a centerpiece), tables ('all' or ids), palette",
   swap_style: "from ('chairs' or a chair kind), to (chair kind)",
-  save_view:    "name, pos, target"
+  save_view:    "name, pos, target",
+  group_objects:   "ids (2 or more), name: makes a set that moves, turns, copies and deletes together",
+  ungroup_objects: "set",
+  rename_set:   "set, name",
+  move_set:     "set (or ids), dx/dz, or x/z for the set's center",
+  rotate_set:   "set (or ids), by (degrees, around the set's center)",
+  duplicate_set:"set (or ids), dx, dz",
+  delete_set:   "set (or ids), confirm: true"
 };
+
+// ---------- Sets: several things grouped to act as one (a table with its chairs and decor, a lounge corner) ----------
+// An item in a set has it.set = the set's id, and s.sets = {id: {name}}. Things attached to a member
+// (it.group = the member's id, like chairs around a table and centerpieces on it) always come along.
+export function setMembers(s, id) { return s.items.filter(i => i.set === id).map(i => i.id); }
+export function setClosure(s, ids) {
+  const out = new Set(ids); let grew = true;
+  while (grew) { grew = false; s.items.forEach(i => { if (i.group && out.has(i.group) && !out.has(i.id)) { out.add(i.id); grew = true; } }); }
+  return [...out];
+}
+// The item a tap should treat as "the thing": climb from a chair or centerpiece to the table it belongs to.
+export function rootOf(s, id) { let it = s.items.find(i => i.id === id), n = 0; while (it && it.group && n++ < 5) { const p = s.items.find(i => i.id === it.group); if (!p) break; it = p; } return it; }
+function setTargets(s, o) {
+  const ids = o.set ? setMembers(s, o.set) : Array.isArray(o.ids) ? o.ids : null;
+  if (!ids || !ids.length) throw new Error(o.set ? "there's no set called " + o.set : "needs a set or ids");
+  ids.forEach(id => { if (!s.items.some(i => i.id === id)) throw new Error("there's no object called " + id); });
+  return setClosure(s, ids).map(id => s.items.find(i => i.id === id));
+}
+export function setCenter(items) { return [r2(items.reduce((a, i) => a + i.x, 0) / items.length), r2(items.reduce((a, i) => a + i.z, 0) / items.length)]; }
+function setName(s, its) {
+  const base = its.some(i => i.kind.startsWith("table")) ? "Table set" : "Set", used = new Set(Object.values(s.sets || {}).map(x => x.name));
+  let n = 1, nm = base; while (used.has(nm)) nm = base + " " + (++n); return nm;
+}
+function cleanSets(s) {
+  s.sets = s.sets && typeof s.sets === "object" ? s.sets : {};
+  const used = new Set(s.items.map(i => i.set).filter(Boolean));
+  Object.keys(s.sets).forEach(k => { if (!used.has(k)) delete s.sets[k]; });
+  used.forEach(k => { if (!s.sets[k]) s.sets[k] = { name: "Set" }; });
+}
 
 export function apply(scene, ops, opts = {}) {
   if (!Array.isArray(ops)) ops = [ops];
@@ -278,6 +315,7 @@ export function apply(scene, ops, opts = {}) {
     } catch (e) { errors.push(o.op + ": " + e.message); }
   }
   if (errors.length && !opts.partial) return { ok: false, errors, log, scene };
+  cleanSets(s);
   s.updated = Date.now();
   const warnings = checkScene(s);
   return { ok: true, scene: s, log, errors, warnings };
@@ -292,6 +330,57 @@ function checkPalette(p) { if (typeof p === "string") { if (!PALETTES[p]) throw 
 function moveGroup(s, it, dx, dz) { s.items.forEach(o => { if (o.group === it.id) { o.x = r2(o.x + dx); o.z = r2(o.z + dz); } }); }
 
 const RUN = {
+  group_objects(s, o) {
+    const ids = Array.isArray(o.ids) ? [...new Set(o.ids)] : [];
+    ids.forEach(id => { if (!s.items.some(i => i.id === id)) throw new Error("there's no object called " + id); });
+    // only the main pieces get the set mark; chairs and decor on a picked table come along anyway
+    const pick = new Set(ids), top = ids.filter(id => { const it = s.items.find(i => i.id === id); return !(it.group && pick.has(it.group)); });
+    if (setClosure(s, top).length < 2) throw new Error("pick at least two things to group");
+    s.sets = s.sets || {}; const id = o.id && /^set_[a-z0-9]{1,12}$/.test(o.id) ? o.id : uid("set_"), its = top.map(t => s.items.find(i => i.id === t));
+    const name = String(o.name || setName(s, its)).trim().slice(0, 40) || "Set";
+    its.forEach(i => { i.set = id; }); s.sets[id] = { name };
+    return "Grouped " + setClosure(s, top).length + " things as “" + name + "”";
+  },
+  rename_set(s, o) {
+    const id = need(o, "set"); if (!s.sets || !s.sets[id]) throw new Error("there's no set called " + id);
+    s.sets[id].name = String(need(o, "name")).trim().slice(0, 40) || "Set"; return "Named the set “" + s.sets[id].name + "”";
+  },
+  ungroup_objects(s, o) {
+    const id = need(o, "set"), its = s.items.filter(i => i.set === id); if (!its.length) throw new Error("there's no set called " + id);
+    const name = (s.sets && s.sets[id] || {}).name || "the set"; its.forEach(i => { delete i.set; }); if (s.sets) delete s.sets[id];
+    return "Took apart " + name;
+  },
+  move_set(s, o) {
+    const its = setTargets(s, o), [cx, cz] = setCenter(its);
+    let dx = o.dx || 0, dz = o.dz || 0; if (o.x != null) dx = o.x - cx; if (o.z != null) dz = o.z - cz;
+    if (!isNum(dx) || !isNum(dz)) throw new Error("dx and dz must be numbers");
+    its.forEach(i => { i.x = r2(i.x + dx); i.z = r2(i.z + dz); });
+    return "Moved " + (o.set && s.sets && s.sets[o.set] ? s.sets[o.set].name : its.length + " things");
+  },
+  rotate_set(s, o) {
+    const its = setTargets(s, o), [cx, cz] = setCenter(its), by = +need(o, "by"); if (!isNum(by)) throw new Error("by must be a number");
+    const da = by * Math.PI / 180;
+    its.forEach(i => { const rx = i.x - cx, rz = i.z - cz; i.x = r2(cx + rx * Math.cos(da) + rz * Math.sin(da)); i.z = r2(cz - rx * Math.sin(da) + rz * Math.cos(da)); i.rot = r2((((i.rot || 0) + by) % 360 + 360) % 360); });
+    return "Turned " + (o.set && s.sets && s.sets[o.set] ? s.sets[o.set].name : its.length + " things") + " " + Math.round(by) + "°";
+  },
+  duplicate_set(s, o) {
+    const its = setTargets(s, o);
+    const minX = Math.min(...its.map(i => i.x - (i.w || 0) / 2)), maxX = Math.max(...its.map(i => i.x + (i.w || 0) / 2));
+    const dx = o.dx ?? r2(maxX - minX + 0.5), dz = o.dz ?? 0, map = new Map(its.map(i => [i.id, uid("i_")]));
+    const newSet = o.set ? uid("set_") : null;
+    its.forEach(i => { const n = clone(i); n.id = map.get(i.id); n.x = r2(i.x + dx); n.z = r2(i.z + dz);
+      if (n.group) { if (map.has(n.group)) n.group = map.get(n.group); else delete n.group; }
+      if (n.set) { if (newSet && n.set === o.set) n.set = newSet; else delete n.set; }
+      s.items.push(n); });
+    if (newSet) { s.sets = s.sets || {}; const nm = (s.sets[o.set] || {}).name || "Set"; s.sets[newSet] = { name: setName(s, [{ kind: nm.startsWith("Table") ? "table" : "x" }]) }; }
+    return "Copied " + its.length + " things";
+  },
+  delete_set(s, o) {
+    if (!o.confirm) return { error: "Deleting needs your OK first" };
+    const gone = new Set(setTargets(s, o).map(i => i.id)); const n = gone.size;
+    s.items = s.items.filter(i => !gone.has(i.id));
+    return "Removed " + n + " object" + (n === 1 ? "" : "s");
+  },
   set_room(s, o) {
     const R = s.room;
     ["w", "d", "h"].forEach(k => { if (o[k] != null) R[k] = num(o[k], 2, 200, "room " + k); });
@@ -387,7 +476,7 @@ const RUN = {
     const mat = o.mat; if (mat && !MATERIALS[mat]) throw new Error("unknown material " + mat);
     const color = checkColor(o.color);
     if (["floor", "walls", "ceiling"].includes(o.id || o.target)) {
-      const k = o.id || o.target; if (mat) s.room[k] = mat;
+      const k = o.id || o.target; if (mat) { s.room[k] = mat; if (!color && k !== "walls") delete s.room[k + "Color"]; }
       if (color && k === "walls") { s.room.wallColor = color; s.walls.forEach(w => w.color = color); }
       if (color && k !== "walls") s.room[k + "Color"] = color;
       return "Changed the " + k;
@@ -543,6 +632,8 @@ export function validateFile(obj) {
   obj.items = obj.items.filter(i => CATALOG[i.kind] && isNum(i.x) && isNum(i.z));
   obj.lights = (obj.lights || []).filter(l => LIGHT_KINDS.includes(l.kind));
   obj.openings = obj.openings || []; obj.views = obj.views || [];
+  obj.sets = obj.sets && typeof obj.sets === "object" && !Array.isArray(obj.sets) ? obj.sets : {};
+  obj.items.forEach(i => { if (i.set != null && (typeof i.set !== "string" || !obj.sets[i.set])) delete i.set; });
   return obj;
 }
 
@@ -597,6 +688,10 @@ export function interpret(scene, text) {
     p = p.trim();
     const where = (p.match(WHERE) || [])[1] === "middle" ? "center" : (p.match(WHERE) || [])[1];
     const cols = colorsIn(p);
+    // Carpet: "carpet the room", "navy carpet", "plain gray carpet", "change the floor to carpet" (a rug is a piece, not the floor)
+    if (/carpet/.test(p) && !/\brugs?\b/.test(p) && !/^(remove|delete|take)/.test(p)) {
+      ops.push(Object.assign({ op: "change_material", id: "floor", mat: /plain|solid|plush/.test(p) ? "carpet_plain" : "carpet" }, cols.length ? { color: cols[0] } : {})); continue;
+    }
     // Linens and chair dressing: "ivory floor-length linens with gold runners", "blush sashes on the chairs"
     if (DECOR_WORD.test(p) && !/^(remove|delete|take off|take away)/.test(p)) {
       const tOp = { op: "dress_object", kind: "tables" }, cOp = { op: "dress_object", kind: "chairs" };
