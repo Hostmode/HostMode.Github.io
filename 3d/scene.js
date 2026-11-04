@@ -318,7 +318,9 @@ export const OPS = {
   move_set:     "set (or ids), dx/dz, or x/z for the set's center",
   rotate_set:   "set (or ids), by (degrees, around the set's center)",
   duplicate_set:"set (or ids), dx, dz",
-  delete_set:   "set (or ids), confirm: true"
+  delete_set:   "set (or ids), confirm: true",
+  set_photo:    "ref (the stored photo), iw, ih (its size in pixels), pts (4 floor corners as [x, y] from 0 to 1: far left, far right, near right, near left), w (near edge in meters, measured), d (far to near, meters, optional), dSrc ('measured' or 'estimated'), ox, oz (where dot 1 sits in the room)",
+  clear_photo:  "confirm: true"
 };
 
 // ---------- Sets: several things grouped to act as one (a table with its chairs and decor, a lounge corner) ----------
@@ -376,6 +378,20 @@ function checkPalette(p) { if (typeof p === "string") { if (!PALETTES[p]) throw 
 function moveGroup(s, it, dx, dz) { s.items.forEach(o => { if (o.group === it.id) { o.x = r2(o.x + dx); o.z = r2(o.z + dz); } }); }
 
 const RUN = {
+  // A venue photo to design over (Stage A). The photo itself is stored once beside the design (store.js), never inside it.
+  set_photo(s, o) {
+    const P = Object.assign({}, s.photo || {});
+    if (o.ref != null) { if (!/^ph_[a-z0-9]{3,30}$/.test(o.ref)) throw new Error("that photo reference isn't valid"); P.ref = o.ref; }
+    if (o.iw != null) P.iw = Math.round(num(o.iw, 16, 10000, "photo width")); if (o.ih != null) P.ih = Math.round(num(o.ih, 16, 10000, "photo height"));
+    if (o.pts != null) { if (!Array.isArray(o.pts) || o.pts.length !== 4 || !o.pts.every(q => Array.isArray(q) && q.length === 2 && q.every(v => isNum(v) && v >= -0.5 && v <= 1.5))) throw new Error("the floor needs 4 dots"); P.pts = o.pts.map(q => q.map(v => Math.round(v * 10000) / 10000)); }
+    if (o.w != null) P.w = num(o.w, 0.3, 200, "the near edge");
+    if (o.d === null) { delete P.d; P.dSrc = "estimated"; } else if (o.d != null) { P.d = num(o.d, 0.3, 200, "the depth"); P.dSrc = o.dSrc === "estimated" ? "estimated" : "measured"; }
+    if (o.ox != null) P.ox = num(o.ox, -200, 200, "distance from the left wall"); if (o.oz != null) P.oz = num(o.oz, -200, 200, "distance from the back wall");
+    if (!P.ref || !P.iw || !P.ih) throw new Error("choose a photo first");
+    if (!P.pts) P.pts = [[0.3, 0.55], [0.7, 0.55], [0.86, 0.86], [0.14, 0.86]];
+    s.photo = P; return "Updated the venue photo";
+  },
+  clear_photo(s, o) { if (!o.confirm) return { error: "removing the photo needs an OK" }; delete s.photo; return "Removed the venue photo"; },
   group_objects(s, o) {
     const ids = Array.isArray(o.ids) ? [...new Set(o.ids)] : [];
     ids.forEach(id => { if (!s.items.some(i => i.id === id)) throw new Error("there's no object called " + id); });
@@ -685,7 +701,56 @@ export function validateFile(obj) {
   obj.openings = obj.openings || []; obj.views = obj.views || [];
   obj.sets = obj.sets && typeof obj.sets === "object" && !Array.isArray(obj.sets) ? obj.sets : {};
   obj.items.forEach(i => { if (i.set != null && (typeof i.set !== "string" || !obj.sets[i.set])) delete i.set; });
+  if (obj.photo != null) { const P = obj.photo; if (!P || typeof P.ref !== "string" || !/^ph_[a-z0-9]{3,30}$/.test(P.ref) || !isNum(P.iw) || !isNum(P.ih) || !Array.isArray(P.pts) || P.pts.length !== 4) delete obj.photo; }
+  delete obj.photo_image; // the photo itself travels only in exported files, and is stored apart when one is opened
   return obj;
+}
+
+// ---------- Designing over a venue photo (Stage A) ----------
+// The person drags four dots onto the corners of something rectangular on the floor of their photo (a rug, the dance floor,
+// tile lines, the room's corners): dots 1 and 2 on the far edge (left, right), 3 and 4 on the near edge (right, left), and types
+// the near edge's real length. From those four points we work out the camera: where it stood, which way it pointed and how
+// wide its lens was (assuming the photo isn't cropped off-center), plus how deep the rectangle is. Only the typed length is
+// measured; everything else from a photo is an estimate and is shown as one. If the depth is measured too, it decides the lens.
+function solveLin(A, b) { // Gaussian elimination with partial pivoting; null if the points don't make a shape
+  const n = b.length, M = A.map((r, i) => r.concat(b[i]));
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; if (Math.abs(M[p][c]) < 1e-12) return null; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const k = M[r][c] / M[c][c]; for (let j = c; j <= n; j++) M[r][j] -= k * M[c][j]; } }
+  return M.map((r, i) => r[n] / r[i]);
+}
+export function homography(src, dst) { // the 3×3 map taking 4 src points to 4 dst points
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = dst[i]; A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u); A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v); }
+  const h = solveLin(A, b); return h && [[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], 1]];
+}
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], len3 = a => Math.hypot(a[0], a[1], a[2]), unit3 = a => { const l = len3(a) || 1; return a.map(v => v / l); };
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+// Returns { ok, pos, x, y, z (the camera's right, up and back directions in the room), fov (vertical, degrees), d (the rectangle's
+// depth, meters), lens: "photo" | "depth" | "guessed", height } or { ok: false, why } in plain words.
+export function photoCamera(P) {
+  if (!P || !P.pts || !P.iw || !P.ih) return { ok: false, why: "Choose a photo first." };
+  const { iw, ih } = P, W = P.w || 1, img = P.pts.map(([u, v]) => [(u - 0.5) * iw, (v - 0.5) * ih]); // pixels from the middle, y down
+  const area = img.reduce((a, p, i) => { const q = img[(i + 1) % 4]; return a + p[0] * q[1] - q[0] * p[1]; }, 0) / 2;
+  if (Math.abs(area) < iw * ih * 0.002) return { ok: false, why: "The dots are too close together. Spread them out over the floor." };
+  const H = homography([[0, 0], [1, 0], [1, 1], [0, 1]], img); if (!H) return { ok: false, why: "Those dots don't make a shape on the floor. Move them so no three are in a line." };
+  const h = j => [H[0][j], H[1][j], H[2][j]], h1 = h(0), h2 = h(1), h3 = h(2), fov = f => 2 * Math.atan(ih / 2 / f) * 180 / Math.PI, okF = f => f > 0 && isFinite(f) && fov(f) > 15 && fov(f) < 110;
+  let f = NaN, lens = "photo";
+  if (P.dSrc === "measured" && P.d) { // the depth is known, so the lens is whatever makes the rectangle that shape
+    const k = (P.d / W) ** 2, A1 = h1[0] ** 2 + h1[1] ** 2, A2 = h2[0] ** 2 + h2[1] ** 2, u = (k * h1[2] ** 2 - h2[2] ** 2) / (A2 - k * A1); f = 1 / Math.sqrt(u); lens = "depth";
+  }
+  if (!okF(f)) { f = Math.sqrt(-(h1[0] * h2[0] + h1[1] * h2[1]) / (h1[2] * h2[2])); lens = "photo"; } // the floor's corners are square
+  if (!okF(f)) { f = ih / 2 / Math.tan(27.5 * Math.PI / 180); lens = "guessed"; } // a typical phone camera
+  const g = v => [v[0] / f, v[1] / f, v[2]];
+  let g1 = g(h1), g2 = g(h2), g3 = g(h3);
+  const D = P.dSrc === "measured" && P.d ? P.d : W * len3(g2) / len3(g1), lam = len3(g1) / W;
+  let r1 = unit3(g1), r2 = unit3(g2), t = g3.map(v => v / lam);
+  if (t[2] < 0) { r1 = r1.map(v => -v); r2 = r2.map(v => -v); t = t.map(v => -v); } // the floor is in front of the camera
+  r2 = unit3(r2.map((v, i) => v - dot3(r1, r2) * r1[i])); const r3 = cross3(r1, r2);
+  const C = [-dot3(r1, t), -dot3(r2, t), -dot3(r3, t)]; // the camera in floor coordinates (a along dots 1→2, b along 1→4, c down)
+  if (-C[2] <= 0.05) return { ok: false, why: "Put dots 1 and 2 on the far edge (left, then right) and 3 and 4 on the near edge (right, then left)." };
+  const ox = P.ox || 0, oz = P.oz || 0, room = ([a, b, c]) => [a, -c, b], row = i => [r1[i], r2[i], r3[i]];
+  const x = room(row(0)), y = room(row(1)).map(v => -v), z = room(row(2)).map(v => -v);
+  return { ok: true, pos: [C[0] + ox, -C[2], C[1] + oz], x, y, z, fov: fov(f), d: D, lens, height: -C[2] };
 }
 
 export function counts(s) {

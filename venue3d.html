@@ -58,6 +58,9 @@ textarea{width:100%;min-height:70px;resize:vertical}
 .src.measured{background:#dff3e5;color:var(--green)}.src.confirmed{background:#e3e8f8;color:var(--navy)}.src.estimated{background:#fdeedd;color:#a15c00}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:10px;z-index:9;display:none;max-width:90%}
 .v3-nogl{padding:40px 20px;text-align:center}
+#stage.photo{background:#111318}
+#phDots{position:absolute;display:none;z-index:2;pointer-events:none}#phDots svg{position:absolute;inset:0;overflow:visible}
+.phd{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #fff;background:var(--orange);color:#fff;font-weight:700;box-shadow:0 1px 6px rgba(0,0,0,.5);pointer-events:auto;touch-action:none;cursor:grab;padding:0}
 @media(min-width:900px){#app{display:grid;grid-template-columns:minmax(0,1fr) 390px;grid-template-rows:auto minmax(0,1fr)}header{grid-column:1/-1}#stage{min-height:0}#panel{border-top:0;border-left:1px solid var(--line)}}
 </style>
 </head>
@@ -71,7 +74,7 @@ textarea{width:100%;min-height:70px;resize:vertical}
   <div id="stage">
     <canvas id="v3-canvas" aria-label="3D view of the venue. Tap an object to select it."></canvas>
     <div class="tb top">
-      <button data-view="orbit" class="on">3D</button><button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button><button data-view="walk">Walk</button>
+      <button data-view="orbit" class="on">3D</button><button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button><button data-view="walk">Walk</button><button data-view="photo" hidden>Photo</button>
       <span class="sp"></span>
       <button id="undo" aria-label="Undo">↶</button><button id="redo" aria-label="Redo">↷</button>
     </div>
@@ -86,7 +89,7 @@ textarea{width:100%;min-height:70px;resize:vertical}
   </div>
   <div id="panel">
     <div class="tabs" role="tablist">
-      <button data-tab="ask" class="on">Ask</button><button data-tab="add">Add</button><button data-tab="sel">Selected</button><button data-tab="light">Lights</button><button data-tab="room">Room</button><button data-tab="views">Views</button><button data-tab="file">Save &amp; share</button>
+      <button data-tab="ask" class="on">Ask</button><button data-tab="add">Add</button><button data-tab="sel">Selected</button><button data-tab="light">Lights</button><button data-tab="room">Room</button><button data-tab="views">Views</button><button data-tab="photo">Photo</button><button data-tab="file">Save &amp; share</button>
     </div>
     <div class="body" id="body"></div>
   </div>

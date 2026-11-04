@@ -13,6 +13,14 @@ const ls = {
   del(k) { try { localStorage.removeItem(K + k); } catch (e) {} }
 };
 
+// Venue photos are big (a few hundred KB), so each one is stored once, apart from the design and its 20 versions:
+// on the device in IndexedDB (far more room than localStorage), and in the account at planners/{uid}/venue3dPhoto/{ref}.
+// The design only holds the photo's ref and how it lines up. Photos are re-drawn through a canvas before they're kept,
+// which drops the camera's hidden details (location, phone model).
+const PHOTOS = new Map();
+function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open("hm3d", 1); r.onupgradeneeded = () => r.result.createObjectStore("photos"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function idbDo(mode, fn) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction("photos", mode), q = fn(tx.objectStore("photos")); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error); }); }
+
 export class Store {
   constructor() { this.uid = null; this.db = null; this.timer = null; this.status = "local"; }
 
@@ -72,9 +80,24 @@ export class Store {
     }
     const s = ls.get("p_" + id, null); return s ? validateFile(s) : null;
   }
+  // ---- venue photos ----
+  async savePhoto(ref, dataUrl) {
+    PHOTOS.set(ref, dataUrl); let local = false, cloud = null;
+    try { await idbDo("readwrite", st => st.put(dataUrl, ref)); local = true; } catch (e) {}
+    if (this.status === "cloud") { try { await this.db.ref("planners/" + this.uid + "/venue3dPhoto/" + ref).set(dataUrl); cloud = true; } catch (e) { cloud = false; } }
+    return { local, cloud };
+  }
+  async loadPhoto(ref) {
+    if (PHOTOS.has(ref)) return PHOTOS.get(ref);
+    let v = null; try { v = await idbDo("readonly", st => st.get(ref)); } catch (e) {}
+    if (!v && this.status === "cloud") { try { v = (await this.db.ref("planners/" + this.uid + "/venue3dPhoto/" + ref).once("value")).val(); if (v) idbDo("readwrite", st => st.put(v, ref)).catch(() => {}); } catch (e) {} }
+    if (v) PHOTOS.set(ref, v); return v || null;
+  }
+  async removePhoto(ref) { PHOTOS.delete(ref); try { await idbDo("readwrite", st => st.delete(ref)); } catch (e) {} if (this.status === "cloud") { try { await this.db.ref("planners/" + this.uid + "/venue3dPhoto/" + ref).remove(); } catch (e) {} } }
   revisions(id) { return ls.get("r_" + id, []).map(r => ({ t: r.t, items: r.s.items.length })); }
   revision(id, t) { const r = ls.get("r_" + id, []).find(x => x.t === t); return r ? validateFile(JSON.parse(JSON.stringify(r.s))) : null; }
   async remove(id) {
+    const cur = ls.get("p_" + id, null); if (cur && cur.photo && cur.photo.ref) await this.removePhoto(cur.photo.ref); // a removed design takes its photo with it
     ls.del("p_" + id); ls.del("r_" + id); const idx = ls.get("index", {}); delete idx[id]; ls.set("index", idx);
     if (this.status === "cloud") { const b = "planners/" + this.uid; const up = {}; up[b + "/venue3d/" + id] = null; up[b + "/venue3dIndex/" + id] = null; up[b + "/venue3dRev/" + id] = null; await this.db.ref().update(up); }
   }

@@ -56,7 +56,7 @@ export class Editor {
 
   initGL() {
     const cv = $("#v3-canvas", this.root);
-    this.r = new T.WebGLRenderer({ canvas: cv, antialias: this.quality !== "low", preserveDrawingBuffer: true, powerPreference: "high-performance" });
+    this.r = new T.WebGLRenderer({ canvas: cv, antialias: this.quality !== "low", preserveDrawingBuffer: true, alpha: true, powerPreference: "high-performance" }); // alpha: the Photo view shows the venue photo through the empty parts
     this.r.outputColorSpace = T.SRGBColorSpace; this.r.toneMapping = T.ACESFilmicToneMapping; this.r.toneMappingExposure = 1.0;
     this.applyQuality();
     this.scene3 = new T.Scene(); this.scene3.background = new T.Color("#dfe3ec");
@@ -117,9 +117,11 @@ export class Editor {
     W.clear(); this.objs = new Map();
     const R = s.room;
     const fl = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.floor, R.floorColor, { size: [R.w, R.d] }));
-    fl.rotation.x = -Math.PI / 2; fl.position.set(R.w / 2, 0, R.d / 2); fl.receiveShadow = true; fl.userData.floor = true; W.add(fl);
+    fl.rotation.x = -Math.PI / 2; fl.position.set(R.w / 2, 0, R.d / 2); fl.receiveShadow = true; fl.userData.floor = true; W.add(fl); this.floorMesh = fl;
+    // In the Photo view the real floor shows instead: this see-through floor only darkens where shadows fall
+    const sc = new T.Mesh(new T.PlaneGeometry(R.w * 3, R.d * 3), new T.ShadowMaterial({ opacity: 0.3 })); sc.rotation.x = -Math.PI / 2; sc.position.set(R.w / 2, 0.001, R.d / 2); sc.receiveShadow = true; sc.userData.floor = true; sc.visible = false; W.add(sc); this.shadowCatch = sc;
     const ground = new T.Mesh(new T.PlaneGeometry(R.w * 6, R.d * 6), new T.MeshStandardMaterial({ color: "#c9cfdb", roughness: 1 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.set(R.w / 2, -0.01, R.d / 2); ground.receiveShadow = true; W.add(ground);
+    ground.rotation.x = -Math.PI / 2; ground.position.set(R.w / 2, -0.01, R.d / 2); ground.receiveShadow = true; W.add(ground); this.groundMesh = ground;
     const ce = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.ceiling, R.ceilingColor || "#f4f1ea", { size: [R.w, R.d] }));
     ce.rotation.x = Math.PI / 2; ce.position.set(R.w / 2, R.h, R.d / 2); ce.userData.ceiling = true; W.add(ce); this.ceil = ce; // faces down, so it vanishes when seen from above
     this.walls = s.walls.map(w => { const g = buildWall(s, w); W.add(g); return g; });
@@ -137,7 +139,8 @@ export class Editor {
       const bulb = new T.Mesh(new T.SphereGeometry(0.12, 12, 8), new T.MeshBasicMaterial({ color: L.color })); bulb.position.copy(l.position); bulb.userData = { id: L.id, light: true }; W.add(bulb);
       this.objs.set(L.id, bulb); this.lightObjs.push(bulb);
     });
-    this.lightObjs.forEach(b => b.visible = this.showLights !== false && this.view !== "walk");
+    this.lightObjs.forEach(b => b.visible = this.showLights !== false && this.view !== "walk" && this.view !== "photo");
+    this.photoGrid = null; this.syncPhoto();
     if (keepGrp) {
       const set = keepGrp.set && s.sets && s.sets[keepGrp.set] ? keepGrp.set : null;
       const ids = set ? S.setMembers(s, set) : keepGrp.ids.filter(id => this.objs.has(id));
@@ -148,15 +151,22 @@ export class Editor {
 
   // ---- Cameras ----
   resize() {
-    const el = this.r.domElement.parentElement, w = el.clientWidth, h = el.clientHeight; if (!w || !h) return;
+    const cv = this.r.domElement, el = cv.parentElement; let w = el.clientWidth, h = el.clientHeight; if (!w || !h) return;
+    const P = this.view === "photo" && this.s && this.s.photo;
+    if (P) { const a = P.iw / P.ih; if (w / h > a) w = Math.round(h * a); else h = Math.round(w / a);
+      const box = { position: "absolute", left: Math.round((el.clientWidth - w) / 2) + "px", top: Math.round((el.clientHeight - h) / 2) + "px", width: w + "px", height: h + "px" };
+      Object.assign(cv.style, box); if (this.photoEl) Object.assign(this.photoEl.style, box); }
+    else { ["position", "left", "top", "width", "height"].forEach(k => cv.style[k] = ""); }
     this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.fitOrtho();
   }
   fitOrtho() { const R = this.s ? this.s.room : { w: 20, d: 15, h: 4 }, el = this.r.domElement, a = el.clientWidth / Math.max(1, el.clientHeight); const span = (this.view === "top" ? Math.max(R.w / a, R.d) : Math.max((this.view === "side" ? R.d : R.w) / a, R.h * 1.4)) * 0.6; Object.assign(this.ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); this.ortho.updateProjectionMatrix(); }
   frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); }
   setView(v) {
-    const R = this.s.room; this.view = v; this.tc.enabled = v !== "walk";
+    if (v === "photo" && !(this.s.photo && this.photoImg)) v = "orbit";
+    const R = this.s.room, was = this.view; this.view = v; this.tc.enabled = v !== "walk";
     this.orbit.enabled = v === "orbit"; this.orbitO.enabled = v === "top" || v === "front" || v === "side";
-    if (v === "orbit" || v === "walk") { this.cam = this.persp; this.tc.camera = this.persp; }
+    if (was === "photo" && v !== "photo") { this.persp.fov = 50; this.persp.updateProjectionMatrix(); this.frame(); }
+    if (v === "orbit" || v === "walk" || v === "photo") { this.cam = this.persp; this.tc.camera = this.persp; }
     else {
       this.cam = this.ortho; this.tc.camera = this.ortho; this.fitOrtho();
       const c = [R.w / 2, R.h / 2, R.d / 2];
@@ -166,8 +176,49 @@ export class Editor {
       this.orbitO.object = this.ortho; this.orbitO.target.set(...(v === "top" ? [R.w / 2, 0, R.d / 2] : c)); this.ortho.zoom = 1; this.ortho.updateProjectionMatrix(); this.orbitO.update();
     }
     if (v === "walk") { const p = this.s.views[0]; this.walkTo(p ? p.pos : [R.w / 2, 1.65, R.d - 1], p ? p.target : [R.w / 2, 1.2, R.d / 2]); this.select(null); }
-    this.lightObjs && this.lightObjs.forEach(b => b.visible = v !== "walk");
+    this.lightObjs && this.lightObjs.forEach(b => b.visible = v !== "walk" && v !== "photo");
+    this.resize(); this.syncPhoto();
     this.emit();
+  }
+
+  // ---- Designing over a venue photo (Stage A) ----
+  // The photo sits in an <img> right behind the canvas; the room's own floor, walls and ceiling are hidden, and the camera is
+  // put where the photo was taken (S.photoCamera, worked out from the four floor dots). photoBare shows the room as it is;
+  // photoAlign shows a grid on the marked floor so the dots can be lined up.
+  async loadPhoto() {
+    const P = this.s && this.s.photo; if (!P) { this.photoImg = null; this.photoRef = null; return null; }
+    if (this.photoRef === P.ref && this.photoImg) return this.photoImg;
+    const url = await this.store.loadPhoto(P.ref); this.photoMissing = !url && !!this.s.photo && this.s.photo.ref === P.ref; if (this.photoMissing) this.emit({ photo: true });
+    if (!url || !this.s.photo || this.s.photo.ref !== P.ref) return null;
+    const img = new Image(); img.src = url; try { await img.decode(); } catch (e) { return null; }
+    this.photoImg = img; this.photoRef = P.ref; this.syncPhoto(); this.emit({ photo: true }); return img;
+  }
+  syncPhoto() {
+    const want = this.s && this.s.photo && this.s.photo.ref;
+    if (want && this.photoRef !== want && !this.photoLoading) { this.photoImg = null; this.photoLoading = true; this.loadPhoto().finally(() => { this.photoLoading = false; }); }
+    if (!want) { this.photoImg = null; this.photoRef = null; }
+    if (!want) this.photoMissing = false;
+    if (this.view === "photo" && !(want && (this.photoImg || this.photoLoading))) { this.setView("orbit"); return; }
+    const on = this.view === "photo" && this.s && this.s.photo && this.photoImg, P = on ? this.s.photo : null;
+    if (on && !this.photoEl) { const im = document.createElement("img"); im.className = "v3-photo"; im.alt = ""; im.setAttribute("aria-hidden", "true"); im.style.position = "absolute"; im.style.pointerEvents = "none"; im.style.objectFit = "fill"; this.r.domElement.parentElement.insertBefore(im, this.r.domElement); this.photoEl = im; }
+    if (this.photoEl) { this.photoEl.style.display = on ? "block" : "none"; if (on && this.photoEl.src !== this.photoImg.src) this.photoEl.src = this.photoImg.src; if (on) ["left", "top", "width", "height"].forEach(k => this.photoEl.style[k] = this.r.domElement.style[k]); } // same box as the canvas, even the first time
+    this.scene3.background = on ? null : new T.Color("#dfe3ec"); this.r.setClearColor(0x000000, on ? 0 : 1);
+    this.r.domElement.parentElement.classList.toggle("photo", !!on);
+    if (!this.floorMesh) return;
+    [this.floorMesh, this.groundMesh].forEach(m => m.visible = !on); this.shadowCatch.visible = !!on;
+    this.objs && this.objs.forEach((g, id) => { if (!g.userData.light) g.visible = !(on && this.photoBare); });
+    if (this.photoGrid) { this.world.remove(this.photoGrid); this.photoGrid.geometry.dispose(); this.photoGrid = null; }
+    if (!on) return;
+    const c = S.photoCamera(P); this.photoFit = c; if (!c.ok) return;
+    const m = new T.Matrix4().makeBasis(new T.Vector3(...c.x), new T.Vector3(...c.y), new T.Vector3(...c.z));
+    this.persp.position.set(...c.pos); this.persp.quaternion.setFromRotationMatrix(m); this.persp.fov = c.fov; this.persp.updateProjectionMatrix();
+    if (this.photoAlign) { // a 1 ft (or 1 m) grid over the marked floor: if the dots are right, it lies flat on the real floor
+      const W = P.w || 1, D = c.d, step = this.units === "m" ? 1 : S.FT, ox = P.ox || 0, oz = P.oz || 0, pts = [];
+      for (let a = 0; a <= W + 1e-6; a += step) pts.push(ox + a, 0.01, oz, ox + a, 0.01, oz + D); pts.push(ox + W, 0.01, oz, ox + W, 0.01, oz + D);
+      for (let b = 0; b <= D + 1e-6; b += step) pts.push(ox, 0.01, oz + b, ox + W, 0.01, oz + b); pts.push(ox, 0.01, oz + D, ox + W, 0.01, oz + D);
+      const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pts, 3));
+      const gl = new T.LineSegments(geo, new T.LineBasicMaterial({ color: "#f6892f", depthTest: false, transparent: true, opacity: 0.85 })); gl.renderOrder = 10; this.world.add(gl); this.photoGrid = gl;
+    }
   }
   walkTo(pos, target) {
     this.walk.pos.set(...pos); this.walk.pos.y = 1.65;
@@ -194,11 +245,12 @@ export class Editor {
       if (k.tl) this.walk.yaw += 1.6 * dt; if (k.tr) this.walk.yaw -= 1.6 * dt;
       const R = this.s.room; this.walk.pos.x = T.MathUtils.clamp(this.walk.pos.x, 0.3, R.w - 0.3); this.walk.pos.z = T.MathUtils.clamp(this.walk.pos.z, 0.3, R.d - 0.3);
       this.persp.position.copy(this.walk.pos); this.persp.lookAt(this.walk.pos.clone().add(this.walkDir()));
-    } else if (this.view === "orbit") this.orbit.update(); else this.orbitO.update();
+    } else if (this.view === "orbit") this.orbit.update(); else if (this.view !== "photo") this.orbitO.update();
     // Dollhouse: in the 3D view, hide walls that stand between the camera and the room.
     const cp = this.cam.position;
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
     this.ceil.visible = this.view === "walk";
+    if (this.view === "photo") this.walls.forEach(g => g.visible = false);
     this.r.render(this.scene3, this.cam);
   }
 
@@ -336,7 +388,8 @@ export class Editor {
     } finally { this.r.setPixelRatio(pr); this.r.setSize(old[0], old[1], false); this.resize(); this.tick(); }
     return out;
   }
-  snapshot(w = 1600) { const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth); const old = [el.clientWidth, el.clientHeight]; this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.selBox.visible = false; const th = this.tc.getHelper().visible; this.tc.getHelper().visible = false; this.tick(); const url = el.toDataURL("image/png"); this.tc.getHelper().visible = th; this.r.setSize(old[0], old[1], false); this.resize(); this.select(this.sel); return url; }
+  snapshot(w = 1600) { const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth); const old = [el.clientWidth, el.clientHeight]; this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.selBox.visible = false; const th = this.tc.getHelper().visible; this.tc.getHelper().visible = false; this.tick(); let url = el.toDataURL("image/png");
+    if (this.view === "photo" && this.photoImg) { const c = document.createElement("canvas"); c.width = el.width; c.height = el.height; const x = c.getContext("2d"); x.drawImage(this.photoImg, 0, 0, c.width, c.height); x.drawImage(el, 0, 0); url = c.toDataURL("image/jpeg", 0.92); } this.tc.getHelper().visible = th; this.r.setSize(old[0], old[1], false); this.resize(); this.select(this.sel); return url; }
   exportGLB() {
     return new Promise((ok, no) => {
       const g = this.world.clone(true); g.traverse(o => { if (o.isLight || (o.userData && o.userData.light)) o.visible = false; });
