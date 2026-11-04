@@ -185,6 +185,54 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(back.photo && !back.photo_image && !S.validateFile(Object.assign(JSON.parse(JSON.stringify(r.scene)), { photo: { ref: "nope" } })).photo, "photo: opening a file keeps a valid photo marking, drops the picture data and bad markings");
 }
 
+// Outdoor sites (Nov 4, 2026): the corporate luncheon pilot, the site steps, the sun, shade and the site warnings.
+{
+  const L = S.sampleSite();
+  ok(L.site && L.walls.length === 0 && S.counts(L).seats === 120 && S.counts(L).tables === 18, "outdoor: the luncheon pilot is a site with no walls, 120 seats and 18 tables (15 rounds, 3 cocktail)");
+  ok(S.checkScene(L).length === 0, "outdoor: the pilot has no warnings: " + JSON.stringify(S.checkScene(L).slice(0, 3)));
+  ok(L.site.areas.length >= 5 && L.site.edge && L.items.some(i => i.kind === "building"), "outdoor: the pilot has painted ground, a property line and its office building");
+  // The sun, against what's known: Charlotte (35.23° N) at the June solstice peaks at 90 - 35.23 + 23.44 = 78.2° due south around 1:25 pm summer time
+  const sun = { lat: 35.2271, lng: -80.8431, date: "2026-06-21", time: "12:00", tz: -4 };
+  let top = { elev: -90 }, at = ""; for (let m = 600; m < 960; m++) { const t = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"), q = S.sunPosition(sun, t); if (q.elev > top.elev) { top = q; at = t; } }
+  ok(Math.abs(top.elev - 78.2) < 0.4 && Math.abs(top.az - 180) < 3 && at >= "13:15" && at <= "13:35", "outdoor: the June solstice sun in Charlotte peaks at " + top.elev.toFixed(1) + "° in the south at " + at);
+  const eq = S.sunPosition({ lat: 35.2271, lng: -80.8431, date: "2026-03-20", time: "13:15", tz: -4 }); ok(Math.abs(eq.elev - 54.8) < 1.2, "outdoor: at the March equinox it peaks near 90 - 35.2 = 54.8° (" + eq.elev.toFixed(1) + "°)");
+  const am = S.sunPosition(sun, "08:00"), pm = S.sunPosition(sun, "18:00"); ok(am.az > 60 && am.az < 110 && pm.az > 250 && pm.az < 300, "outdoor: morning sun in the east, evening sun in the west");
+  ok(S.sunPosition({ lat: -33.87, lng: 151.21, date: "2026-06-21", time: "12:00", tz: 10 }).az < 20 || S.sunPosition({ lat: -33.87, lng: 151.21, date: "2026-06-21", time: "12:00", tz: 10 }).az > 340, "outdoor: south of the equator the midday sun is in the north");
+  ok(S.sunPosition(sun, "23:00").elev < 0 && S.shadeReport(S.apply(L, [{ op: "set_sun", time: "23:00" }]).scene).up === false, "outdoor: at 11 pm the sun is down");
+  // Shade: everyone under the tent is shaded at midday; take the tent away and nobody is (the planted mistake: a missing roof must show)
+  const rep = S.shadeReport(L); ok(rep.shaded === 120 && rep.sunny === 0, "outdoor: at 12:30 pm all 120 seats are under the dining tent's shade");
+  const noTent = S.apply(L, [{ op: "delete_object", id: "tent1", confirm: true }]).scene, r2 = S.shadeReport(noTent);
+  ok(r2.sunny === 120, "outdoor: with the tent removed, all 120 seats are in the sun (" + r2.sunny + ")");
+  const evening = S.shadeReport(S.apply(L, [{ op: "set_sun", time: "19:15" }]).scene); ok(evening.up && evening.sunny > 0, "outdoor: in the low evening sun some seats at the tent's edge get sun (" + evening.sunny + ")");
+  // A building shades the ground on its far side from the sun: a spot just north of the office at noon is shaded, one south of it isn't
+  const v0 = S.sunVec(L, S.sunPosition(L.site.sun)); ok(S.shadeAt(L, 20, 0.8, 0, v0) === 1 && S.shadeAt(L, 20, 13.5, 0, v0) === 0, "outdoor: the office building shades the ground north of it, not south");
+  const turned = S.apply(L, [{ op: "set_site", north: 90 }]).scene; ok(Math.abs(S.sunVec(turned, { az: 0, elev: 0 })[0] - 1) < 1e-6, "outdoor: turning north turns where the sun comes from");
+  // The site warnings, with planted problems: a generator beside a tent, a canopy past the property line
+  let w = S.apply(L, [{ op: "move_object", id: "gen1", x: 47.5, z: 36 }]).warnings; ok(w.some(x => /closer than 20 ft/.test(x.msg)), "outdoor: a generator closer than 20 ft to a tent is flagged");
+  w = S.apply(L, [{ op: "add_item", kind: "canopy", x: 3, z: 47 }]).warnings; ok(w.some(x => /past the property line/.test(x.msg)), "outdoor: a canopy past the property line is flagged");
+  // The steps
+  let b = S.sampleSite("blank"); ok(!b.items.length && b.site.sun, "outdoor: a new site is an empty lawn with the sun set");
+  let r = S.apply(b, [{ op: "paint_ground", mat: "gravel", rect: { x: 2, z: 2, w: 10, d: 5 }, id: "g_lot" }, { op: "trace_boundary", pts: [[0, 0], [50, 0], [50, 30], [0, 30]], src: "measured" }, { op: "add_building", x: 30, z: 10, w: 60, d: 20, h: 12 }]);
+  ok(r.ok && r.scene.site.areas[0].mat === "gravel" && Math.abs(S.polyArea(r.scene.site.areas[0].pts) - 50) < 0.01 && r.scene.site.edge.src === "measured" && r.scene.items[0].w === 60, "outdoor: paint, trace and add a 60 m building");
+  ok(!S.apply(b, [{ op: "paint_ground", mat: "lava", rect: { x: 1, z: 1, w: 2, d: 2 } }]).ok && !S.apply(b, [{ op: "trace_boundary", pts: [[0, 0], [1, 1]] }]).ok && !S.apply(b, [{ op: "paint_ground", mat: "sand", pts: [[0, 0], [900, 0], [0, 5]] }]).ok, "outdoor: unknown ground, two-point lines and points off the site are refused");
+  ok(!S.apply(r.scene, [{ op: "remove_ground", id: "g_lot" }]).ok && S.apply(r.scene, [{ op: "remove_ground", id: "g_lot", confirm: true }]).scene.site.areas.length === 0 && !S.apply(r.scene, [{ op: "trace_boundary", pts: [] }]).ok, "outdoor: removing an area or the property line needs an OK");
+  ok(!S.apply(S.sampleVenue(), [{ op: "paint_ground", mat: "grass", rect: { x: 1, z: 1, w: 2, d: 2 } }]).ok, "outdoor: an indoor room can't be painted with grass by mistake");
+  r = S.apply(b, [{ op: "set_aerial", ref: "ph_abc123", iw: 1000, ih: 800 }]); ok(r.ok && !S.aerialSize(r.scene.site.aerial, r.scene.room).measured, "outdoor: an aerial picture is a guess until a length is marked");
+  r = S.apply(r.scene, [{ op: "set_aerial", pa: [0.1, 0.5], pb: [0.9, 0.5], len: 80 }]); const sz = S.aerialSize(r.scene.site.aerial, r.scene.room);
+  ok(sz.measured && Math.abs(sz.w - 100) < 0.01 && Math.abs(sz.d - 80) < 0.01, "outdoor: 800 pixels marked as 80 m puts a 1000 × 800 picture at 100 × 80 m");
+  const uv = S.siteToAerial(r.scene.site.aerial, r.scene.room, r.scene.site.aerial.x + 10, r.scene.site.aerial.z); ok(Math.abs(uv[0] - 0.6) < 1e-6 && Math.abs(uv[1] - 0.5) < 1e-6, "outdoor: a spot 10 m right of the picture's middle is 60% across it");
+  ok(!S.apply(r.scene, [{ op: "clear_aerial" }]).ok && !S.apply(r.scene, [{ op: "set_aerial", ref: "../../x" }]).ok, "outdoor: removing the picture needs an OK, and bad references are refused");
+  const f = S.validateFile(Object.assign(JSON.parse(JSON.stringify(r.scene)), { aerial_image: "data:image/jpeg;base64,AAAA" }));
+  ok(f.site.aerial && !f.aerial_image && f.site.areas.length === 0, "outdoor: a saved site opens with its picture marking, without the picture data");
+  const junk = S.validateFile(Object.assign(JSON.parse(JSON.stringify(L)), { site: { ground: "lava", areas: [{ id: "x", mat: "lava", pts: [] }], edge: { pts: [1] }, sun: { lat: "a" } } }));
+  ok(junk.site.ground === "grass" && !junk.site.areas.length && !junk.site.edge && !junk.site.sun, "outdoor: a damaged site file is cleaned, not trusted");
+  // The Ask box outdoors
+  let q = S.interpret(L, "Show the shade at 3 pm"); ok(q.ops[0].op === "set_sun" && q.ops[0].time === "15:00" && /seats in shade/.test(q.notes[0] || ""), "outdoor: “Show the shade at 3 pm” moves the sun and says how many seats are shaded");
+  q = S.interpret(L, "Add a 40 by 60 tent in the center"); ok(q.ops.length === 1 && q.ops[0].kind === "tent_40x60", "outdoor: “a 40 by 60 tent” is one big tent, not 40 tents");
+  q = S.interpret(L, "Add a generator at the back right"); r = S.apply(L, q.ops); ok(r.ok && !r.warnings.length, "outdoor: a generator at the back right lands inside the property line");
+  ok(S.interpret(L, "add two restroom trailers at the back").ops.filter(o => o.op === "add_item" && o.kind === "restroom_trailer").length === 2, "outdoor: “restroom trailers” are found");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

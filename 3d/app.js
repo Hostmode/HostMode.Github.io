@@ -16,8 +16,10 @@ function dl(blob, name) { const a = document.createElement("a"); a.href = URL.cr
 const safeName = s => (s.name || "venue").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
 // ---------- Ask (the assistant) ----------
-const EXAMPLES = ["Move the stage to the front of the room, create a dance floor in the center, and arrange eight round tables around it", "Ivory floor-length linens with gold sequin runners and blush napkins", "Add white spandex chair covers with blush sashes", "Put tall centerpieces on every table", "Add a blush and gold balloon arch at the back", "Add string lights over the dance floor", "Set up this venue for a wedding with 100 guests", "Change the tablecloths to dark purple", "Add warm lighting around the dance floor", "Make the room look more elegant and upscale", "Move the bar to the left"];
+const EXAMPLES_IN = ["Move the stage to the front of the room, create a dance floor in the center, and arrange eight round tables around it", "Ivory floor-length linens with gold sequin runners and blush napkins", "Add white spandex chair covers with blush sashes", "Put tall centerpieces on every table", "Add a blush and gold balloon arch at the back", "Add string lights over the dance floor", "Set up this venue for a wedding with 100 guests", "Change the tablecloths to dark purple", "Add warm lighting around the dance floor", "Make the room look more elegant and upscale", "Move the bar to the left"];
+const SITE_EXAMPLES = ["Show the shade at 3 pm", "Add a 10 by 10 canopy at the front", "Add three market umbrellas at the back left", "Add a generator at the back right", "Add a restroom trailer at the back", "Add a 40 by 60 tent in the center", "Add a pergola on the left"];
 function askTab() {
+  const EXAMPLES = ed.s.site ? SITE_EXAMPLES : EXAMPLES_IN;
   return `<p class="muted">Tell the designer what you want. It shows you the change first, and nothing is kept until you say so.</p>
   <textarea id="ask" placeholder="Arrange ten round tables with eight chairs at each table">${esc(askText)}</textarea>
   <div class="row" style="margin-top:8px"><button class="btn o" id="askGo">Show me</button></div>
@@ -196,8 +198,8 @@ function selTab() {
    <label class="f">Deep (${uL()})<input type="number" step="0.5" data-sz="d" value="${toU(it.d)}"></label>
    <label class="f">Tall (${uL()})<input type="number" step="0.25" data-sz="h" value="${toU(it.h)}"></label></div>
   <div class="row" style="margin-top:8px">
-   <label class="f">From left wall (${uL()})<input type="number" step="0.5" data-pos="x" value="${toU(it.x)}"></label>
-   <label class="f">From front wall (${uL()})<input type="number" step="0.5" data-pos="z" value="${toU(it.z)}"></label>
+   <label class="f">From ${ed.s.site ? "the left edge" : "left wall"} (${uL()})<input type="number" step="0.5" data-pos="x" value="${toU(it.x)}"></label>
+   <label class="f">From ${ed.s.site ? "the top edge" : "front wall"} (${uL()})<input type="number" step="0.5" data-pos="z" value="${toU(it.z)}"></label>
    <label class="f">Turn (°)<input type="number" step="15" data-rot value="${Math.round(it.rot)}"></label></div>
   ${c.palette || c.dress || NO_MAT.has(it.kind) ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress || NO_MAT.has(it.kind) ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
   ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
@@ -255,6 +257,104 @@ function roomTab() {
   <h3>Units</h3><div class="row"><button class="btn ${U() === "ft" ? "" : "l"}" data-units="ft">Feet</button><button class="btn ${U() === "m" ? "" : "l"}" data-units="m">Meters</button></div>`;
 }
 
+// ---------- Site (outdoor designs) ----------
+// The ground, the property line, buildings already there, an aerial picture to trace over, and the sun and shade.
+// Tracing: tap the ground in the view (the Top view is easiest) at each corner; nothing changes until Done.
+let trace = null; // {kind: "edge" | "area" | "marks", mat, pts}
+const sqft = m2 => Math.round(m2 / S.FT / S.FT).toLocaleString();
+const ZONES = [["", "This phone's time zone"], ["America/New_York", "Eastern"], ["America/Chicago", "Central"], ["America/Denver", "Mountain"], ["America/Phoenix", "Arizona"], ["America/Los_Angeles", "Pacific"], ["America/Anchorage", "Alaska"], ["Pacific/Honolulu", "Hawaii"]];
+// Hours from UTC on that date (summer time included) in a named zone, or this phone's own zone.
+function tzOn(date, zone) {
+  const d = new Date(date + "T12:00:00");
+  if (!zone) return -d.getTimezoneOffset() / 60;
+  try { const t = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "shortOffset" }).formatToParts(d).find(x => x.type === "timeZoneName").value, m = t.match(/GMT([+-]\d+)(?::(\d+))?/); return m ? +m[1] + (m[2] ? Math.sign(+m[1]) * m[2] / 60 : 0) : 0; } catch (e) { return -d.getTimezoneOffset() / 60; }
+}
+let sunZone = "";
+function shadeWords(r, sun) {
+  if (!r) return "";
+  const when = S.clock(sun.time) + " on " + S.dayName(sun.date);
+  if (!r.up) return `<b>${when}:</b> the sun is down.` + (r.set ? ` Sunset is about ${S.clock(r.set)}.` : "");
+  const seats = r.seats ? ` <b>${r.shaded} of ${r.seats} seats are in shade</b>${r.part ? `, ${r.part} partly (pergola slats)` : ""}${r.sunny ? `, ${r.sunny} in the sun` : ""}.` : " There are no seats on the site yet.";
+  return `<b>${when}:</b> the sun is ${Math.round(r.elev)}° up in the ${S.compass(r.az)}.${seats}<div class="muted" style="margin-top:4px">Sunrise about ${S.clock(r.rise || "06:00")}, sunset about ${S.clock(r.set || "20:00")} ${'<span class="src estimated">worked out, not a forecast</span>'}</div>`;
+}
+function siteTab() {
+  const s = ed.s, R = s.room, S0 = s.site, n = S.counts(s), sun = S0.sun, rep = S.shadeReport(s), A = S0.aerial;
+  if (trace) return traceCard();
+  const tm = sun ? sun.time.split(":").map(Number) : [12, 0], mins = tm[0] * 60 + tm[1];
+  const bld = s.items.filter(i => i.kind === "building"), E = S0.edge;
+  return `<div class="card"><b>${n.tables} tables · ${n.seats} seats</b><div class="muted">${fmt(R.w)} × ${fmt(R.d)} site, ${sqft(R.w * R.d)} sq ft (${(R.w * R.d / 4046.86).toFixed(2)} acres)</div></div>
+  <h3>Sun and shade</h3><div class="card">
+   <div id="shadeTxt">${shadeWords(rep, sun)}</div>
+   <label class="f" style="margin-top:8px">Time of day: <b id="sunT">${S.clock(sun.time)}</b><input type="range" id="sunTime" min="300" max="1320" step="15" value="${mins}" aria-label="Time of day"></label>
+   <div class="row" style="margin-top:6px"><label class="f">Date<input type="date" id="sunDate" value="${sun.date}"></label>
+    <label class="f">Time zone<select id="sunZone">${ZONES.map(([z, l]) => `<option value="${z}" ${z === sunZone ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+   <div class="row" style="margin-top:6px"><label class="f">Latitude<input type="number" step="0.0001" id="sunLat" value="${sun.lat}"></label><label class="f">Longitude<input type="number" step="0.0001" id="sunLng" value="${sun.lng}"></label></div>
+   <div class="row" style="margin-top:6px"><button class="btn l" data-x="sunHere">Use where I am</button><button class="btn ${ed.sunMarksOn ? "o" : "l"}" data-x="sunMarks">${ed.sunMarksOn ? "Hide sunny seats" : "Mark seats in the sun"}</button></div>
+   <p class="muted">${esc(sun.place || "")}${sun.place ? " · " : ""}Shade is worked out from where the sun is, under tents, canopies, umbrellas, pergolas and buildings. It knows nothing about clouds or trees.${ed.quality === "high" ? "" : " Fast mode draws no shadows: use Mark seats in the sun."}</p></div>
+  <h3>Property line</h3><div class="card">${E ? `<b>${fmt(E.pts.reduce((a, p, i) => a + Math.hypot(p[0] - E.pts[(i + 1) % E.pts.length][0], p[1] - E.pts[(i + 1) % E.pts.length][1]), 0))} around</b> · ${sqft(S.polyArea(E.pts))} sq ft
+    <div class="row" style="margin-top:6px"><label class="f">Where it came from<select id="edgeSrc">${["measured", "confirmed", "estimated"].map(x => `<option ${x === E.src ? "selected" : ""}>${x}</option>`).join("")}</select></label><span class="src ${E.src}">${E.src}</span></div>
+    <div class="row" style="margin-top:8px"><button class="btn l" data-x="trEdge">Trace it again</button><button class="btn ${confirmDel === "edge" ? "r" : "l"}" data-x="edgeDel">${confirmDel === "edge" ? "Tap again to remove it" : "Remove"}</button></div>
+    <p class="muted">The designer warns when anything stands past this line.</p>`
+    : `<p class="muted">Trace the edge of the property so nothing gets planned on the neighbor's land. Tap the ground at each corner, in order.</p><button class="btn o" data-x="trEdge">Trace the property line</button>`}</div>
+  <h3>Ground</h3><div class="card"><div class="row"><label class="f">The whole site<select id="siteGround">${S.GROUND.map(g => `<option value="${g}" ${g === S0.ground ? "selected" : ""}>${esc(S.MATERIALS[g].label)}</option>`).join("")}</select></label></div>
+   ${S0.areas.map(a => `<div class="row" style="margin-top:6px"><span style="flex:1">${esc(a.name)} <span class="muted">${esc(S.MATERIALS[a.mat].label.toLowerCase())} · ${sqft(S.polyArea(a.pts))} sq ft</span></span><button class="btn ${confirmDel === a.id ? "r" : "l"}" data-gdel="${a.id}">${confirmDel === a.id ? "Tap again" : "Remove"}</button></div>`).join("")}
+   <div class="row" style="margin-top:8px"><label class="f">Paint an area with<select id="paintMat">${S.GROUND.map(g => `<option value="${g}" ${g === "asphalt" ? "selected" : ""}>${esc(S.MATERIALS[g].label)}</option>`).join("")}</select></label><button class="btn l" data-x="trArea" style="align-self:flex-end">Draw it</button></div>
+   <p class="muted">Parking, paths, patios, gravel and sand: tap the ground at each corner of the area.</p></div>
+  <h3>Buildings already there</h3><div class="card">${bld.map(b => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(b.label || "Building")} <span class="muted">${fmt(b.w)} × ${fmt(b.d)}, ${fmt(b.h)} tall</span></span><button class="btn l" data-pick="${b.id}">Edit</button></div>`).join("")}
+   <button class="btn l" data-x="addBldg">Add a building</button><p class="muted">Size it under Selected to match the real one. Buildings cast shade too.</p></div>
+  <h3>Picture from above</h3>${aerialCard(A)}
+  <h3>Site size</h3><div class="row">${[["w", "Width"], ["d", "Length"]].map(([k, l]) => `<label class="f">${l} (${uL()})<input type="number" step="1" data-site="${k}" value="${toU(R[k])}"></label>`).join("")}
+   <label class="f">North is turned (°)<input type="number" step="5" id="siteNorth" value="${S0.north || 0}"></label></div>
+  <p class="muted">North is straight up in the Top view unless you turn it, for a site plan or picture that isn't north-up.</p>
+  <h3>Units</h3><div class="row"><button class="btn ${U() === "ft" ? "" : "l"}" data-units="ft">Feet</button><button class="btn ${U() === "m" ? "" : "l"}" data-units="m">Meters</button></div>`;
+}
+function aerialCard(A) {
+  if (!A) return `<div class="card"><p class="muted">Trace over a drone photo, a site plan from the venue, or a satellite screenshot. Use a picture you have the right to use. It's kept with this design, on this device and in your own Host Mode account.</p>
+    <label class="btn o" style="display:inline-block">${photoBusy ? "Opening…" : "Choose a picture"}<input type="file" id="aeFile" accept="image/*" hidden></label></div>`;
+  const sz = S.aerialSize(A, ed.s.room);
+  return `<div class="card">${ed.aerialMissing ? `<p style="color:#a15c00">This picture isn't on this device or in your account any more.</p>` : ""}
+   <b>${fmt(sz.w)} × ${fmt(sz.d)}</b> <span class="src ${sz.measured ? "measured" : "estimated"}">${sz.measured ? "to scale" : "not to scale yet"}</span>
+   <p class="muted">${sz.measured ? `Scaled from ${fmt(A.len)} between your two marks.` : "Mark two spots you know the distance between (a building's front, a parking row, a lot line), then type that distance."}</p>
+   <div class="row"><button class="btn ${sz.measured ? "l" : "o"}" data-x="trMarks">${sz.measured ? "Mark again" : "Mark a length I know"}</button>${sz.measured ? `<button class="btn l" data-x="aeFit">Make the site the picture's size</button>` : ""}</div>
+   ${A.pa && A.pb ? `<div class="row" style="margin-top:6px"><label class="f">Real distance between the marks (${uL()}) <span class="src measured">measured</span><input type="number" step="0.5" min="1" id="aeLen" value="${A.len ? toU(A.len) : ""}" placeholder="e.g. 120"></label></div>` : ""}
+   <div class="row" style="margin-top:6px"><label class="f">See-through<input type="range" id="aeOp" min="0.2" max="1" step="0.05" value="${A.opacity ?? 1}"></label><label class="f">Turn (°)<input type="number" step="1" id="aeRot" value="${A.rot || 0}"></label></div>
+   <div class="row" style="margin-top:6px"><label class="btn l">Use a different picture<input type="file" id="aeFile" accept="image/*" hidden></label><button class="btn ${confirmDel === "aerial" ? "r" : "l"}" data-x="aeDel">${confirmDel === "aerial" ? "Tap again: the picture is deleted" : "Remove"}</button></div>
+   <p class="muted">Sizes from a picture are only as good as the distance you type. Check anything that has to fit.</p></div>`;
+}
+function traceCard() {
+  const t = trace, n = t.pts.length, need = t.kind === "marks" ? 2 : 3;
+  const what = t.kind === "edge" ? "the property line" : t.kind === "area" ? "the " + S.MATERIALS[t.mat].label.toLowerCase() + " area" : "two marks on the picture";
+  return `<div class="card"><b>Tracing ${esc(what)}</b>
+   <p class="muted">${t.kind === "marks" ? "Tap the two ends of something whose real length you know." : "Tap the ground at each corner, going round in order."} The Top view is easiest. ${n} ${n === 1 ? "point" : "points"} so far.</p>
+   <div class="row"><button class="btn g" data-x="trDone" ${n >= need ? "" : "disabled"}>Done</button><button class="btn l" data-x="trUndo" ${n ? "" : "disabled"}>Undo last point</button><button class="btn l" data-x="trCancel">Cancel</button></div></div>`;
+}
+function startTrace(kind, extra = {}) {
+  trace = Object.assign({ kind, pts: [] }, extra); ed.select(null); if (ed.view !== "top") ed.setView("top");
+  ed.groundTap = p => { if (trace.kind === "marks" && trace.pts.length >= 2) trace.pts = []; trace.pts.push(p); ed.setTrace(trace.pts, trace.kind !== "marks"); render(); };
+  ed.setTrace([], kind !== "marks"); tab = "site"; render(); toast(kind === "marks" ? "Tap the first end" : "Tap the ground at the first corner");
+}
+function endTrace() { trace = null; ed.groundTap = null; ed.setTrace([]); render(); }
+function finishTrace() {
+  const t = trace; if (!t) return; let r;
+  if (t.kind === "edge") r = ed.run([{ op: "trace_boundary", pts: t.pts, src: (ed.s.site.edge || {}).src || "estimated" }]);
+  else if (t.kind === "area") r = ed.run([{ op: "paint_ground", mat: t.mat, pts: t.pts }]);
+  else { const A = ed.s.site.aerial, R = ed.s.room; r = ed.run([{ op: "set_aerial", pa: S.siteToAerial(A, R, ...t.pts[0]), pb: S.siteToAerial(A, R, ...t.pts[1]), len: null }]); if (r.ok) setTimeout(() => { const el = $("#aeLen"); if (el) el.focus(); }, 50); }
+  if (r && r.ok) { toast(t.kind === "marks" ? "Now type the real distance between the marks" : r.log[0]); endTrace(); }
+}
+async function useAerial(file) {
+  if (!file || !/^image\//.test(file.type)) return toast("That isn't a picture");
+  photoBusy = true; render();
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(1, 2048 / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(bmp, 0, 0, w, h); const url = c.toDataURL("image/jpeg", 0.85);
+    const ref = S.uid("ph_"), old = ed.s.site.aerial && ed.s.site.aerial.ref, r = await ed.store.savePhoto(ref, url);
+    if (!r.local && !r.cloud) toast("This picture can't be kept on this device, so it will be gone if the page closes");
+    const res = ed.run([{ op: "set_aerial", ref, iw: w, ih: h, pa: [0.25, 0.5], pb: [0.75, 0.5], len: null, x: ed.s.room.w / 2, z: ed.s.room.d / 2, rot: 0, opacity: 1 }]);
+    if (res.ok) { if (old && old !== ref) ed.store.removePhoto(old); ed.setView("top"); toast("Next: mark a length you know on the picture"); }
+  } catch (e) { toast("That picture couldn't be opened"); }
+  photoBusy = false; render();
+}
+
 // ---------- Views ----------
 function viewsTab() {
   return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
@@ -269,8 +369,8 @@ function fileTab() {
   const st = ed.store.status, revs = ed.store.revisions(ed.s.id);
   const cloud = { cloud: "Saved to your Host Mode account too.", "signed-out": "Only saved on this device. Sign in to Host Mode on this site to keep designs in your account.", "no-account": "Only saved on this device: this sign-in has no planner or host account.", offline: "Only saved on this device right now (can't reach Host Mode).", local: "Only saved on this device." }[st];
   return `<div class="card"><b>${esc(ed.s.name)}</b><div class="muted">${esc(cloud)}</div>
-   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample venue</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
-   ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh sample ballroom. It can't be undone.</p>` : ""}</div>
+   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample ballroom</button><button class="btn l" data-x="newSite">New outdoor site</button><button class="btn l" data-x="newLunch">Sample outdoor site</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
+   ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh ${ed.s.site ? "sample outdoor site" : "sample ballroom"}. It can't be undone.</p>` : ""}</div>
    <h3>Share or back up</h3><div class="row"><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
    <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${p.id}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
@@ -282,7 +382,11 @@ function fileTab() {
 function render() {
   if (!ed.s) return;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  body.innerHTML = { ask: askTab, add: addTab, sel: selTab, light: lightTab, room: roomTab, views: viewsTab, photo: photoTab, file: fileTab }[tab]();
+  const out = !!ed.s.site; if (out && tab === "room") tab = "site"; if (!out && tab === "site") tab = "room";
+  if (!out && trace) endTrace();
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  const rb = $("[data-tab=room]"), sb = $("[data-tab=site]"); if (rb) rb.hidden = out; if (sb) sb.hidden = !out;
+  body.innerHTML = { ask: askTab, add: addTab, sel: selTab, light: lightTab, room: roomTab, site: siteTab, views: viewsTab, photo: photoTab, file: fileTab }[tab]();
   const pv = $("[data-view=photo]"); if (pv) pv.hidden = !ed.s.photo; placeDots();
   $("#undo").disabled = !ed.hist.length; $("#redo").disabled = !ed.fut.length;
   document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === ed.view));
@@ -338,6 +442,23 @@ body.addEventListener("click", async e => {
   if (d.x === "phRoom") { const P = ed.s.photo, c = S.photoCamera(P); if (c.ok) { const r = ed.run([{ op: "set_room", w: Math.max(2, P.w), d: Math.max(2, c.d) }, { op: "set_photo", ox: 0, oz: 0 }]); if (r.ok) toast("The room now matches the marked floor"); } return; }
   if (d.x === "phDel") { if (confirmDel !== "photo") { confirmDel = "photo"; render(); return; } confirmDel = null; const ref = ed.s.photo && ed.s.photo.ref; const r = ed.run([{ op: "clear_photo", confirm: true }]); if (r.ok) { if (ref) ed.store.removePhoto(ref); toast("Removed the photo from this design, this device and your account"); } return; }
   if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
+  if (d.gdel) { if (confirmDel !== d.gdel) { confirmDel = d.gdel; render(); return; } confirmDel = null; ed.run([{ op: "remove_ground", id: d.gdel, confirm: true }]); return; }
+  if (d.pick) { ed.select(d.pick); return; }
+  switch (d.x) {
+    case "trEdge": startTrace("edge"); return;
+    case "trArea": startTrace("area", { mat: ($("#paintMat") || {}).value || "asphalt" }); return;
+    case "trMarks": startTrace("marks"); return;
+    case "trUndo": if (trace) { trace.pts.pop(); ed.setTrace(trace.pts, trace.kind !== "marks"); render(); } return;
+    case "trCancel": endTrace(); return;
+    case "trDone": finishTrace(); return;
+    case "edgeDel": if (confirmDel !== "edge") { confirmDel = "edge"; render(); return; } confirmDel = null; ed.run([{ op: "trace_boundary", pts: [], confirm: true }]); return;
+    case "addBldg": { const id = S.uid("i_"), r = ed.run([{ op: "add_building", id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added a building: set its size to match the real one"); } return; }
+    case "aeFit": { const A = ed.s.site.aerial, sz = S.aerialSize(A, ed.s.room); const r = ed.run([{ op: "set_site", w: Math.min(400, Math.max(5, sz.w)), d: Math.min(400, Math.max(5, sz.d)) }, { op: "set_aerial", x: Math.min(400, sz.w) / 2, z: Math.min(400, sz.d) / 2, rot: 0 }]); if (r.ok) toast("The site is now the picture's size"); return; }
+    case "aeDel": { if (confirmDel !== "aerial") { confirmDel = "aerial"; render(); return; } confirmDel = null; const ref = ed.s.site.aerial && ed.s.site.aerial.ref; const r = ed.run([{ op: "clear_aerial", confirm: true }]); if (r.ok && ref) { ed.store.removePhoto(ref); toast("Removed the picture from this design, this device and your account"); } return; }
+    case "sunMarks": ed.setSunMarks(!ed.sunMarksOn); render(); return;
+    case "sunHere": if (!navigator.geolocation) { toast("This browser can't share where you are"); return; }
+      navigator.geolocation.getCurrentPosition(pos => { const r = ed.run([{ op: "set_sun", lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4), place: "" }]); if (r.ok) toast("Using where you are now. Change it if the site is somewhere else."); }, () => toast("Couldn't get where you are. Type the latitude and longitude instead."), { timeout: 10000 }); return;
+  }
   if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
   // sets and several picked things
   const gt = ed.grpTarget();
@@ -366,20 +487,38 @@ body.addEventListener("click", async e => {
       if (confirmDel !== "reset") { confirmDel = "reset"; render(); break; }
       confirmDel = null; clearTimeout(ed.store.timer); // a save still waiting would bring the old design back
       const ids = new Set(DEMO ? ed.store.list().map(p => p.id) : []); ids.add(ed.s.id);
-      const ref = ed.s.photo && ed.s.photo.ref; for (const id of ids) await ed.store.remove(id); if (ref) await ed.store.removePhoto(ref); if (DEMO) await ed.store.clearPhotos();
-      ed.photoBare = ed.photoAlign = false; ed.placeTop = null; ed.setPicking && ed.setPicking(false);
-      ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); await refreshProjects(); tab = "file"; render();
+      const ref = ed.s.photo && ed.s.photo.ref, aref = ed.s.site && ed.s.site.aerial && ed.s.site.aerial.ref, wasSite = !!ed.s.site;
+      for (const id of ids) await ed.store.remove(id); if (ref) await ed.store.removePhoto(ref); if (aref) await ed.store.removePhoto(aref); if (DEMO) await ed.store.clearPhotos();
+      ed.photoBare = ed.photoAlign = false; ed.placeTop = null; ed.setPicking && ed.setPicking(false); if (trace) endTrace();
+      ed.load(wasSite ? S.sampleSite() : S.sampleVenue()); await ed.store.save(ed.s, true); await refreshProjects(); tab = "file"; render();
       toast(DEMO ? "Started over: the demo's designs are deleted from this device" : "Started over: that design is deleted"); break;
     }
-    case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample venue"); break;
-    case "json": { const out = S.clone(ed.s); if (out.photo) { const img = await ed.store.loadPhoto(out.photo.ref); if (img) out.photo_image = img; } dl(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), safeName(ed.s) + ".hostmode-venue.json"); break; }
+    case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample ballroom"); break;
+    case "newSite": case "newLunch": { if (trace) endTrace(); let ns = S.sampleSite(d.x === "newSite" ? "blank" : "luncheon");
+      if (d.x === "newSite") { const n = new Date(), day = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0"), r = S.apply(ns, [{ op: "set_sun", date: day, time: "12:00", tz: tzOn(day, "") }]); if (r.ok) ns = r.scene; } // a new site starts on today, at noon
+      ed.load(ns); }
+      await ed.store.save(ed.s, true); refreshProjects(); tab = "site"; render(); toast(d.x === "newSite" ? "New outdoor site: trace the property line, paint the ground, then add tents" : "Opened the corporate luncheon sample site"); break;
+    case "json": { const out = S.clone(ed.s); if (out.photo) { const img = await ed.store.loadPhoto(out.photo.ref); if (img) out.photo_image = img; } if (out.site && out.site.aerial) { const img = await ed.store.loadPhoto(out.site.aerial.ref); if (img) out.aerial_image = img; } dl(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), safeName(ed.s) + ".hostmode-venue.json"); break; }
     case "glb": try { dl(await ed.exportGLB(), safeName(ed.s) + ".glb"); } catch (er) { toast("Couldn't make the 3D model file"); } break;
   }
 });
-body.addEventListener("input", e => { if (e.target.id === "libQ") { libQ = e.target.value.slice(0, 60); refreshLib(); } });
+body.addEventListener("input", e => { if (e.target.id === "libQ") { libQ = e.target.value.slice(0, 60); refreshLib(); }
+  if (e.target.id === "sunTime") { const m = +e.target.value, t = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"), el = $("#sunT"); if (el) el.textContent = S.clock(t); } });
 body.addEventListener("change", async e => {
   const t = e.target, it = ed.sel && ed.itemOf(ed.sel);
   if (t.id === "phFile" && t.files[0]) { usePhoto(t.files[0]); t.value = ""; return; }
+  if (t.id === "aeFile" && t.files[0]) { useAerial(t.files[0]); t.value = ""; return; }
+  if (t.id === "sunTime") { const m = +t.value; ed.run([{ op: "set_sun", time: String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0") }]); if (ed.sunMarksOn) ed.drawSunMarks(); return; }
+  if (t.id === "sunDate" && t.value) { ed.run([{ op: "set_sun", date: t.value, tz: tzOn(t.value, sunZone) }]); return; }
+  if (t.id === "sunZone") { sunZone = t.value; ed.run([{ op: "set_sun", tz: tzOn(ed.s.site.sun.date, sunZone) }]); return; }
+  if (t.id === "sunLat" || t.id === "sunLng") { if (t.value === "" || !isFinite(+t.value)) return; ed.run([{ op: "set_sun", [t.id === "sunLat" ? "lat" : "lng"]: +t.value, place: "" }]); return; }
+  if (t.id === "edgeSrc" && ed.s.site.edge) { ed.run([{ op: "trace_boundary", pts: ed.s.site.edge.pts, src: t.value }]); return; }
+  if (t.id === "siteGround") { ed.run([{ op: "set_site", ground: t.value }]); return; }
+  if (t.dataset.site) { ed.run([{ op: "set_site", [t.dataset.site]: fromU(t.value) }]); return; }
+  if (t.id === "siteNorth") { ed.run([{ op: "set_site", north: +t.value || 0 }]); if (ed.s.site.sun) ed.run([{ op: "set_sun" }]); return; }
+  if (t.id === "aeLen") { const v = t.value.trim(); ed.run([{ op: "set_aerial", len: v === "" || !isFinite(+v) ? null : fromU(v) }]); return; }
+  if (t.id === "aeOp") { ed.run([{ op: "set_aerial", opacity: +t.value }]); return; }
+  if (t.id === "aeRot") { ed.run([{ op: "set_aerial", rot: +t.value || 0 }]); return; }
   if (t.dataset.ph) { const k = t.dataset.ph, v = t.value.trim(); if (k === "d") { ed.run([{ op: "set_photo", d: v === "" ? null : fromU(v), dSrc: "measured" }]); return; } if (v === "" || !isFinite(+v)) return; ed.run([{ op: "set_photo", [k]: fromU(v) }]); return; }
   if (t.id === "libEv" || t.id === "libSt") { if (t.id === "libEv") libEv = t.value; else libSt = t.value; refreshLib(); return; }
   if (t.id === "floorCol") { ed.run([{ op: "change_material", id: "floor", color: t.value }]); return; }
@@ -396,7 +535,7 @@ body.addEventListener("change", async e => {
   if (t.dataset.surf) ed.run([{ op: "change_material", id: t.dataset.surf, mat: t.value }]);
   if (t.id === "wallCol") ed.run([{ op: "change_material", id: "walls", color: t.value }]);
   if (t.id === "imp" && t.files[0]) {
-    try { const raw = JSON.parse(await t.files[0].text()), img = typeof raw.photo_image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(raw.photo_image) ? raw.photo_image : null; const s = S.validateFile(raw); if (s.photo && img) await ed.store.savePhoto(s.photo.ref, img); s.id = s.id || S.uid("v_"); ed.load(s); await ed.store.save(ed.s, true); refreshProjects(); toast("Opened " + s.name); }
+    try { const raw = JSON.parse(await t.files[0].text()), img = typeof raw.photo_image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(raw.photo_image) ? raw.photo_image : null; const aimg = typeof raw.aerial_image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(raw.aerial_image) ? raw.aerial_image : null; const s = S.validateFile(raw); if (s.photo && img) await ed.store.savePhoto(s.photo.ref, img); if (s.site && s.site.aerial && aimg) await ed.store.savePhoto(s.site.aerial.ref, aimg); s.id = s.id || S.uid("v_"); ed.load(s); await ed.store.save(ed.s, true); refreshProjects(); toast("Opened " + s.name); }
     catch (er) { toast(er.message || "That file couldn't be opened"); }
   }
 });

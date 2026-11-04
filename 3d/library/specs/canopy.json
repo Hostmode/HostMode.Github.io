@@ -1,0 +1,40 @@
+{
+ "id": "canopy",
+ "name": "Pop-up canopy (10 \u00d7 10 ft)",
+ "category": "Tents & shade",
+ "tags": [
+  "canopy",
+  "pop-up",
+  "booth",
+  "check-in"
+ ],
+ "events": [
+  "community",
+  "corporate",
+  "graduation",
+  "birthday"
+ ],
+ "styles": [
+  "classic",
+  "modern",
+  "playful"
+ ],
+ "size": {
+  "w": 3.05,
+  "d": 3.05,
+  "h": 3.05
+ },
+ "materials": [
+  "fabric",
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "Check-in, vendor booths, ticketing, merchandise.",
+ "compatible": [],
+ "modeling": "Four legs with cross braces, a pyramid top and a short valance.",
+ "priority": "now",
+ "findings": [
+  "canopies_10x10"
+ ],
+ "status": "checked"
+}

@@ -10,7 +10,9 @@ export const BUDGET = {
   "Tables": { tris: 30000, meshes: 10 }, "Seating": { tris: 6000, meshes: 6 }, "Balloons": { tris: 250000, meshes: 12 },
   "Backdrops & drapery": { tris: 250000, meshes: 40 }, "Centerpieces": { tris: 40000, meshes: 16 }, "Lighting & candles": { tris: 60000, meshes: 30 },
   "Florals & greenery": { tris: 120000, meshes: 30 }, "Lounge & accents": { tris: 40000, meshes: 30 }, "Stage & floor": { tris: 20000, meshes: 12 },
-  "Food & drink": { tris: 30000, meshes: 20 }, "Audio & video": { tris: 20000, meshes: 12 }, "Photo & effects": { tris: 40000, meshes: 16 }, "Structure": { tris: 20000, meshes: 8 }
+  "Food & drink": { tris: 30000, meshes: 20 }, "Audio & video": { tris: 20000, meshes: 12 }, "Photo & effects": { tris: 40000, meshes: 16 },
+  // Outdoors: a site has a few tents and a little equipment, plus its own buildings (drawn as simple boxes with windows)
+  "Tents & shade": { tris: 20000, meshes: 12 }, "Site & power": { tris: 20000, meshes: 12 }, "Structure": { tris: 20000, meshes: 8 }
 };
 const ALL = ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"];
 const SOCIAL = ["wedding", "shower", "birthday", "anniversary", "gala", "graduation", "holiday"];
@@ -96,7 +98,15 @@ const META = {
   booth_360:        ["360 video booth: a platform with a camera arm that circles the guests.", ["360 booth", "video", "platform", "photos"], ["wedding", "birthday", "graduation", "corporate", "gala"], ["playful", "modern", "glam"]],
   fog:              ["Low fog over the dance floor for the first dance.", ["fog", "clouds", "dry ice", "first dance", "effect"], ["wedding", "anniversary", "gala"], ["romantic", "glam"]],
   cold_spark:       ["Cold spark fountain for grand entrances and first dances.", ["cold sparks", "sparklers", "fountain", "grand entrance", "effect"], ["wedding", "birthday", "gala", "graduation"], ["glam", "playful"]],
-  tent:             ["20 by 20 foot frame tent: about 33 guests at round tables.", ["tent", "outdoor", "canopy", "frame tent"], ["wedding", "shower", "birthday", "graduation", "community", "corporate", "holiday"], ["classic", "garden"]]
+  tent:             ["20 by 20 foot frame tent: about 33 guests at round tables.", ["tent", "outdoor", "canopy", "frame tent"], ["wedding", "shower", "birthday", "graduation", "community", "corporate", "holiday"], ["classic", "garden"]],
+  tent_40x60:       ["40 by 60 foot frame tent: up to 192 at round tables, or about 144 with room for a stage, buffet or bar.", ["tent", "outdoor", "frame tent", "large tent", "dining tent"], ["wedding", "birthday", "graduation", "community", "corporate", "holiday"], ["classic", "garden", "modern"]],
+  canopy:           ["10 by 10 foot pop-up canopy: check-in, a vendor booth, tickets or merchandise.", ["canopy", "pop-up", "outdoor", "booth", "check-in", "tent"], ["community", "corporate", "graduation", "birthday"], ["classic", "modern", "playful"]],
+  pergola:          ["8 by 8 foot wood pergola for a lounge, a bar or a ceremony spot. Partial shade.", ["pergola", "outdoor", "lounge", "shade"], ["wedding", "corporate", "community", "birthday"], ["rustic", "garden", "boho", "modern"]],
+  umbrella:         ["Market umbrella, about 8.5 ft across and 9 ft tall, for lounges and cocktail tables.", ["umbrella", "outdoor", "shade", "patio"], ["wedding", "corporate", "community", "birthday", "graduation"], ["classic", "garden", "modern"]],
+  generator:        ["Towable 20 kW generator. Keep it at least 20 ft from tents.", ["generator", "power", "electric", "outdoor"], ["wedding", "birthday", "graduation", "community", "corporate", "holiday"], ["minimal"]],
+  restroom_trailer: ["Two-station restroom trailer, for about 75 to 150 guests.", ["restroom", "bathroom", "toilet", "trailer", "outdoor"], ["wedding", "birthday", "graduation", "community", "corporate", "holiday"], ["minimal", "classic"]],
+  barricade:        ["Steel crowd barricade, 6.5 ft long: entrances, queues, stage fronts, parking edges.", ["barricade", "barrier", "fence", "queue", "crowd", "outdoor"], ["community", "corporate", "graduation", "holiday"], ["minimal"]],
+  building:         ["A building already on the site, sized to match the real one.", ["building", "site", "outdoor", "existing"], ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"], ["classic", "modern"]]
 };
 
 // The settings a person can change on each piece in the Selected tab.
@@ -123,7 +133,8 @@ export const metaIds = () => Object.keys(META);
 // Search the library: words match the name, description, category, tags, event types and styles; filters narrow by event, style and category.
 // Everyday words for an event, so "baby shower" or "quinceañera" finds the right pieces.
 const SAY = { baby: "shower", gender: "shower", reveal: "shower", bridal: "wedding", reception: "wedding", ceremony: "wedding", quince: "birthday", quinceanera: "birthday", party: "birthday",
-  office: "corporate", conference: "corporate", company: "corporate", grad: "graduation", christmas: "holiday", church: "community", school: "community" };
+  office: "corporate", conference: "corporate", company: "corporate", grad: "graduation", christmas: "holiday", church: "community", school: "community",
+  luncheon: "corporate", picnic: "community", fair: "community", festival: "community", concert: "community", rodeo: "community", outside: "outdoor", lawn: "outdoor", backyard: "outdoor", power: "generator", toilet: "restroom", porta: "restroom", fence: "barricade" };
 export function searchAssets(q = "", f = {}) {
   const words = String(q).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean).map(w => SAY[w] || SAY[w.replace(/s$/, "")] || w);
   return ASSETS.filter(a => (!f.event || a.events.includes(f.event)) && (!f.style || a.styles.includes(f.style)) && (!f.category || a.category === f.category)

@@ -172,3 +172,29 @@ Plan and audit: the "3D Designer Upgrade: Audit and Plan" doc. Phases: 1 audit (
 ### Phase 6, report — Done (Nov 4, 2026)
 - The "3D Designer Upgrade: Final Report" doc (https://claude.ai/artifact/HKAzAfMd3YKfJ1ucH7Bp81): what each phase delivered, results in numbers, how the roles hand work on, known limits, next steps with costs.
 - Waiting on Roy: a phone speed test, a real venue photo test, and decisions on a small server for Stage B and real AI in the Ask box, adding the designer to the nightly checks, and research in sessions or a weekly job.
+
+## 7. Outdoor event builder (Roy's outdoor master brief, Nov 4, 2026)
+
+Plan and audit: the "Outdoor Event Builder: Audit and Plan" doc (https://claude.ai/artifact/SLEVkqWTFhNwtAC34xeacy). Roy approved the plan and its order on Nov 4. Eight phases with two approval gates: Gate 1 after one pilot site (the corporate luncheon) is built end to end; Gate 2 after the five pilots, with the decision on an AI server. Same three roles, no new agents.
+
+### Phase 2, research — Done
+- 10 findings in `3d/library/research/`, each with pages actually opened: large frame tents, space per guest, 10 × 10 canopies, pergolas, market umbrellas, towable generators (and the 20 ft fire-code distance), restroom trailers, crowd barricades, NOAA's sun position equations, 2026 outdoor trends.
+- 7 specs in `specs/` (tent_40x60, canopy, pergola, umbrella, generator, restroom_trailer, barricade); the 20 × 20 tent moved to the new "Tents & shade" category.
+
+### Phase 3, site engine — Built, pull request for Roy (Gate 1)
+- **A design is outdoor when it has `s.site`.** The room becomes the site's size with a 30 m sky limit, no walls and no ceiling; indoor designs have no `site` and work exactly as before (all 91 indoor model checks still pass).
+- **New checked steps:** `set_site` (size, ground, which way north is), `paint_ground` / `remove_ground` (asphalt, concrete, pavers, gravel, dirt, sand, mulch, grass), `trace_boundary` (the property line, marked measured / confirmed / estimated), `add_building` (a building already there, up to 150 m), `set_sun` (place, date, time, time zone), `set_aerial` / `clear_aerial` (a picture from above).
+- **Sun and shade:** `S.sunPosition()` is NOAA's general solar position method. Checked against known values: the June solstice sun in Charlotte peaks at 78.2° due south at about 1:25 pm summer time; the March equinox at about 54.8°; south of the equator the midday sun is in the north. `S.shadeReport()` counts the seats in shade (a seated head at 1.1 m) under tent, canopy and umbrella roofs, pergola slats (partial) and buildings (their full height). The view draws real shadows from the same sun; "Mark seats in the sun" shows them in Fast mode too. Always labeled "worked out, not a forecast": it knows nothing about clouds or trees.
+- **Aerial picture (Stage A):** a drone photo, a site plan or a satellite screenshot, stored once like venue photos (IndexedDB plus `planners/{uid}/venue3dPhoto/{ref}`), never inside the design. Until two marks and a typed length are given it's stretched to the site's width and shown as "not to scale yet"; after, it's to scale from that one measured length. Exported venue files carry it; Start over and removing the design delete it.
+- **Site warnings:** anything past the property line, and a generator closer than 20 ft to a tent or canopy ("check with the venue and the fire marshal"). Placing by words ("at the back right") stays inside the property line.
+- **Site tab** (replaces Room outdoors): seats and acres, sun and shade with a time slider, date, time zone and place ("Use where I am"), trace the property line, paint ground areas, buildings, the aerial picture, site size and north. Tracing switches to the Top view and takes taps on the ground; nothing changes until Done.
+- **Ask box outdoors:** "Show the shade at 3 pm" (answers with the shaded seat count), "a 40 by 60 tent" is one tent, canopies, umbrellas, generators, restroom trailers, barricades, buildings.
+
+### Phase 4 (started for the pilot): outdoor pieces — Built
+- Frame tent 40 × 60 ft (legs every 10 ft, a hip roof up to 18 ft); the 20 × 20 tent and the 10 × 10 pop-up canopy share the same shape code. Wood pergola, market umbrella, towable 20 kW generator, two-station restroom trailer, crowd barricade, existing building. All within their detail budgets (asset check: 86 of 86).
+
+### The corporate luncheon pilot (Gate 1)
+- Save & share → Sample outdoor site. A 230 × 164 ft company lawn in Charlotte: the office building, a parking lot and driveway, a front walk, a paver patio, a planting bed, a gravel path, a property line with a clipped corner. 120 guests at 15 rounds of 8 under a 40 × 60 ft dining tent, a podium and speakers, a 20 × 20 buffet tent, a check-in canopy, a pergola lounge, three umbrellas with cocktail tables, a generator over 20 ft from the tents, a restroom trailer, barricades along the parking lot. May 14 at 12:30 pm: all 120 seats in shade; at 7:15 pm 42 are in the sun.
+- Checks: 30 new model checks (sun against known values, shade with a planted missing tent, site steps, refusals, damaged files, the Ask box), `agents/venue3d_site_check.py` (17 browser checks at phone size, including planted problems) in `check_all.sh`.
+- Measured in the sandbox's software graphics: the pilot is 163 pieces, about 358,000 triangles and 884 draw calls a frame with shadows (the ballroom: 380). Chairs are most of it; drawing chairs as one instanced batch is the fix if Roy's phone is slow.
+- Not yet: the other four pilots, more outdoor pieces (stages, lighting towers, fencing runs, food trucks, bleachers), slopes and trees, tracing with curves, reading an aerial picture automatically.

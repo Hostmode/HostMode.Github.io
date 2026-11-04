@@ -1,0 +1,38 @@
+{
+ "id": "barricade",
+ "name": "Crowd barricade",
+ "category": "Site & power",
+ "tags": [
+  "barricade",
+  "barrier",
+  "fence",
+  "queue",
+  "crowd"
+ ],
+ "events": [
+  "community",
+  "corporate",
+  "graduation",
+  "holiday"
+ ],
+ "styles": [
+  "minimal"
+ ],
+ "size": {
+  "w": 1.99,
+  "d": 0.6,
+  "h": 1.09
+ },
+ "materials": [
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "In lines along entrances, queues, stage fronts and parking edges.",
+ "compatible": [],
+ "modeling": "A steel frame with upright bars and two flat feet.",
+ "priority": "now",
+ "findings": [
+  "crowd_barricades"
+ ],
+ "status": "checked"
+}

@@ -30,8 +30,18 @@ export const MATERIALS = {
   plaster:  { label: "Plaster",  color: "#ece5d8", rough: 0.9, metal: 0 },
   stone:    { label: "Stone",    color: "#b5aea3", rough: 0.8, metal: 0 },
   marble:   { label: "Marble",   color: "#f1efe9", rough: 0.15, metal: 0, coat: 0.6 },
-  parquet:  { label: "Dance floor", color: "#2a2a2e", rough: 0.12, metal: 0.1, coat: 0.8 }
+  parquet:  { label: "Dance floor", color: "#2a2a2e", rough: 0.12, metal: 0.1, coat: 0.8 },
+  // Outdoor ground (an outdoor site's lawn, paths, parking and patios)
+  grass:    { label: "Grass",    color: "#6a9a45", rough: 1, metal: 0 },
+  gravel:   { label: "Gravel",   color: "#b3aa9a", rough: 1, metal: 0 },
+  asphalt:  { label: "Asphalt (parking)", color: "#4a4c52", rough: 0.95, metal: 0 },
+  pavers:   { label: "Pavers",   color: "#b88a6a", rough: 0.85, metal: 0 },
+  dirt:     { label: "Dirt",     color: "#8f6d4b", rough: 1, metal: 0 },
+  sand:     { label: "Sand",     color: "#dcc89e", rough: 1, metal: 0 },
+  mulch:    { label: "Mulch",    color: "#5e3d27", rough: 1, metal: 0 }
 };
+// What an outdoor site's ground can be painted with.
+export const GROUND = ["grass", "gravel", "asphalt", "concrete", "pavers", "dirt", "sand", "mulch"];
 
 // The reusable asset library. Sizes are meters (w = across, d = deep, h = tall). Every shape is drawn in code
 // in editor.js, so there are no third-party models or textures to license.
@@ -126,11 +136,21 @@ export const CATALOG = {
   fog:           { label: "Low fog (dancing on clouds)", cat: "Photo & effects", w: 4.88, d: 4.88, h: 0.4, mat: "fabric", over: true },
   cold_spark:    { label: "Cold spark machine", cat: "Photo & effects", w: 0.32, d: 0.32, h: 2.4, mat: "metal" },
   column:        { label: "Column", cat: "Structure", w: 0.5, d: 0.5, h: 3.6, mat: "stone", structure: true },
-  tent:          { label: "Frame tent (20 × 20 ft)", cat: "Structure", w: 6.1, d: 6.1, h: 3.8, mat: "fabric", over: true }
+  // Tents and shade. eave: how high the roof's edge is; shade: how it shades (a roof, slats, a round canopy), for the sun check.
+  tent:          { label: "Frame tent (20 × 20 ft)", cat: "Tents & shade", w: 6.1, d: 6.1, h: 3.8, mat: "fabric", over: true, eave: 2.44, shade: "roof" },
+  tent_40x60:    { label: "Frame tent (40 × 60 ft)", cat: "Tents & shade", w: 12.19, d: 18.29, h: 5.49, mat: "fabric", over: true, eave: 2.44, shade: "roof" },
+  canopy:        { label: "Pop-up canopy (10 × 10 ft)", cat: "Tents & shade", w: 3.05, d: 3.05, h: 3.05, mat: "fabric", over: true, eave: 2.13, shade: "roof" },
+  pergola:       { label: "Wood pergola (8 × 8 ft)", cat: "Tents & shade", w: 2.44, d: 2.44, h: 2.44, mat: "wood", over: true, eave: 2.44, shade: "slats" },
+  umbrella:      { label: "Market umbrella", cat: "Tents & shade", w: 2.59, d: 2.59, h: 2.74, mat: "fabric", over: true, eave: 1.98, shade: "round" },
+  // An outdoor site's equipment, and the buildings already there (traced from the site, any size)
+  generator:     { label: "Towable generator (20 kW)", cat: "Site & power", w: 3.33, d: 1.51, h: 1.7, mat: "metal" },
+  restroom_trailer: { label: "Restroom trailer (2 stations)", cat: "Site & power", w: 4.27, d: 2.44, h: 3.05, mat: "paint" },
+  barricade:     { label: "Crowd barricade", cat: "Site & power", w: 1.99, d: 0.6, h: 1.09, mat: "metal" },
+  building:      { label: "Existing building", cat: "Site & power", w: 20, d: 12, h: 8, mat: "paint", shade: "box", site: true }
 };
 export const KINDS = Object.keys(CATALOG);
 // The Add tab lists categories in this order: what decorators change most often first.
-export const CAT_ORDER = ["Tables", "Seating", "Balloons", "Backdrops & drapery", "Centerpieces", "Lighting & candles", "Florals & greenery", "Lounge & accents", "Stage & floor", "Food & drink", "Audio & video", "Photo & effects", "Structure"];
+export const CAT_ORDER = ["Tables", "Seating", "Balloons", "Backdrops & drapery", "Centerpieces", "Lighting & candles", "Florals & greenery", "Lounge & accents", "Stage & floor", "Food & drink", "Audio & video", "Photo & effects", "Tents & shade", "Site & power", "Structure"];
 
 // Decorating options. Tables take linens; chairs take covers and sashes. A color of null means none.
 export const DRESS = {
@@ -280,13 +300,19 @@ export function inRoom(scene, it) {
 export function wallLen(w) { return Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]); }
 
 // Named places in the room, for "front", "left", "center"... Front = the stage wall (z = 0) unless a stage says otherwise.
+// Outdoors these are inside the property line (its outline's box) and further in from the edge.
+export function bounds(scene) {
+  const R = scene.room, E = scene.site && scene.site.edge && scene.site.edge.pts;
+  if (!E) return { x0: 0, z0: 0, x1: R.w, z1: R.d };
+  return { x0: Math.max(0, Math.min(...E.map(p => p[0]))), z0: Math.max(0, Math.min(...E.map(p => p[1]))), x1: Math.min(R.w, Math.max(...E.map(p => p[0]))), z1: Math.min(R.d, Math.max(...E.map(p => p[1]))) };
+}
 export function place(scene, where) {
-  const R = scene.room, m = 1.2;
+  const B = bounds(scene), m = scene.site ? 4 : 1.2, cx = (B.x0 + B.x1) / 2, cz = (B.z0 + B.z1) / 2;
   const map = {
-    center: [R.w / 2, R.d / 2], middle: [R.w / 2, R.d / 2],
-    front: [R.w / 2, m], back: [R.w / 2, R.d - m], rear: [R.w / 2, R.d - m],
-    left: [m, R.d / 2], right: [R.w - m, R.d / 2],
-    "front left": [m, m], "front right": [R.w - m, m], "back left": [m, R.d - m], "back right": [R.w - m, R.d - m]
+    center: [cx, cz], middle: [cx, cz],
+    front: [cx, B.z0 + m], back: [cx, B.z1 - m], rear: [cx, B.z1 - m],
+    left: [B.x0 + m, cz], right: [B.x1 - m, cz],
+    "front left": [B.x0 + m, B.z0 + m], "front right": [B.x1 - m, B.z0 + m], "back left": [B.x0 + m, B.z1 - m], "back right": [B.x1 - m, B.z1 - m]
   };
   return map[where] || null;
 }
@@ -295,6 +321,14 @@ export function place(scene, where) {
 // Each op: { op: "add_item", ...args }. apply() checks every op, applies them to a copy, and only returns
 // the new scene if every op passed. Destructive ops need confirm: true (the editor asks the person first).
 export const OPS = {
+  set_site:     "make this an outdoor site, or change it: w, d (meters), ground (grass, gravel, asphalt, concrete, pavers, dirt, sand, mulch), north (degrees north is turned clockwise from up in the top view)",
+  paint_ground: "an area of the site's ground: mat, pts [[x,z],...] or rect {x,z,w,d}, name, id (g_..., to redraw it)",
+  remove_ground:"id, confirm",
+  trace_boundary:"the property line: pts [[x,z],...] (3 or more), src measured|confirmed|estimated; pts [] with confirm removes it",
+  add_building: "an existing building on the site: x, z, w, d, h, rot, label",
+  set_sun:      "where and when, for sun and shade: lat, lng, date YYYY-MM-DD, time HH:MM, tz (hours from UTC), place",
+  set_aerial:   "a picture from above (stored apart): ref, iw, ih, pa and pb (two marks, 0 to 1 across and down), len (meters between them), x, z (its center on the site), rot, opacity",
+  clear_aerial: "confirm",
   set_room:     "w, d, h (meters), floor/walls/ceiling material, wallColor, dimSrc",
   add_wall:     "a [x,z], b [x,z], h, t",
   add_opening:  "type door|window|opening (an open doorway, no door), wall id, at (meters from wall start), w, h, sill",
@@ -369,6 +403,12 @@ export function apply(scene, ops, opts = {}) {
   return { ok: true, scene: s, log, errors, warnings };
 }
 
+function needSite(s) { if (!s.site) throw new Error("this design isn't an outdoor site"); s.site.areas = s.site.areas || []; return s.site; }
+// A list of [x, z] points on the site (a little past its edge is fine), rounded.
+function checkPts(s, pts, min, max, what) {
+  if (!Array.isArray(pts) || pts.length < min || pts.length > max) throw new Error(what + " needs " + min + " to " + max + " points");
+  const m = 2; return pts.map(q => { if (!Array.isArray(q) || q.length !== 2 || !q.every(isNum)) throw new Error(what + " needs [x, z] points"); if (q[0] < -m || q[1] < -m || q[0] > s.room.w + m || q[1] > s.room.d + m) throw new Error(what + " goes off the site"); return [r2(q[0]), r2(q[1])]; });
+}
 function need(o, k) { if (o[k] == null) throw new Error("needs " + k); return o[k]; }
 function num(v, lo, hi, what) { if (!isNum(v) || v < lo || v > hi) throw new Error(what + " must be between " + lo + " and " + hi); return r2(v); }
 function findIt(s, id) { const it = s.items.find(i => i.id === id) || s.lights.find(l => l.id === id); if (!it) throw new Error("there's no object called " + id); return it; }
@@ -378,6 +418,64 @@ function checkPalette(p) { if (typeof p === "string") { if (!PALETTES[p]) throw 
 function moveGroup(s, it, dx, dz) { s.items.forEach(o => { if (o.group === it.id) { o.x = r2(o.x + dx); o.z = r2(o.z + dz); } }); }
 
 const RUN = {
+  // ---- Outdoor sites: the ground, the property line, the sun, an aerial picture (see "Outdoor sites" below) ----
+  set_site(s, o) {
+    const fresh = !s.site, R = s.room;
+    s.site = s.site || { ground: "grass", areas: [], edge: null, sun: null, north: 0 };
+    if (o.w != null) R.w = num(o.w, 5, 400, "site width"); if (o.d != null) R.d = num(o.d, 5, 400, "site length");
+    if (o.ground != null) { if (!GROUND.includes(o.ground)) throw new Error("the ground can be " + GROUND.join(", ")); s.site.ground = o.ground; }
+    if (o.north != null) s.site.north = r2(((num(o.north, -360, 360, "north") % 360) + 360) % 360);
+    if (o.dimSrc) Object.entries(o.dimSrc).forEach(([k, v]) => { if (!DIM_SRC.includes(v)) throw new Error("dimension source must be " + DIM_SRC.join("/")); R.dimSrc[k] = v; });
+    R.floor = s.site.ground; R.h = Math.max(R.h || 0, 30); // no ceiling outdoors: only a sky limit, so tall tents and buildings fit
+    return (fresh ? "Made this an outdoor site, " : "Site set to ") + fmtLen(R.w) + " by " + fmtLen(R.d);
+  },
+  paint_ground(s, o) {
+    const S0 = needSite(s), mat = need(o, "mat"); if (!GROUND.includes(mat)) throw new Error("the ground can be " + GROUND.join(", "));
+    let pts = o.pts; if (o.rect) { const { x, z, w, d } = o.rect; if (![x, z, w, d].every(isNum)) throw new Error("rect needs x, z, w and d"); pts = [[x, z], [x + w, z], [x + w, z + d], [x, z + d]]; }
+    pts = checkPts(s, pts, 3, 60, "an area");
+    if (polyArea(pts) < 0.25) throw new Error("that area is too small");
+    const id = o.id && /^g_[a-z0-9]{1,12}$/.test(o.id) ? o.id : uid("g_"), a = { id, name: String(o.name || MATERIALS[mat].label).trim().slice(0, 40), mat, pts };
+    const k = S0.areas.findIndex(x => x.id === id); if (k >= 0) S0.areas[k] = a; else { if (S0.areas.length >= 60) throw new Error("a site can have 60 painted areas"); S0.areas.push(a); }
+    return (k >= 0 ? "Redrew " : "Painted ") + a.name.toLowerCase() + " (" + Math.round(polyArea(pts) / FT / FT).toLocaleString() + " sq ft)";
+  },
+  remove_ground(s, o) {
+    const S0 = needSite(s); if (!o.confirm) return { error: "removing an area needs an OK" };
+    const a = S0.areas.find(x => x.id === o.id); if (!a) throw new Error("there's no area called " + o.id);
+    S0.areas = S0.areas.filter(x => x !== a); return "Removed " + a.name.toLowerCase();
+  },
+  trace_boundary(s, o) {
+    const S0 = needSite(s);
+    if (!o.pts || !o.pts.length) { if (!o.confirm) return { error: "removing the property line needs an OK" }; S0.edge = null; return "Removed the property line"; }
+    const pts = checkPts(s, o.pts, 3, 200, "the property line"); if (polyArea(pts) < 4) throw new Error("that property line is too small");
+    S0.edge = { pts, src: DIM_SRC.includes(o.src) ? o.src : "estimated" };
+    return "Traced the property line: " + fmtLen(pts.reduce((a, p, i) => a + Math.hypot(p[0] - pts[(i + 1) % pts.length][0], p[1] - pts[(i + 1) % pts.length][1]), 0)) + " around";
+  },
+  add_building(s, o) { return RUN.add_item(s, Object.assign({}, o, { kind: "building", label: o.label || o.name || "Existing building" })); },
+  set_sun(s, o) {
+    const S0 = needSite(s), sun = Object.assign({ lat: 35.2271, lng: -80.8431, date: "2026-06-15", time: "12:00", tz: -4 }, S0.sun || {});
+    if (o.lat != null) sun.lat = num(o.lat, -89, 89, "latitude"); if (o.lng != null) sun.lng = num(o.lng, -180, 180, "longitude");
+    if (o.date != null) { if (!/^\d{4}-\d{2}-\d{2}$/.test(o.date) || isNaN(Date.parse(o.date + "T12:00:00Z"))) throw new Error("the date must look like 2026-06-15"); sun.date = o.date; }
+    if (o.time != null) { const m = String(o.time).match(/^(\d{1,2}):(\d{2})$/); if (!m || +m[1] > 23 || +m[2] > 59) throw new Error("the time must look like 14:30"); sun.time = m[1].padStart(2, "0") + ":" + m[2]; }
+    if (o.tz != null) sun.tz = num(o.tz, -12, 14, "time zone");
+    if (o.place != null) sun.place = String(o.place).trim().slice(0, 60);
+    S0.sun = sun; placeSun(s);
+    const p = sunPosition(sun); return p.elev > 0 ? "The sun at " + clock(sun.time) + " on " + dayName(sun.date) + ": " + Math.round(p.elev) + "° up in the " + compass(p.az) : "At " + clock(sun.time) + " on " + dayName(sun.date) + " the sun is down";
+  },
+  set_aerial(s, o) {
+    const S0 = needSite(s), A = Object.assign({}, S0.aerial || {});
+    if (o.ref != null) { if (!/^ph_[a-z0-9]{3,30}$/.test(o.ref)) throw new Error("that picture reference isn't valid"); A.ref = o.ref; }
+    if (o.iw != null) A.iw = Math.round(num(o.iw, 16, 10000, "picture width")); if (o.ih != null) A.ih = Math.round(num(o.ih, 16, 10000, "picture height"));
+    const uv = (q, what) => { if (!Array.isArray(q) || q.length !== 2 || !q.every(v => isNum(v) && v >= -0.2 && v <= 1.2)) throw new Error(what + " must be on the picture"); return q.map(v => Math.round(v * 10000) / 10000); };
+    if (o.pa != null) A.pa = uv(o.pa, "the first mark"); if (o.pb != null) A.pb = uv(o.pb, "the second mark");
+    if (o.len === null) delete A.len; else if (o.len != null) A.len = num(o.len, 0.5, 3000, "the measured length");
+    if (o.x != null) A.x = num(o.x, -500, 900, "x"); if (o.z != null) A.z = num(o.z, -500, 900, "z"); if (o.rot != null) A.rot = r2(((num(o.rot, -360, 360, "turn") % 360) + 360) % 360);
+    if (o.opacity != null) A.opacity = num(o.opacity, 0.2, 1, "how see-through");
+    if (!A.ref || !A.iw || !A.ih) throw new Error("choose a picture first");
+    if (A.x == null) { A.x = r2(s.room.w / 2); A.z = r2(s.room.d / 2); }
+    S0.aerial = A; const sz = aerialSize(A, s.room);
+    return sz.measured ? "The picture is to scale: " + fmtLen(sz.w) + " × " + fmtLen(sz.d) : "Placed the picture. Mark a length you know to put it to scale.";
+  },
+  clear_aerial(s, o) { const S0 = needSite(s); if (!o.confirm) return { error: "removing the picture needs an OK" }; delete S0.aerial; return "Removed the aerial picture"; },
   // A venue photo to design over (Stage A). The photo itself is stored once beside the design (store.js), never inside it.
   set_photo(s, o) {
     const P = Object.assign({}, s.photo || {});
@@ -475,7 +573,8 @@ const RUN = {
     let x = o.x, z = o.z;
     if (o.where) { const p = place(s, o.where); if (!p) throw new Error("I don't know where " + o.where + " is"); [x, z] = p; }
     const it = mkItem(kind, num(x ?? s.room.w / 2, -1, s.room.w + 1, "x"), num(z ?? s.room.d / 2, -1, s.room.d + 1, "z"), o.rot || 0, { id: o.id || uid("i_") });
-    ["w", "d", "h"].forEach(k => { if (o[k] != null) it[k] = num(o[k], 0.05, 40, k); });
+    const big = CATALOG[kind].site ? 150 : 40; // an existing building can be bigger than any rental piece
+    ["w", "d", "h"].forEach(k => { if (o[k] != null) it[k] = num(o[k], 0.05, big, k); });
     if (o.color) it.color = checkColor(o.color);
     if (o.mat) { if (!MATERIALS[o.mat]) throw new Error("unknown material " + o.mat); it.mat = o.mat; }
     if (o.label) it.label = String(o.label).slice(0, 40);
@@ -520,7 +619,8 @@ const RUN = {
   resize_object(s, o) {
     const it = findIt(s, need(o, "id")); if (!it.w) throw new Error("that can't be resized");
     if (o.scale != null) { const k = num(o.scale, 0.1, 10, "scale"); it.w = r2(it.w * k); it.d = r2(it.d * k); if (!isFloorLayer(it)) it.h = r2(it.h * k); }
-    ["w", "d", "h"].forEach(k => { if (o[k] != null) it[k] = num(o[k], 0.05, 40, k); });
+    const big = (CATALOG[it.kind] || {}).site ? 150 : 40;
+    ["w", "d", "h"].forEach(k => { if (o[k] != null) it[k] = num(o[k], 0.05, big, k); });
     return "Resized " + label(it).toLowerCase() + " to " + fmtLen(it.w) + " × " + fmtLen(it.d);
   },
   duplicate_object(s, o) {
@@ -669,11 +769,11 @@ const RUN = {
 
 // Keep an item inside the room when it's sent to a named spot (a stage sent "front" sits against the front wall).
 function snapInside(s, it, where) {
-  const f = footprint(it), R = s.room, m = 0.25;
-  if (/front/.test(where)) it.z = r2(it.z - f.z0 + m);
-  if (/back|rear/.test(where)) it.z = r2(it.z + (R.d - m - f.z1));
-  if (/left/.test(where)) it.x = r2(it.x - f.x0 + m);
-  if (/right/.test(where)) it.x = r2(it.x + (R.w - m - f.x1));
+  const f = footprint(it), B = bounds(s), m = s.site ? 2 : 0.25;
+  if (/front/.test(where)) it.z = r2(it.z - f.z0 + B.z0 + m);
+  if (/back|rear/.test(where)) it.z = r2(it.z + (B.z1 - m - f.z1));
+  if (/left/.test(where)) it.x = r2(it.x - f.x0 + B.x0 + m);
+  if (/right/.test(where)) it.x = r2(it.x + (B.x1 - m - f.x1));
   if (it.kind === "stage" && /front|back/.test(where)) it.rot = /back/.test(where) ? 180 : 0;
 }
 
@@ -681,8 +781,9 @@ function snapInside(s, it, where) {
 export function checkScene(s) {
   const w = [];
   s.items.forEach(it => {
-    if (!inRoom(s, it)) w.push({ id: it.id, msg: label(it) + " is outside the room" });
+    if (!inRoom(s, it)) w.push({ id: it.id, msg: label(it) + (s.site ? " is outside the site" : " is outside the room") });
   });
+  if (s.site) siteWarnings(s).forEach(x => w.push(x));
   const seen = new Set();
   s.items.forEach(it => {
     if (it.group) return;
@@ -702,8 +803,139 @@ export function validateFile(obj) {
   obj.sets = obj.sets && typeof obj.sets === "object" && !Array.isArray(obj.sets) ? obj.sets : {};
   obj.items.forEach(i => { if (i.set != null && (typeof i.set !== "string" || !obj.sets[i.set])) delete i.set; });
   if (obj.photo != null) { const P = obj.photo; if (!P || typeof P.ref !== "string" || !/^ph_[a-z0-9]{3,30}$/.test(P.ref) || !isNum(P.iw) || !isNum(P.ih) || !Array.isArray(P.pts) || P.pts.length !== 4) delete obj.photo; }
-  delete obj.photo_image; // the photo itself travels only in exported files, and is stored apart when one is opened
+  if (obj.site != null) cleanSite(obj);
+  delete obj.photo_image; delete obj.aerial_image; // the photo itself travels only in exported files, and is stored apart when one is opened
   return obj;
+}
+
+// ---------- Outdoor sites ----------
+// An outdoor design has s.site: {ground, areas: [{id, name, mat, pts}], edge: {pts, src} (the property line), north (degrees
+// north is turned clockwise from straight up in the top view), sun: {lat, lng, date, time, tz, place}, aerial (a picture from
+// above, stored apart like venue photos)}. The room becomes the site's size with a 30 m sky limit and no walls. Indoor designs
+// have no site and work exactly as before. North is -z (up in the top view) unless turned; east is +x.
+export const inPoly = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, zi] = poly[i], [xj, zj] = poly[j]; if ((zi > p[1]) !== (zj > p[1]) && p[0] < (xj - xi) * (p[1] - zi) / (zj - zi) + xi) c = !c; } return c; };
+export function polyArea(pts) { let a = 0; pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; }); return Math.abs(a) / 2; }
+// A piece's four corners on the site.
+export function cornersOf(it) { const a = (it.rot || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a); return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => { const lx = u * it.w / 2, lz = v * it.d / 2; return [it.x + lx * c - lz * sn, it.z + lx * sn + lz * c]; }); }
+// Is a site point inside a piece's footprint (round pieces as circles)?
+function insideIt(it, x, z, round) { const dx = x - it.x, dz = z - it.z; if (round) return Math.hypot(dx, dz) <= it.w / 2; const a = (it.rot || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a), lx = dx * c + dz * sn, lz = -dx * sn + dz * c; return Math.abs(lx) <= it.w / 2 && Math.abs(lz) <= it.d / 2; }
+const boxGap = (A, B) => Math.hypot(Math.max(0, A.x0 - B.x1, B.x0 - A.x1), Math.max(0, A.z0 - B.z1, B.z0 - A.z1));
+// Fire codes commonly ask for 20 ft between generators and tents (see the towable_generators finding); local rules decide.
+const TENT_GAP = 20 * FT;
+function siteWarnings(s) {
+  const w = [], E = s.site.edge && s.site.edge.pts;
+  if (E) s.items.forEach(it => { const C = CATALOG[it.kind] || {}; if (it.group || C.site || C.top) return; if (cornersOf(it).some(p => !inPoly(p, E))) w.push({ id: it.id, msg: label(it) + " is past the property line" }); });
+  const tents = s.items.filter(i => (CATALOG[i.kind] || {}).shade === "roof");
+  s.items.filter(i => i.kind === "generator").forEach(g => { const t = tents.find(t => boxGap(footprint(g), footprint(t)) < TENT_GAP); if (t) w.push({ id: g.id, msg: "The generator is closer than 20 ft to the " + label(t).replace(/ \(.*\)/, "").toLowerCase() + ". Fire codes usually ask for 20 ft: check with the venue and the fire marshal" }); });
+  return w;
+}
+function cleanSite(obj) {
+  const S0 = obj.site; if (!S0 || typeof S0 !== "object" || Array.isArray(S0)) { delete obj.site; return; }
+  const okPts = (p, n) => Array.isArray(p) && p.length >= n && p.length <= 200 && p.every(q => Array.isArray(q) && q.length === 2 && q.every(isNum));
+  if (!GROUND.includes(S0.ground)) S0.ground = "grass";
+  S0.areas = (Array.isArray(S0.areas) ? S0.areas : []).filter(a => a && typeof a.id === "string" && GROUND.includes(a.mat) && okPts(a.pts, 3)).slice(0, 60);
+  S0.areas.forEach(a => { a.name = String(a.name || MATERIALS[a.mat].label).slice(0, 40); });
+  if (S0.edge && !okPts(S0.edge.pts, 3)) S0.edge = null; if (S0.edge && !DIM_SRC.includes(S0.edge.src)) S0.edge.src = "estimated";
+  if (!isNum(S0.north)) S0.north = 0;
+  const u = S0.sun; if (u && !(isNum(u.lat) && isNum(u.lng) && isNum(u.tz) && /^\d{4}-\d{2}-\d{2}$/.test(u.date) && /^\d{2}:\d{2}$/.test(u.time))) S0.sun = null;
+  const A = S0.aerial; if (A && !(typeof A.ref === "string" && /^ph_[a-z0-9]{3,30}$/.test(A.ref) && isNum(A.iw) && isNum(A.ih) && isNum(A.x) && isNum(A.z))) delete S0.aerial;
+}
+
+// Where the sun is: NOAA's general solar position equations (finding sun_position). sun = {lat, lng, date "YYYY-MM-DD",
+// time "HH:MM" local clock time, tz hours from UTC (-4 for summer in Charlotte)}. Returns degrees: elev above the horizon,
+// az clockwise from north. About a degree off at most, which is plenty for shade; it knows nothing about clouds.
+export function sunPosition(sun, time) {
+  const rad = Math.PI / 180, [Y, M, D] = sun.date.split("-").map(Number), [h, mi] = (time || sun.time).split(":").map(Number);
+  const leap = (Y % 4 === 0 && Y % 100 !== 0) || Y % 400 === 0, doy = Math.round((Date.UTC(Y, M - 1, D) - Date.UTC(Y, 0, 1)) / 864e5) + 1;
+  const g = 2 * Math.PI / (leap ? 366 : 365) * (doy - 1 + (h - 12) / 24);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const dec = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const tst = h * 60 + mi + eqt + 4 * sun.lng - 60 * sun.tz, ha = (tst / 4 - 180) * rad, la = sun.lat * rad;
+  const cz = Math.max(-1, Math.min(1, Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(ha)));
+  const az = (Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(la) - Math.sin(la) * Math.cos(ha)) / rad + 360) % 360;
+  return { elev: 90 - Math.acos(cz) / rad, az };
+}
+// The direction toward the sun on the site, as a unit [x, y, z].
+export function sunVec(s, p) { const a = ((p.az + (s.site.north || 0)) % 360) * Math.PI / 180, e = p.elev * Math.PI / 180; return [Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)]; }
+// Keeps the design's sun light where the sun is (the view draws real shadows from it).
+function placeSun(s) {
+  const sun = s.site.sun; if (!sun) return; const p = sunPosition(sun), v = sunVec(s, p), R = s.room, up = p.elev > 0;
+  let L = s.lights.find(l => l.kind === "sun"); if (!L) { L = { id: "L_sun", kind: "sun", color: "#ffffff", name: "Sun" }; s.lights.push(L); }
+  const q = sunVec(s, { az: p.az, elev: Math.max(p.elev, 2) }), k = 60, e = Math.max(p.elev, 2) * Math.PI / 180; // a low sun still lights from just over the horizon
+  L.x = r2(R.w / 2 + q[0] * k); L.y = r2(q[1] * k); L.z = r2(R.d / 2 + q[2] * k);
+  L.intensity = up ? r2(0.9 + 1.4 * Math.min(1, Math.sin(e) * 1.5)) : 0.05; L.color = up && p.elev < 12 ? "#ffc58a" : "#fff4e2";
+}
+const COMPASS = ["north", "north-northeast", "northeast", "east-northeast", "east", "east-southeast", "southeast", "south-southeast", "south", "south-southwest", "southwest", "west-southwest", "west", "west-northwest", "northwest", "north-northwest"];
+export const compass = az => COMPASS[Math.round(az / 22.5) % 16];
+export function clock(t) { const [h, m] = t.split(":").map(Number); return (h % 12 || 12) + (m ? ":" + String(m).padStart(2, "0") : "") + (h < 12 ? " am" : " pm"); }
+export function dayName(d) { const [Y, M, D] = d.split("-").map(Number); return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][M - 1] + " " + D + (Y !== new Date().getFullYear() ? ", " + Y : ""); }
+// How shaded a spot is at height y: 1 under a tent, canopy, umbrella or a building's shadow, 0.5 under pergola slats, 0 in the sun.
+// Each roof is a flat shape at its eave height, so a spot is shaded when the line from it toward the sun passes through a roof.
+export function shadeAt(s, x, z, y, v) {
+  const k = 1 / Math.max(0.03, v[1]); let best = 0;
+  for (const c of s.items) {
+    const C = CATALOG[c.kind] || {}; if (!C.shade) continue;
+    if (C.shade === "box") { for (let t = y; t <= c.h; t += Math.max(0.25, (c.h - y) / 12)) if (insideIt(c, x + v[0] * k * (t - y), z + v[2] * k * (t - y))) return 1; continue; }
+    const hc = C.eave * (c.h / C.h); if (hc <= y) continue;
+    if (insideIt(c, x + v[0] * k * (hc - y), z + v[2] * k * (hc - y), C.shade === "round")) best = Math.max(best, C.shade === "slats" ? 0.5 : 1);
+    if (best === 1) return 1;
+  }
+  return best;
+}
+// The sun check for the Site tab and the Ask box: where the sun is, and how many seats are in shade (a seated head at 1.1 m).
+export function shadeReport(s, time) {
+  const sun = s.site && s.site.sun; if (!sun) return null;
+  const p = sunPosition(sun, time), up = p.elev > 0, v = sunVec(s, p);
+  const seats = s.items.filter(i => i.kind.startsWith("chair") || i.kind === "bench");
+  const sh = seats.map(c => up ? shadeAt(s, c.x, c.z, 1.1, v) : 1), full = sh.filter(x => x === 1).length, part = sh.filter(x => x === 0.5).length;
+  const times = { rise: null, set: null }; let prev = null;
+  for (let m = 0; m <= 24 * 60; m += 5) { const t = String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"), e = sunPosition(sun, t).elev; if (prev != null && prev <= 0 && e > 0 && !times.rise) times.rise = t; if (prev != null && prev > 0 && e <= 0) times.set = t; prev = e; }
+  return { elev: p.elev, az: p.az, up, seats: seats.length, shaded: full, part, sunny: seats.length - full - part, rise: times.rise, set: times.set, seatShade: seats.map((c, i) => [c.id, sh[i]]) };
+}
+// The aerial picture's size on the site: to scale once two marks and the real length between them are given; until then
+// it's stretched to the site's width and marked as a guess.
+export function aerialSize(A, R) {
+  if (A.pa && A.pb && A.len) { const px = Math.hypot((A.pb[0] - A.pa[0]) * A.iw, (A.pb[1] - A.pa[1]) * A.ih); if (px > 4) { const mpp = A.len / px; return { w: A.iw * mpp, d: A.ih * mpp, measured: true }; } }
+  return { w: R.w, d: R.w * A.ih / A.iw, measured: false };
+}
+// A point on the site to a spot on the aerial picture (0 to 1 across and down), for placing the two marks.
+export function siteToAerial(A, R, x, z) { const sz = aerialSize(A, R), a = -(A.rot || 0) * Math.PI / 180, dx = x - A.x, dz = z - A.z, lx = dx * Math.cos(a) - dz * Math.sin(a), lz = dx * Math.sin(a) + dz * Math.cos(a); return [lx / sz.w + 0.5, lz / sz.d + 0.5]; }
+
+// A new outdoor site: an empty lawn, or the corporate luncheon pilot (Gate 1 of the outdoor plan).
+export function sampleSite(kind = "luncheon") {
+  const s = sampleVenue(); s.id = uid("v_"); s.walls = []; s.openings = []; s.items = []; s.lights = []; s.views = []; delete s.sets;
+  const W = kind === "luncheon" ? 70 : 60, D = kind === "luncheon" ? 50 : 40;
+  s.name = kind === "luncheon" ? "Corporate luncheon (sample site)" : "Outdoor site";
+  s.room = { w: W, d: D, h: 30, floor: "grass", walls: "paint", ceiling: "paint", wallColor: "#efe6d8", dimSrc: { w: "estimated", d: "estimated", h: "unknown" } };
+  s.site = { ground: "grass", areas: [], edge: null, sun: null, north: 0 };
+  s.lights.push({ id: "L0", kind: "ambient", color: "#ffffff", intensity: 0.5, name: "Sky light" });
+  RUN.set_sun(s, { date: "2026-05-14", time: "12:30", tz: -4, lat: 35.2271, lng: -80.8431, place: "Charlotte, NC" });
+  s.views = [{ id: "vw1", name: "From the parking lot", pos: [W - 4, 1.65, D - 6], target: [W / 2, 1.5, D / 2] }, { id: "vw2", name: "From above", pos: [W / 2, 38, D + 22], target: [W / 2, 0, D / 2] }];
+  if (kind !== "luncheon") return s;
+  // A company's lawn beside its office: building to the north, parking to the east, a walk and a patio. 120 guests.
+  const area = (id, name, mat, pts) => s.site.areas.push({ id, name, mat, pts });
+  area("g_park", "Parking lot", "asphalt", [[54, 2], [69, 2], [69, 34], [54, 34]]);
+  area("g_drive", "Driveway", "asphalt", [[54, 34], [60, 34], [60, 49.5], [54, 49.5]]);
+  area("g_patio", "Patio", "pavers", [[10, 14], [24, 14], [24, 21], [10, 21]]);
+  area("g_walk", "Front walk", "concrete", [[26.5, 14], [29.5, 14], [29.5, 22.5], [26.5, 22.5]]);
+  area("g_path", "Gravel path to the restrooms", "gravel", [[44, 37.5], [54, 37.5], [54, 39.5], [44, 39.5]]);
+  area("g_beds", "Planting bed", "mulch", [[8, 12.5], [48, 12.5], [48, 14], [8, 14]]);
+  s.site.edge = { pts: [[1, 1], [69.5, 1], [69.5, 49.5], [8, 49.5], [1, 42]], src: "confirmed" };
+  const add = (kind, x, z, rot = 0, extra = {}) => { const it = mkItem(kind, x, z, rot, extra); s.items.push(it); return it; };
+  add("building", 28, 6.6, 0, { id: "bldg", w: 40, d: 11, h: 10, color: "#d9d2c5", label: "Office building" });
+  add("tent_40x60", 29.4, 30, 90, { id: "tent1", label: "Dining tent" });
+  [23.2, 26.3, 29.4, 32.5, 35.6].forEach((x, i) => [26.4, 30, 33.6].forEach((z, j) => { const t = add("table_round", x, z, 0, { id: "t" + (i * 3 + j + 1), color: "#f7f5f0", label: "Table " + (i * 3 + j + 1), dress: { linen: "floor", runner: "satin", runnerColor: "#16255a" } }); s.items.push(...chairsAround(t, 8, "chair_crossback")); }));
+  add("podium", 21.1, 30, 90, { id: "podium1" }); add("speaker", 21, 27.4, 90, { id: "spk1" }); add("speaker", 21, 32.6, 90, { id: "spk2" });
+  add("tent", 42.5, 30, 0, { id: "tent2", label: "Buffet tent" });
+  add("buffet", 42.5, 28.6, 0, { id: "buf1" }); add("buffet", 42.5, 31.4, 180, { id: "buf2" });
+  add("canopy", 28, 20.2, 0, { id: "checkin", label: "Check-in" }); add("welcome_table", 28, 20.6, 0, { id: "wtab", label: "Check-in table" });
+  add("pergola", 14, 17.5, 0, { id: "perg1", label: "Lounge pergola" }); add("sofa", 14, 18.4, 180, { id: "sofa1" }); add("lounge_chair", 12.6, 16.8, 90, { id: "lc1" }); add("lounge_chair", 15.4, 16.8, -90, { id: "lc2" }); add("coffee_table", 14, 17.3, 0, { id: "ct1" });
+  [[45, 17], [48.5, 19], [45.5, 22]].forEach(([x, z], i) => { add("umbrella", x, z, 0, { id: "umb" + (i + 1) }); add("table_cocktail", x, z, 0, { id: "ck" + (i + 1), dress: { linen: "spandex", linenColor: "#ffffff" } }); });
+  add("generator", 61.5, 44, 90, { id: "gen1" });
+  add("restroom_trailer", 50, 42.2, 0, { id: "rest1" });
+  [32.5, 34.5, 36.5].forEach((z, i) => add("barricade", 53, z, 90, { id: "bar" + (i + 1) }));
+  add("plant", 24.8, 15, 0, { id: "pl1" }); add("plant", 31.2, 15, 0, { id: "pl2" });
+  return s;
 }
 
 // ---------- Designing over a venue photo (Stage A) ----------
@@ -770,6 +1002,9 @@ export function fmtLen(m, units = "ft") {
 // reported back instead of guessed. A model (Claude) can send ops JSON directly through the same apply().
 const NUMS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20 };
 const KIND_WORDS = [
+  // outdoor pieces (Nov 4, 2026). Sizes like "40 by 60" are read as "size40x60" first, so they aren't counts
+  [/size40x60|big tent|large tent|dining tent|reception tent/, "tent_40x60"], [/size10x10|pop-?up|canopy|canopies|vendor (?:booth|tent)|check-?in tent/, "canopy"], [/pergolas?/, "pergola"],
+  [/umbrellas?/, "umbrella"], [/generators?/, "generator"], [/restrooms?|bathrooms?|toilets?|porta|portable potty/, "restroom_trailer"], [/barricades?|barriers?|bike racks?|crowd control/, "barricade"], [/buildings?/, "building"],
   // the pieces added Nov 3, 2026 first: their names are more specific than the older words below ("LED wall behind the stage" is an LED wall)
   [/throne/, "chair_throne"], [/banquet chairs?|stack(?:able|ing) chairs?|hotel chairs?/, "chair_banquet"], [/\bbench(?:es)?\b/, "bench"],
   [/serpentine|s-?curve|curved tables?/, "table_serpentine"], [/sweetheart/, "table_sweetheart"], [/head table|wedding party table/, "table_head"],
@@ -778,7 +1013,7 @@ const KIND_WORDS = [
   [/lanterns?/, "lanterns"], [/spot ?lights?/, "spotlight"], [/welcome table|guest ?book table|sign-?in table/, "welcome_table"], [/pedestals?|plinths?/, "pedestals"], [/sculpture|statue/, "sculpture"], [/shel(?:f|ves|ving)|bookcase/, "display_shelf"],
   [/aisle runner|walkway/, "aisle_runner"], [/dessert (?:table|display|bar)|sweets? table|candy (?:bar|table)/, "dessert_table"],
   [/led (?:wall|screen)|video wall/, "led_wall"], [/projector|projection/, "projector"], [/threesixty|three sixty/, "booth_360"], [/photo ?booth|selfie booth/, "photo_booth"],
-  [/\bfog\b|dry ice|dancing on (?:the )?clouds/, "fog"], [/cold sparks?|spark(?:ler)? (?:machine|fountain)s?|\bsparks?\b/, "cold_spark"], [/\btents?\b|canopy/, "tent"],
+  [/\bfog\b|dry ice|dancing on (?:the )?clouds/, "fog"], [/cold sparks?|spark(?:ler)? (?:machine|fountain)s?|\bsparks?\b/, "cold_spark"], [/\btents?\b/, "tent"],
   [/balloon (?:wall|backdrop)/, "balloon_wall"], [/balloon columns?|balloon towers?/, "balloon_column"], [/balloon garland|organic balloon/, "balloon_arch"], [/balloon arch|balloons?/, "balloon_full_arch"],
   [/flower wall|floral wall/, "flower_wall"], [/shimmer|sequin wall/, "shimmer_wall"], [/pipe (?:and|&) drape|drapes? panel/, "pipe_drape"], [/ceiling (?:drap|swag)|draping/, "ceiling_drape"],
   [/string lights?|bistro lights?|fairy lights?/, "string_lights"], [/chandeliers?/, "chandelier"], [/uplights?/, "uplight"], [/floor candles?|pillar candles?/, "candle_floor"],
@@ -811,6 +1046,15 @@ export function interpret(scene, text) {
 
   for (let p of parts) {
     p = p.trim().replace(/\b360(?=[ -]*(?:degree|booth|video|camera|photo|spin))/g, "threesixty"); // "a 360 booth" is one booth, not 360
+    p = p.replace(/\b(\d+)\s*(?:x|by|×)\s*(\d+)(?:\s*(?:ft|foot|feet|'))?/g, "size$1x$2"); // "a 40 by 60 tent" is one tent of that size
+    // Outdoors: "show the shade at 3 pm", "where's the sun at 10:30 am on june 14"
+    if (scene.site && /\b(?:sun|shade|shady|shadows?|sunny)\b/.test(p)) {
+      const tm = p.match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)/) || (/\bnoon\b/.test(p) ? [0, "12", "00", "pm"] : null), op = { op: "set_sun" };
+      if (tm) { let h = +tm[1] % 12; if (/p/.test(tm[3])) h += 12; op.time = String(h).padStart(2, "0") + ":" + (tm[2] || "00"); }
+      const MON = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], dm = p.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b/);
+      if (dm) op.date = (scene.site.sun ? scene.site.sun.date.slice(0, 4) : "2026") + "-" + String(MON.indexOf(dm[1]) + 1).padStart(2, "0") + "-" + dm[2].padStart(2, "0");
+      if (op.time || op.date) { ops.push(op); const after = apply(scene, [...ops]); if (after.ok) { const r = shadeReport(after.scene); if (r) notes.push(r.up ? Math.round(r.elev) + "° up in the " + compass(r.az) + (r.seats ? ": " + r.shaded + " of " + r.seats + " seats in shade" : "") : "the sun is down then"); } continue; }
+    }
     const where = (p.match(WHERE) || [])[1] === "middle" ? "center" : (p.match(WHERE) || [])[1];
     const cols = colorsIn(p);
     // Carpet: "carpet the room", "navy carpet", "plain gray carpet", "change the floor to carpet" (a rug is a piece, not the floor)
@@ -904,7 +1148,7 @@ export function interpret(scene, text) {
       }
       const existing = find(k);
       if (existing && (k === "stage" || k === "dance_floor") && count === 1) { ops.push({ op: "move_object", id: existing.id, where: w2 || "center" }); pendingCenter = existing.id; notes.push("there's already a " + CATALOG[k].label.toLowerCase() + ", so I moved it"); continue; }
-      for (let i = 0; i < count; i++) { const id = uid("i_"); ops.push(Object.assign({ op: "add_item", kind: k, where: w2 || "center", id }, extra)); if (i) ops.push({ op: "move_object", id, dx: (i % 2 ? 1 : -1) * Math.ceil(i / 2) * (CATALOG[k].w + 0.4) }); if (k === "stage" || k === "dance_floor") pendingCenter = id; }
+      for (let i = 0; i < count; i++) { const id = uid("i_"); ops.push(Object.assign({ op: "add_item", kind: k, where: w2 || "center", id }, extra)); if (i) ops.push({ op: "move_object", id, dx: (/left/.test(w2 || "") ? 1 : /right/.test(w2 || "") ? -1 : (i % 2 ? 1 : -1)) * (/left|right/.test(w2 || "") ? i : Math.ceil(i / 2)) * (CATALOG[k].w + 0.4) }); if (k === "stage" || k === "dance_floor") pendingCenter = id; }
       continue;
     }
     // "change the tablecloths to dark purple", "make the chairs gold", "paint the walls navy"

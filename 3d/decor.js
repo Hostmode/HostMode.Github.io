@@ -101,6 +101,15 @@ function surface(name) {
     const n = fbm(N, name === "paint" ? 32 : 6, name === "paint" ? 2 : 5, name.length * 7), amt = { concrete: 40, polished: 30, stone: 50, plaster: 18, paint: 6 }[name];
     col = fromField(N, n, v => { const b = 255 - amt + v * amt; return [b, b, b]; });
     hgt = fromField(N, n, v => [v * 255, v * 255, v * 255]); span = name === "paint" ? 0.6 : 2.5; bump = { concrete: 2, polished: 0.6, stone: 4, plaster: 2.5, paint: 0.8 }[name];
+  } else if (["grass", "dirt", "sand", "mulch", "gravel", "asphalt"].includes(name)) { // outdoor ground: speckled or mottled, tinted by its color
+    const [base, oct, seed, amt, bp, sp] = { grass: [64, 3, 31, 70, 4, 4], dirt: [8, 5, 37, 50, 3, 3], sand: [16, 4, 41, 30, 1.5, 3], mulch: [32, 4, 43, 80, 5, 1.5], gravel: [128, 2, 47, 90, 4, 1], asphalt: [128, 2, 53, 36, 1.2, 2.5] }[name];
+    const n = fbm(N, base, oct, seed), big = fbm(N, 2, 3, seed + 1), h = new Float32Array(N * N);
+    for (let i = 0; i < N * N; i++) h[i] = n[i] * 0.72 + big[i] * 0.28;
+    col = fromField(N, h, v => { const b = 255 - amt + v * amt; return [b, b, b]; }); hgt = fromField(N, n, v => [v * 255, v * 255, v * 255]); span = sp; bump = bp;
+  } else if (name === "pavers") { // running-bond pavers, 30 by 15 cm, with sunken joints
+    const [c, g] = cv(N), [hc, hg] = cv(N), r = rng(29), bw = 128, bh = 64; g.fillStyle = "#8c8c8c"; g.fillRect(0, 0, N, N); hg.fillStyle = "#000"; hg.fillRect(0, 0, N, N);
+    for (let y = 0, row = 0; y < N; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < N; x += bw) { const t = 196 + r() * 59 | 0; g.fillStyle = `rgb(${t},${t},${t})`; g.fillRect(x + 3, y + 3, bw - 6, bh - 6); hg.fillStyle = "#d8d8d8"; hg.fillRect(x + 4, y + 4, bw - 8, bh - 8); }
+    col = c; hgt = hc; span = 1.2; bump = 3;
   } else { TEX[name] = null; return null; }
   const map = new T.CanvasTexture(col); map.colorSpace = T.SRGBColorSpace; (window.__texT = window.__texT || {})[name] = performance.now() - t0;
   const nrm = new T.CanvasTexture(normalFrom(heightField(hgt), N, bump));
@@ -446,6 +455,28 @@ function beam(g, from, dir, len, r0, r1, color) {
 const lathe = (pts, seg = 24) => new T.LatheGeometry(pts.map(([x, y]) => new T.Vector2(x, y)), seg);
 const glow = c => flat(c, { emissive: hex(c), emissiveIntensity: 2.5 });
 
+// Frame tents and pop-up canopies, any size: legs about every 10 ft round the edge (a canopy has four, with braces), a valance,
+// and a hip roof you can see through (a pyramid when square). Outdoors the roof casts real shade.
+function hipRoof(W, D, rise) {
+  const r = Math.abs(D - W) / 2, alongZ = D >= W, A = [-W / 2, 0, -D / 2], B = [W / 2, 0, -D / 2], C = [W / 2, 0, D / 2], E = [-W / 2, 0, D / 2];
+  const P = alongZ ? [0, rise, -r] : [-r, rise, 0], Q = alongZ ? [0, rise, r] : [r, rise, 0], tri = [];
+  if (alongZ) tri.push(A, B, P, C, E, Q, B, C, Q, B, Q, P, E, A, P, E, P, Q); else tri.push(E, A, P, B, C, Q, A, B, Q, A, Q, P, C, E, P, C, P, Q);
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(tri.flat(), 3)); g.setAttribute("uv", new T.Float32BufferAttribute(tri.flatMap(v => [v[0] / 2, v[2] / 2]), 2)); g.computeVertexNormals(); return g;
+}
+function buildTent(g, it, scene) {
+  const W = it.w, D = it.d, H = it.h, C = S.CATALOG[it.kind], eave = C.eave * Math.min(1, H / C.h), pole = material("metal", "#d8d8dc"), cloth = material("fabric", it.color || "#ffffff", { side: T.DoubleSide, size: 2 });
+  const step = it.kind === "canopy" ? 99 : 3.05, nx = Math.max(1, Math.round(W / step)), nz = Math.max(1, Math.round(D / step)), r = it.kind === "canopy" ? 0.025 : 0.04;
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) if (i === 0 || j === 0 || i === nx || j === nz) g.add(cyl(r, r, eave, pole, -W / 2 + i * W / nx, 0, -D / 2 + j * D / nz, 8));
+  const vh = it.kind === "canopy" ? 0.2 : 0.3;
+  [[W, vh, 0.02, 0, -D / 2], [W, vh, 0.02, 0, D / 2], [0.02, vh, D, -W / 2, 0], [0.02, vh, D, W / 2, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cloth, x, eave - vh, z)));
+  if (it.kind === "canopy") [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([a, b, c2, d2]) => g.add(stick(new T.Vector3(a * W / 2, eave - 0.05, b * D / 2), new T.Vector3((a + c2) * W / 4, eave - 0.45, (b + d2) * D / 4), 0.012, pole, 5)));
+  const out = !!(scene && scene.site), k = "tentroof|" + (it.color || "") + HI + out; if (!matCache.has(k)) matCache.set(k, new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: out ? 0.8 : 0.72, depthWrite: false, side: T.DoubleSide }));
+  const roof = mesh(hipRoof(W, D, H - eave), matCache.get(k)); roof.position.y = eave; roof.castShadow = out; roof.receiveShadow = false; roof.userData.keep = roof.userData.thru = true; g.add(roof);
+  const rr = Math.abs(D - W) / 2, top = D >= W ? [[0, -rr], [0, rr]] : [[-rr, 0], [rr, 0]];
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => { const t = (D >= W ? b : a) > 0 ? 1 : 0; g.add(stick(new T.Vector3(a * W / 2, eave, b * D / 2), new T.Vector3(top[t][0], H, top[t][1]), 0.025, pole, 6)); });
+  if (rr > 0.1) g.add(stick(new T.Vector3(top[0][0], H, top[0][1]), new T.Vector3(top[1][0], H, top[1][1]), 0.03, pole, 6));
+}
+
 // ---------- Everything else ----------
 const palOf = (it, def) => (it.palette && it.palette.length ? it.palette : def);
 // Parts of one piece that share a material are joined into one mesh, so a phone draws a chair in 2 or 3 goes instead of 14.
@@ -720,13 +751,48 @@ export function buildItem(it, scene) {
       const r = rng(103), sp = []; for (let i = 0; i < 320; i++) { const t = Math.pow(r(), 0.8), y = 0.34 + t * (H - 0.4), a = r() * 6.3, rad = 0.02 + t * 0.18 + (t > 0.85 ? (t - 0.85) * 1.6 : 0) * r(); sp.push({ p: [Math.cos(a) * rad, y - (t > 0.85 ? r() * 0.4 : 0), Math.sin(a) * rad], s: 0.006 + r() * 0.006 }); }
       const m = inst(DOT, glow("#ffd27a"), sp); m.castShadow = false; m.userData.thru = true; g.add(m); lightHere(g, "#ffc46b", 2, 4, 1.2); break;
     }
-    case "tent": { // eight poles, a valance and a pyramid roof you can see through, so you can still design inside
-      const pole = material("metal", "#d8d8dc"), eave = 2.44, cloth = material("fabric", it.color || "#ffffff", { side: T.DoubleSide, size: 2 });
-      [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(0.04, 0.04, eave, pole, a * W / 2, 0, b * D / 2, 10)));
-      [[W, 0.3, 0.02, 0, -D / 2], [W, 0.3, 0.02, 0, D / 2], [0.02, 0.3, D, -W / 2, 0], [0.02, 0.3, D, W / 2, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cloth, x, eave - 0.3, z)));
-      const k = "tentroof|" + (it.color || "") + HI; if (!matCache.has(k)) matCache.set(k, new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: 0.72, depthWrite: false, side: T.DoubleSide }));
-      const roof = mesh(new T.ConeGeometry(Math.hypot(W, D) / 2, H - eave, 4, 1, true), matCache.get(k)); roof.rotation.y = Math.PI / 4; roof.position.y = eave + (H - eave) / 2; roof.castShadow = false; roof.userData.keep = roof.userData.thru = true; g.add(roof);
-      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(stick(new T.Vector3(a * W / 2, eave, b * D / 2), new T.Vector3(0, H, 0), 0.025, pole, 6))); break;
+    case "tent": case "tent_40x60": case "canopy": buildTent(g, it, scene); break;
+    case "pergola": { // four posts on base plates, two beams, a row of slats
+      const wd = material("wood", it.color, { size: 2 }), P = 0.14, bh = 0.2;
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const x = a * (W / 2 - P), z = b * (D / 2 - P); g.add(box(P, H - bh, P, wd, x, 0, z)); g.add(box(0.3, 0.02, 0.3, dark, x, 0, z)); });
+      [-1, 1].forEach(b => g.add(box(W + 0.3, bh, 0.08, wd, 0, H - bh, b * (D / 2 - P))));
+      const n = Math.max(4, Math.round(W / 0.3)); for (let k = 0; k < n; k++) g.add(box(0.05, 0.14, D + 0.3, wd, -W / 2 + (k + 0.5) * W / n, H - 0.14, 0)); break;
+    }
+    case "umbrella": { // a pole, ribs and an eight-sided canopy
+      const pole = material("wood", "#8a6440", { size: 1 }), cloth = material("fabric", it.color || "#f4f1ea", { side: T.DoubleSide, size: 2 }), eave = C.eave * H / C.h, R = W / 2;
+      g.add(cyl(0.025, 0.025, H - 0.05, pole, 0, 0, 0, 10)); g.add(cyl(0.25, 0.28, 0.08, dark, 0, 0, 0, 16));
+      const top = mesh(new T.ConeGeometry(R, H - 0.08 - eave, 8, 1, true), cloth); top.position.y = eave + (H - 0.08 - eave) / 2; g.add(top);
+      g.add(cyl(0.03, 0.01, 0.1, pole, 0, H - 0.1, 0, 8)); break;
+    }
+    case "generator": { // an enclosure on a two-wheel trailer, with vents and a tow bar
+      const body = material("paint", it.color || "#e3e1d6", { size: 2 }), blk = material("metal", "#2b2c30"), L = W - 0.9, bx = 0.25;
+      g.add(box(L + 0.1, 0.12, D - 0.2, blk, bx, 0.38, 0)); g.add(rbox(L, H - 0.55, D - 0.3, 0.05, body, bx, 0.5, 0));
+      [-1, 1].forEach(sd => { for (let k = 0; k < 6; k++) g.add(box(L * 0.5, 0.03, 0.01, blk, bx + L * 0.12, 0.75 + k * 0.12, sd * ((D - 0.3) / 2 + 0.006))); const w = cyl(0.3, 0.3, 0.2, blk, 0, 0, 0, 16); w.rotation.x = Math.PI / 2; w.position.set(bx, 0.3, sd * (D / 2 - 0.1)); g.add(w); });
+      g.add(stick(new T.Vector3(bx - L / 2, 0.44, 0), new T.Vector3(-W / 2 + 0.05, 0.44, 0), 0.04, blk, 6)); g.add(box(0.06, 0.44, 0.06, blk, -W / 2 + 0.35, 0, 0)); break;
+    }
+    case "restroom_trailer": { // a box trailer: two doors with steps, a roof edge, wheels
+      const body = material("paint", it.color || "#f1efe8", { size: 3 }), trim = material("wood", "#6f4b30", { size: 1 }), blk = material("metal", "#2b2c30"), y0 = 0.55;
+      g.add(box(W, H - y0 - 0.1, D, body, 0, y0, 0)); g.add(box(W + 0.06, 0.1, D + 0.06, trim, 0, H - 0.1, 0)); g.add(box(W + 0.02, 0.12, D + 0.02, trim, 0, y0, 0));
+      [-1, 1].forEach(sd => { const x = sd * W / 4; g.add(box(0.8, 2.0, 0.04, trim, x, y0 + 0.1, D / 2 + 0.01)); g.add(box(1.1, 0.18, 0.6, blk, x, y0 - 0.2, D / 2 + 0.3)); g.add(box(1.1, 0.18, 0.3, blk, x, y0 - 0.4, D / 2 + 0.75)); g.add(box(0.35, 0.18, 0.02, flat("#1a2b4a"), x, y0 + 2.15, D / 2 + 0.02)); });
+      [-1, 1].forEach(sd => { const w = cyl(0.32, 0.32, 0.22, blk, 0, 0, 0, 16); w.rotation.x = Math.PI / 2; w.position.set(0, 0.32, sd * (D / 2 - 0.15)); g.add(w); });
+      g.add(box(W * 0.9, 0.08, D * 0.9, blk, 0, 0.42, 0)); break;
+    }
+    case "barricade": { // steel bike-rack barricade: a frame of tubes with upright bars, on two flat feet
+      const st = material("metal", it.color || "#b9bcc2"), fh = 0.12;
+      [fh, H].forEach(y => g.add(stick(new T.Vector3(-W / 2, y, 0), new T.Vector3(W / 2, y, 0), 0.019, st, 6)));
+      [-1, 1].forEach(a => g.add(stick(new T.Vector3(a * W / 2, fh, 0), new T.Vector3(a * W / 2, H, 0), 0.019, st, 6)));
+      const n = 12; for (let k = 1; k < n; k++) { const x = -W / 2 + k * W / n; g.add(stick(new T.Vector3(x, fh, 0), new T.Vector3(x, H, 0), 0.01, st, 5)); }
+      [-1, 1].forEach(a => g.add(box(0.05, 0.03, D, st, a * (W / 2 - 0.15), 0, 0))); break;
+    }
+    case "building": { // the site's own building, plainly: walls, a flat roof with a parapet, rows of windows, glass front doors
+      const wall = material("paint", it.color || "#d9d2c5", { size: Math.max(W, D) }), roof = material("concrete", "#8c8c88", { size: Math.max(W, D) }), glass = flat("#3d4d60", { roughness: 0.2, metalness: 0.4 }), cap = material("paint", "#b8b0a2", { size: 2 });
+      g.add(box(W, H, D, wall)); g.add(box(W - 0.3, 0.02, D - 0.3, roof, 0, H, 0));
+      [[W, 0.6, 0.15, 0, -D / 2 + 0.075], [W, 0.6, 0.15, 0, D / 2 - 0.075], [0.15, 0.6, D, -W / 2 + 0.075, 0], [0.15, 0.6, D, W / 2 - 0.075, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cap, x, H, z)));
+      const floors = Math.max(1, Math.floor((H - 0.6) / 3.4));
+      const row = (len, put) => { const n = Math.max(1, Math.floor(len / 3)); for (let k = 0; k < n; k++) for (let f = 0; f < floors; f++) put(-len / 2 + (k + 0.5) * len / n, 0.95 + f * 3.4); };
+      row(W, (u, y) => { if (!(y < 2 && Math.abs(u) < 1.6)) g.add(box(1.4, 1.6, 0.05, glass, u, y, D / 2)); g.add(box(1.4, 1.6, 0.05, glass, u, y, -D / 2)); });
+      row(D, (u, y) => { g.add(box(0.05, 1.6, 1.4, glass, W / 2, y, u)); g.add(box(0.05, 1.6, 1.4, glass, -W / 2, y, u)); });
+      g.add(box(2.4, 2.4, 0.06, glass, 0, 0, D / 2 + 0.01)); g.add(box(3.4, 0.15, 1.4, cap, 0, 2.7, D / 2 + 0.7)); break;
     }
     default: g.add(box(W, H, D, main));
   }

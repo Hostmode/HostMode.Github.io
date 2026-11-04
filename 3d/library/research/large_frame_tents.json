@@ -1,0 +1,30 @@
+{
+ "id": "large_frame_tents",
+ "topic": "Large frame tents (40 ft wide)",
+ "events": [
+  "wedding",
+  "birthday",
+  "graduation",
+  "community",
+  "corporate",
+  "holiday"
+ ],
+ "summary": "A 40 by 60 ft frame tent covers 2,400 sq ft. Rental listings give up to 192 seated at 24 round tables, or 144 when a quarter of the space goes to a dance floor, stage, buffet or bar; one lists 200 at banquet rounds and 400 theater style. Legs come 8, 10 or 12 ft tall, and one listing gives 18 ft to the top. Frame tents have no center poles.",
+ "sources": [
+  {
+   "url": "https://knightspartyrental.com/inventory/tents/large-frame-tents",
+   "title": "Large frame tents: sizes, seating and leg heights (Knights Party Rental)"
+  },
+  {
+   "url": "https://skyhighpartyrentals.com/40ft-x-60ft-tent",
+   "title": "40 ft x 60 ft frame tent (Sky High Party Rentals)"
+  },
+  {
+   "url": "https://americantent.com/blogs/now-trending/40x60-tent-layout",
+   "title": "40x60 tent layouts (American Tent)"
+  }
+ ],
+ "confidence": "high",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-04"
+}

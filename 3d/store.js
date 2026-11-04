@@ -99,6 +99,7 @@ export class Store {
   revision(id, t) { const r = ls.get("r_" + id, []).find(x => x.t === t); return r ? validateFile(JSON.parse(JSON.stringify(r.s))) : null; }
   async remove(id) {
     const cur = ls.get("p_" + id, null); if (cur && cur.photo && cur.photo.ref) await this.removePhoto(cur.photo.ref); // a removed design takes its photo with it
+    if (cur && cur.site && cur.site.aerial && cur.site.aerial.ref) await this.removePhoto(cur.site.aerial.ref); // and an outdoor site its aerial picture
     ls.del("p_" + id); ls.del("r_" + id); const idx = ls.get("index", {}); delete idx[id]; ls.set("index", idx);
     if (this.status === "cloud") { const b = "planners/" + this.uid; const up = {}; up[b + "/venue3d/" + id] = null; up[b + "/venue3dIndex/" + id] = null; up[b + "/venue3dRev/" + id] = null; await this.db.ref().update(up); }
   }

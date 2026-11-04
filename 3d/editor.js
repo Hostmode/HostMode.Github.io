@@ -6,6 +6,7 @@ import { Store } from "./store.js";
 import { material, buildItem, box, setQuality, resetLights } from "./decor.js";
 
 const $ = (q, el = document) => el.querySelector(q);
+const SKY = "#bcd6ee"; // outdoor sites: a pale blue sky that fades the far lawn
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 // ---------- Graphics check: WebGL2 is the renderer; WebGPU is only detected and reported for now ----------
@@ -116,23 +117,28 @@ export class Editor {
     this.tc.detach();
     W.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
     W.clear(); this.objs = new Map();
-    const R = s.room;
+    const R = s.room, out = !!s.site;
     const fl = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.floor, R.floorColor, { size: [R.w, R.d] }));
     fl.rotation.x = -Math.PI / 2; fl.position.set(R.w / 2, 0, R.d / 2); fl.receiveShadow = true; fl.userData.floor = true; W.add(fl); this.floorMesh = fl;
     // In the Photo view the real floor shows instead: this see-through floor only darkens where shadows fall
     const sc = new T.Mesh(new T.PlaneGeometry(R.w * 3, R.d * 3), new T.ShadowMaterial({ opacity: 0.3 })); sc.rotation.x = -Math.PI / 2; sc.position.set(R.w / 2, 0.001, R.d / 2); sc.receiveShadow = true; sc.userData.floor = true; sc.visible = false; W.add(sc); this.shadowCatch = sc;
-    const ground = new T.Mesh(new T.PlaneGeometry(R.w * 6, R.d * 6), new T.MeshStandardMaterial({ color: "#c9cfdb", roughness: 1 }));
+    // Outdoors the lawn (or the site's ground) carries on past the site, a shade darker; indoors it's a plain grey surround.
+    const ground = new T.Mesh(new T.PlaneGeometry(R.w * 6, R.d * 6), out ? material(s.site.ground, S.MATERIALS[s.site.ground].color === "#6a9a45" ? "#5c8a3c" : null, { size: [R.w * 6, R.d * 6] }) : new T.MeshStandardMaterial({ color: "#c9cfdb", roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(R.w / 2, -0.01, R.d / 2); ground.receiveShadow = true; W.add(ground); this.groundMesh = ground;
     const ce = new T.Mesh(new T.PlaneGeometry(R.w, R.d), material(R.ceiling, R.ceilingColor || "#f4f1ea", { size: [R.w, R.d] }));
-    ce.rotation.x = Math.PI / 2; ce.position.set(R.w / 2, R.h, R.d / 2); ce.userData.ceiling = true; W.add(ce); this.ceil = ce; // faces down, so it vanishes when seen from above
+    ce.rotation.x = Math.PI / 2; ce.position.set(R.w / 2, R.h, R.d / 2); ce.userData.ceiling = true; ce.userData.none = out; W.add(ce); this.ceil = ce; // faces down, so it vanishes when seen from above; outdoors there's none
+    this.scene3.fog = out ? new T.Fog(SKY, Math.max(R.w, R.d) * 2.2, Math.max(R.w, R.d) * 6) : null;
+    if (out) this.buildSite();
     this.walls = s.walls.map(w => { const g = buildWall(s, w); W.add(g); return g; });
     resetLights(); s.items.forEach(it => { const g = buildItem(it, s); W.add(g); this.objs.set(it.id, g); });
     this.lightObjs = [];
     s.lights.forEach(L => {
       let l;
-      if (L.kind === "ambient") { l = new T.HemisphereLight("#ffffff", "#b9a88f", L.intensity * 2); W.add(l); return; }
+      if (L.kind === "ambient") { l = out ? new T.HemisphereLight("#d6e8ff", "#6f7f4f", L.intensity * 2) : new T.HemisphereLight("#ffffff", "#b9a88f", L.intensity * 2); W.add(l); return; }
       if (L.kind === "sun") { l = new T.DirectionalLight(L.color, L.intensity); l.position.set(L.x, L.y, L.z); l.target.position.set(R.w / 2, 0, R.d / 2); W.add(l.target);
-        l.castShadow = true; const c = l.shadow.camera, e = Math.max(R.w, R.d); c.left = -e; c.right = e; c.top = e; c.bottom = -e; c.far = 80; l.shadow.mapSize.set(2048, 2048); l.shadow.bias = -0.0005; }
+        // outdoors the shadow box just covers the site, seen from where the sun is (set_sun keeps the light there)
+        l.castShadow = true; const c = l.shadow.camera, e = out ? Math.hypot(R.w, R.d) / 2 + 4 : Math.max(R.w, R.d); c.left = -e; c.right = e; c.top = e; c.bottom = -e; c.far = out ? 140 : 80; l.shadow.mapSize.set(2048, 2048); l.shadow.bias = -0.0005; if (out) l.shadow.normalBias = 0.03;
+        if (out) { W.add(l); return; } } // the sun has no marker to tap: it's moved from the Site tab
       if (L.kind === "point") { l = new T.PointLight(L.color, L.intensity, L.range || 10, 1.6); l.position.set(L.x, L.y, L.z); }
       if (L.kind === "spot") { l = new T.SpotLight(L.color, L.intensity, 30, T.MathUtils.degToRad(L.angle || 30), 0.4, 1.4); l.position.set(L.x, L.y, L.z); l.target.position.set(L.tx, L.ty, L.tz); W.add(l.target); l.castShadow = this.quality === "high"; l.shadow.mapSize.set(1024, 1024); }
       W.add(l);
@@ -141,13 +147,56 @@ export class Editor {
       this.objs.set(L.id, bulb); this.lightObjs.push(bulb);
     });
     this.lightObjs.forEach(b => b.visible = this.showLights !== false && this.view !== "walk" && this.view !== "photo");
-    this.photoGrid = null; this.syncPhoto();
+    this.photoGrid = null; this.syncPhoto(); this.drawTrace(); this.drawSunMarks();
     if (keepGrp) {
       const set = keepGrp.set && s.sets && s.sets[keepGrp.set] ? keepGrp.set : null;
       const ids = set ? S.setMembers(s, set) : keepGrp.ids.filter(id => this.objs.has(id));
       if (ids.length) { this.selectGroup(ids, set); return; }
     }
     if (keepSel && this.objs.has(keepSel)) this.select(keepSel); else this.select(null);
+  }
+
+  // ---- Outdoor sites: painted ground, the property line, the aerial picture ----
+  buildSite() {
+    const s = this.s, S0 = s.site, W = this.world, A = S0.aerial, R = s.room;
+    if (A && this.aerialTex && this.aerialRef === A.ref) {
+      const sz = S.aerialSize(A, R), m = new T.MeshStandardMaterial({ map: this.aerialTex, roughness: 1, transparent: (A.opacity ?? 1) < 1, opacity: A.opacity ?? 1 });
+      const o = new T.Mesh(new T.PlaneGeometry(sz.w, sz.d), m); o.rotation.x = -Math.PI / 2; o.rotation.z = -(A.rot || 0) * Math.PI / 180; o.position.set(A.x, 0.003, A.z); o.receiveShadow = true; o.userData.floor = true; W.add(o);
+    } else if (A && this.aerialRef !== A.ref && !this.aerialLoading) this.loadAerial();
+    S0.areas.forEach((a, i) => {
+      const geo = new T.ShapeGeometry(new T.Shape(a.pts.map(([x, z]) => new T.Vector2(x, -z))));
+      const o = new T.Mesh(geo, material(a.mat, null, { size: 1, side: T.DoubleSide, opacity: A ? 0.55 : undefined })); o.rotation.x = -Math.PI / 2; o.position.y = 0.006 + i * 0.003; o.receiveShadow = true; o.userData.floor = true; W.add(o);
+    });
+    if (S0.edge) { // the property line: an orange dashed line with a stake at each corner
+      const P = S0.edge.pts, pts = [...P, P[0]].map(([x, z]) => new T.Vector3(x, 0.08, z)), ln = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineDashedMaterial({ color: "#f6892f", dashSize: 1.2, gapSize: 0.7 }));
+      ln.computeLineDistances(); W.add(ln); const stake = material("paint", "#f6892f");
+      P.forEach(([x, z]) => { const c = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 0.9, 8), stake); c.position.set(x, 0.45, z); c.castShadow = true; W.add(c); });
+    }
+  }
+  async loadAerial() {
+    const A = this.s.site && this.s.site.aerial; if (!A) return; this.aerialLoading = true;
+    try { const url = await this.store.loadPhoto(A.ref); this.aerialMissing = !url; if (url) { const img = new Image(); img.src = url; await img.decode(); const t = new T.Texture(img); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = true; if (this.aerialTex) this.aerialTex.dispose(); this.aerialTex = t; } this.aerialRef = A.ref; }
+    catch (e) { this.aerialMissing = true; this.aerialRef = A.ref; }
+    this.aerialLoading = false; if (this.s.site && this.s.site.aerial && this.s.site.aerial.ref === this.aerialRef) { this.build(); this.emit({ aerial: true }); }
+  }
+  // The points being traced, drawn over everything: dots and the line joining them (closed for a shape, open for two marks).
+  setTrace(pts, closed = true) { this.tracePts = pts; this.traceClosed = closed; this.drawTrace(); }
+  drawTrace() {
+    if (this.traceG) { this.scene3.remove(this.traceG); this.traceG.traverse(o => o.geometry && o.geometry.dispose()); this.traceG = null; }
+    const P = this.tracePts; if (!P || !P.length) return;
+    const g = new T.Group(), dot = new T.MeshBasicMaterial({ color: "#f6892f", depthTest: false }), r = Math.max(0.25, Math.max(this.s.room.w, this.s.room.d) / 120);
+    P.forEach(([x, z], i) => { const m = new T.Mesh(new T.CylinderGeometry(r, r, 0.05, 16), i ? dot : new T.MeshBasicMaterial({ color: "#16255a", depthTest: false })); m.position.set(x, 0.12, z); m.renderOrder = 20; g.add(m); });
+    if (P.length > 1) { const pts = (this.traceClosed && P.length > 2 ? [...P, P[0]] : P).map(([x, z]) => new T.Vector3(x, 0.12, z)); const l = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: "#f6892f", depthTest: false })); l.renderOrder = 20; g.add(l); }
+    this.scene3.add(g); this.traceG = g;
+  }
+  // Small orange discs over the seats that are in the sun, so shade can be checked even in Fast mode (no shadows drawn).
+  setSunMarks(on) { this.sunMarksOn = !!on; this.drawSunMarks(); }
+  drawSunMarks() {
+    if (this.sunG) { this.world.remove(this.sunG); this.sunG = null; }
+    if (!this.sunMarksOn || !this.s.site) return; const r = S.shadeReport(this.s); if (!r || !r.up) return;
+    const sunny = r.seatShade.filter(([, v]) => v < 1).map(([id, v]) => [this.s.items.find(i => i.id === id), v]); if (!sunny.length) return;
+    const geo = new T.CylinderGeometry(0.16, 0.16, 0.02, 12), mat = new T.MeshBasicMaterial({ color: "#f6892f" }), im = new T.InstancedMesh(geo, mat, sunny.length), M = new T.Matrix4();
+    sunny.forEach(([c, v], i) => { M.makeScale(v ? 0.6 : 1, 1, v ? 0.6 : 1); M.setPosition(c.x, 1.3, c.z); im.setMatrixAt(i, M); }); im.userData.thru = true; this.world.add(im); this.sunG = im;
   }
 
   // ---- Cameras ----
@@ -160,7 +209,7 @@ export class Editor {
     else { ["position", "left", "top", "width", "height"].forEach(k => cv.style[k] = ""); }
     this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.fitOrtho();
   }
-  fitOrtho() { const R = this.s ? this.s.room : { w: 20, d: 15, h: 4 }, el = this.r.domElement, a = el.clientWidth / Math.max(1, el.clientHeight); const span = (this.view === "top" ? Math.max(R.w / a, R.d) : Math.max((this.view === "side" ? R.d : R.w) / a, R.h * 1.4)) * 0.6; Object.assign(this.ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); this.ortho.updateProjectionMatrix(); }
+  fitOrtho() { const R = this.s ? this.s.room : { w: 20, d: 15, h: 4 }, el = this.r.domElement, a = el.clientWidth / Math.max(1, el.clientHeight), hh = this.s && this.s.site ? 8 : R.h; const span = (this.view === "top" ? Math.max(R.w / a, R.d) : Math.max((this.view === "side" ? R.d : R.w) / a, hh * 1.4)) * 0.6; Object.assign(this.ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); this.ortho.updateProjectionMatrix(); }
   frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); }
   setView(v) {
     if (v === "photo" && !(this.s.photo && this.photoImg)) v = "orbit";
@@ -203,7 +252,7 @@ export class Editor {
     const on = this.view === "photo" && this.s && this.s.photo && this.photoImg, P = on ? this.s.photo : null;
     if (on && !this.photoEl) { const im = document.createElement("img"); im.className = "v3-photo"; im.alt = ""; im.setAttribute("aria-hidden", "true"); im.style.position = "absolute"; im.style.pointerEvents = "none"; im.style.objectFit = "fill"; this.r.domElement.parentElement.insertBefore(im, this.r.domElement); this.photoEl = im; }
     if (this.photoEl) { this.photoEl.style.display = on ? "block" : "none"; if (on && this.photoEl.src !== this.photoImg.src) this.photoEl.src = this.photoImg.src; if (on) ["left", "top", "width", "height"].forEach(k => this.photoEl.style[k] = this.r.domElement.style[k]); } // same box as the canvas, even the first time
-    this.scene3.background = on ? null : new T.Color("#dfe3ec"); this.r.setClearColor(0x000000, on ? 0 : 1);
+    this.scene3.background = on ? null : new T.Color(this.s && this.s.site ? SKY : "#dfe3ec"); this.r.setClearColor(0x000000, on ? 0 : 1);
     this.r.domElement.parentElement.classList.toggle("photo", !!on);
     if (!this.floorMesh) return;
     [this.floorMesh, this.groundMesh].forEach(m => m.visible = !on); this.shadowCatch.visible = !!on;
@@ -250,7 +299,7 @@ export class Editor {
     // Dollhouse: in the 3D view, hide walls that stand between the camera and the room.
     const cp = this.cam.position;
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
-    this.ceil.visible = this.view === "walk";
+    this.ceil.visible = this.view === "walk" && !this.ceil.userData.none;
     if (this.view === "photo") this.walls.forEach(g => g.visible = false); else this.walls.forEach(g => { if (g.userData.knee) g.visible = true; });
     this.r.render(this.scene3, this.cam);
   }
@@ -280,6 +329,8 @@ export class Editor {
     const rc = this.r.domElement.getBoundingClientRect();
     const p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
     this.ray.setFromCamera(p, this.cam);
+    // Tracing (the property line, a ground area, marks on the aerial picture): a tap gives a spot on the ground, not a piece
+    if (this.groundTap) { const hit = this.ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), new T.Vector3()); if (hit) this.groundTap([+hit.x.toFixed(2), +hit.z.toFixed(2)]); return; }
     const hits = this.ray.intersectObjects(this.world.children, true).filter(h => h.object.visible);
     for (const h of hits) { if (h.object.userData.thru) continue; /* tent roofs, fog, sparks and light beams: tap what's behind them */ let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent; if (o && o.userData.id) { this.tapped(o.userData.id); return; } if (h.object.userData.floor) break; }
     if (!this.picking) this.select(null);
