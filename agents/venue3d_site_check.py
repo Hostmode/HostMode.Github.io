@@ -25,16 +25,23 @@ def tap_ground(pg, pts):
 
 def picture(path):
     # a 1000 x 800 "site plan" (plain shapes), so the test needs no outside picture
-    try:
-        from PIL import Image, ImageDraw
-        im = Image.new("RGB", (1000, 800), (120, 160, 90)); d = ImageDraw.Draw(im); d.rectangle([100, 100, 600, 260], fill=(200, 200, 200)); d.rectangle([700, 80, 950, 700], fill=(70, 70, 75)); im.save(path, "JPEG")
-    except ImportError:
-        open(path, "wb").write(base64.b64decode("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=="))
+    # written as a PNG with the standard library only: the old fallback was a hand-typed 1 x 1 JPEG that browsers could refuse, which made this check hang in CI where Pillow isn't installed
+    import struct, zlib
+    W, H = 1000, 800
+    def px(x, y):
+        if 100 <= x <= 600 and 100 <= y <= 260: return (200, 200, 200)
+        if 700 <= x <= 950 and 80 <= y <= 700: return (70, 70, 75)
+        return (120, 160, 90)
+    rows = b"".join(b"\x00" + b"".join(bytes(px(x, y)) for x in range(W)) for y in range(H))
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    open(path, "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(rows, 6)) + chunk(b"IEND", b""))
 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(); os.makedirs(out, exist_ok=True)
     chrome = os.environ.get("TEST_CHROME", "")
-    pic = os.path.join(out, "site-plan.jpg"); picture(pic)
+    pic = os.path.join(out, "site-plan.png"); picture(pic)
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=chrome if chrome and os.path.exists(chrome) else None, args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
         errs = []
@@ -73,7 +80,7 @@ def main():
         a = pg.evaluate("(() => { const a = hm3d.scene().site.areas.slice(-1)[0]; let s = 0; a.pts.forEach((p, i) => { const q = a.pts[(i + 1) % a.pts.length]; s += p[0] * q[1] - q[0] * p[1]; }); return [a.mat, Math.abs(s) / 2]; })()")
         ok(a[0] == "gravel" and abs(a[1] - 50) < 2, "a gravel area drawn by tapping four corners is about 50 m² (%.1f)" % a[1])
         # an aerial picture: choose it, mark two spots 40 m apart, type the real length (131.2 ft = 40 m... typed as 200 ft here)
-        pg.set_input_files("#aeFile", pic); pg.wait_for_function("hm3d.scene().site.aerial && hm3d.editor.aerialTex", timeout=60000); pg.wait_for_timeout(800)
+        pg.set_input_files("#aeFile", pic); pg.wait_for_function("hm3d.scene().site.aerial && hm3d.editor.aerialTex", timeout=180000, polling=500); pg.wait_for_timeout(800)
         ok(pg.evaluate("hm3d.editor.world.children.some(o => o.material && o.material.map === hm3d.editor.aerialTex)"), "the chosen picture lies on the ground")
         pg.click("[data-x=trMarks]"); pg.wait_for_timeout(400); tap_ground(pg, [[15, 25], [55, 25]]); pg.click("[data-x=trDone]"); pg.wait_for_timeout(500)
         pg.fill("#aeLen", "200"); pg.press("#aeLen", "Tab"); pg.wait_for_timeout(800)
@@ -89,7 +96,7 @@ def main():
         ok(not pg.evaluate("document.documentElement.scrollWidth > innerWidth"), "no sideways scrolling at phone width")
         # save, reopen: the site and its picture come back
         pg.evaluate("hm3d.save()"); pg.wait_for_timeout(400); pg.reload(); pg.wait_for_function("window.hm3d && hm3d.editor.s && hm3d.editor.s.site", timeout=120000)
-        pg.wait_for_function("!!hm3d.editor.aerialTex", timeout=60000)
+        pg.wait_for_function("!!hm3d.editor.aerialTex", timeout=180000, polling=500)
         ok(pg.evaluate("hm3d.scene().site.edge.pts.length === 4 && hm3d.scene().site.areas.some(a => a.mat === 'gravel')"), "after closing and reopening, the site, its line, its areas and its picture come back")
         # Start over on an outdoor design: a fresh sample site, and the picture is deleted from the device
         pg.click(".tabs [data-tab=file]"); pg.click("[data-x=reset]"); pg.wait_for_timeout(200); pg.click("[data-x=reset]")
