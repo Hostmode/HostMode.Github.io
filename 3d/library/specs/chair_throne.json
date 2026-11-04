@@ -1,0 +1,42 @@
+{
+ "id": "chair_throne",
+ "name": "Throne chair",
+ "category": "Seating",
+ "tags": [
+  "throne",
+  "statement",
+  "guest of honor"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday"
+ ],
+ "styles": [
+  "glam",
+  "romantic",
+  "classic"
+ ],
+ "size": {
+  "w": 0.92,
+  "d": 0.72,
+  "h": 1.8
+ },
+ "materials": [
+  "gold",
+  "velvet"
+ ],
+ "colors": "Any color",
+ "placement": "Behind a sweetheart table or as a photo spot.",
+ "compatible": [],
+ "modeling": "Arched extruded back with a velvet panel and buttons, rolled arms, turned legs.",
+ "priority": "now",
+ "findings": [
+  "throne_chairs"
+ ],
+ "status": "checked"
+}

@@ -1,0 +1,40 @@
+{
+ "id": "table_garland",
+ "name": "Table garland",
+ "category": "Centerpieces",
+ "tags": [
+  "garland",
+  "greenery runner"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday"
+ ],
+ "styles": [
+  "garden",
+  "rustic",
+  "boho"
+ ],
+ "size": {
+  "w": 1.8,
+  "d": 0.35,
+  "h": 0.12
+ },
+ "materials": [
+  "greenery"
+ ],
+ "colors": "Any color",
+ "placement": "Down the middle of a long table.",
+ "compatible": [],
+ "modeling": "Instanced leaves along a wavy line with a few blooms.",
+ "priority": "now",
+ "findings": [
+  "decor_trends_2026"
+ ],
+ "status": "checked"
+}

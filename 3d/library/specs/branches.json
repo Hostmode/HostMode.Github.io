@@ -1,0 +1,39 @@
+{
+ "id": "branches",
+ "name": "Branch centerpiece",
+ "category": "Centerpieces",
+ "tags": [
+  "branches",
+  "manzanita",
+  "tall"
+ ],
+ "events": [
+  "wedding",
+  "gala",
+  "holiday",
+  "anniversary"
+ ],
+ "styles": [
+  "glam",
+  "modern",
+  "garden"
+ ],
+ "size": {
+  "w": 0.8,
+  "d": 0.8,
+  "h": 1.1
+ },
+ "materials": [
+  "paint",
+  "glass"
+ ],
+ "colors": "Any color",
+ "placement": "On a guest table.",
+ "compatible": [],
+ "modeling": "Recursive branches from a glass vase with hanging crystals.",
+ "priority": "now",
+ "findings": [
+  "decor_trends_2026"
+ ],
+ "status": "checked"
+}

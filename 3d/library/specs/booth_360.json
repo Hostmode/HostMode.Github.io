@@ -1,0 +1,41 @@
+{
+ "id": "booth_360",
+ "name": "360 video booth",
+ "category": "Photo & effects",
+ "tags": [
+  "360 booth",
+  "video"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday",
+  "corporate"
+ ],
+ "styles": [
+  "playful",
+  "modern",
+  "glam"
+ ],
+ "size": {
+  "w": 1.2,
+  "d": 1.2,
+  "h": 2.1
+ },
+ "materials": [
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "Near the dance floor, with room around it.",
+ "compatible": [],
+ "modeling": "Round platform with a lit edge and a turning camera arm.",
+ "priority": "now",
+ "findings": [
+  "photo_booths"
+ ],
+ "status": "checked"
+}

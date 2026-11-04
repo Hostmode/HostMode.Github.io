@@ -1,0 +1,37 @@
+{
+ "id": "spotlight",
+ "name": "Spotlight",
+ "category": "Lighting & candles",
+ "tags": [
+  "spotlight",
+  "beam",
+  "stage"
+ ],
+ "events": [
+  "wedding",
+  "gala",
+  "corporate",
+  "graduation"
+ ],
+ "styles": [
+  "modern",
+  "glam"
+ ],
+ "size": {
+  "w": 0.6,
+  "d": 0.6,
+  "h": 2.0
+ },
+ "materials": [
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "Aimed at the couple, a cake or a stage.",
+ "compatible": [],
+ "modeling": "Tripod stand, tilted head, a real spotlight and a faint beam.",
+ "priority": "now",
+ "findings": [
+  "led_walls_projection"
+ ],
+ "status": "checked"
+}

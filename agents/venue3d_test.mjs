@@ -147,6 +147,24 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(!fb.length && !sb.length, findings.length + " saved findings and " + specs.length + " saved specs are valid" + (fb.length || sb.length ? ": " + JSON.stringify(fb.concat(sb).slice(0, 3)) : ""));
 }
 
+// Phase 4 (Nov 3, 2026): new pieces, chairs that face their table, curved and one-sided tables, tents, the Ask box, search.
+{
+  const A = await import("../3d/library/assets.js"), base = S.sampleVenue();
+  const t = S.mkItem("table_round", 5, 5, 0, { id: "ft" }), faces = S.chairsAround(t, 8).every(c => { const a = c.rot * Math.PI / 180, fx = -Math.sin(a), fz = Math.cos(a); return fx * (t.x - c.x) + fz * (t.z - c.z) > 0.9 * Math.hypot(t.x - c.x, t.z - c.z); });
+  ok(faces, "every chair around a round table faces the table (side chairs used to face sideways)");
+  const sp = S.mkItem("table_serpentine", 5, 5, 90, { id: "sp" }), cx = 5 - 0.915, ring = S.chairsAround(sp, 4);
+  ok(ring.length === 4 && ring.every(c => Math.abs(Math.hypot(c.x - (5 + 0.915), c.z - (5 - 0.915)) - (sp.w + 0.3)) < 0.01 || Math.abs(Math.hypot(c.x - cx, c.z - cx) - (sp.w + 0.3)) < 0.01), "serpentine chairs sit along its outer curve");
+  const hd = S.mkItem("table_head", 5, 5, 0, { id: "hd" }), hc = S.chairsAround(hd, 12);
+  ok(hc.every(c => c.z < hd.z && c.rot === 0) && new Set(hc.map(c => c.x.toFixed(2))).size === 12, "a head table seats everyone on one side, facing the room");
+  let r = S.apply(base, [{ op: "add_item", kind: "tent", id: "tn", x: base.room.w / 2, z: base.room.d / 2 }]);
+  ok(r.ok && !r.warnings.some(w => /Tent|overlaps.*tent/i.test(w.msg)), "a tent over tables doesn't count as bumping into them");
+  const say = q => (S.interpret(base, q).ops || []).map(o => o.kind || o.to).join(",");
+  ok(say("Add a throne chair") === "chair_throne" && say("Add an LED wall behind the stage") === "led_wall" && say("Add a 360 booth") === "booth_360" && say("Add an aisle runner") === "aisle_runner" && say("Switch to banquet chairs") === "chair_banquet" && say("Put bud vases on every table") === "bud_vases",
+    "the Ask box knows the new pieces (throne, LED wall, 360 booth, aisle runner, banquet chairs, bud vases)");
+  r = S.apply(base, S.interpret(base, "Add an LED wall behind the stage").ops); ok(r.ok && !r.warnings.some(w => /outside/.test(w.msg)), "a piece put behind the stage stays inside the room");
+  ok(A.searchAssets("baby shower").some(a => a.id === "chair_throne") && A.searchAssets("weddings").length > 40 && A.searchAssets("glasses").some(a => a.id === "champagne_wall"), "search understands event words, plurals and everyday names");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

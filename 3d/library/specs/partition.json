@@ -1,0 +1,39 @@
+{
+ "id": "partition",
+ "name": "Room divider",
+ "category": "Backdrops & drapery",
+ "tags": [
+  "divider",
+  "screen",
+  "partition"
+ ],
+ "events": [
+  "wedding",
+  "corporate",
+  "gala",
+  "community"
+ ],
+ "styles": [
+  "boho",
+  "classic",
+  "modern"
+ ],
+ "size": {
+  "w": 1.8,
+  "d": 0.45,
+  "h": 1.9
+ },
+ "materials": [
+  "wood",
+  "fabric"
+ ],
+ "colors": "Any color",
+ "placement": "To hide service areas or make a lounge corner.",
+ "compatible": [],
+ "modeling": "Four framed panels in a zigzag.",
+ "priority": "now",
+ "findings": [
+  "decor_trends_2026"
+ ],
+ "status": "checked"
+}

@@ -1,0 +1,27 @@
+{
+ "id": "banquet_chairs_benches",
+ "topic": "Banquet chairs and benches",
+ "events": [
+  "wedding",
+  "corporate",
+  "gala",
+  "community",
+  "graduation",
+  "holiday",
+  "shower"
+ ],
+ "summary": "Stackable banquet chairs are the hotel ballroom standard: about 17 in wide, 22 in deep, 36.75 in tall, seat about 19 in, padded fabric or vinyl on a silver or black frame. Wooden farm benches about 96 by 14 in seat 4 to 5 adults and suit rustic ceremonies and family-style tables.",
+ "sources": [
+  {
+   "url": "https://www.webstaurantstore.com/lancaster-table-seating-square-back-banquet-chair-with-black-vinyl-and-silver-vein-frame/164BNQSQBLKV.html",
+   "title": "Square Back Banquet Chair (WebstaurantStore)"
+  },
+  {
+   "url": "https://all-occasion-rentals.com/products/farm-bench",
+   "title": "Farm Bench 96 in (All Occasion Rentals)"
+  }
+ ],
+ "confidence": "high",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-03"
+}

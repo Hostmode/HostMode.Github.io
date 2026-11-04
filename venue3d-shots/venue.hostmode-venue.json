@@ -1,0 +1,1661 @@
+{
+ "schema": "hostmode.venue3d",
+ "version": 1,
+ "id": "v_ybokro",
+ "name": "Sample ballroom",
+ "units": "ft",
+ "created": 1793763885228,
+ "updated": 1793763988364,
+ "room": {
+  "w": 18.3,
+  "d": 13.7,
+  "h": 4.3,
+  "floor": "oak",
+  "walls": "plaster",
+  "ceiling": "paint",
+  "wallColor": "#efe6d8",
+  "dimSrc": {
+   "w": "confirmed",
+   "d": "confirmed",
+   "h": "estimated"
+  }
+ },
+ "walls": [
+  {
+   "id": "w1",
+   "name": "Front wall",
+   "a": [
+    0,
+    0
+   ],
+   "b": [
+    18.3,
+    0
+   ],
+   "h": 4.3,
+   "t": 0.2,
+   "mat": "paint",
+   "color": "#efe6d8"
+  },
+  {
+   "id": "w2",
+   "name": "Right wall",
+   "a": [
+    18.3,
+    0
+   ],
+   "b": [
+    18.3,
+    13.7
+   ],
+   "h": 4.3,
+   "t": 0.2,
+   "mat": "paint",
+   "color": "#efe6d8"
+  },
+  {
+   "id": "w3",
+   "name": "Back wall",
+   "a": [
+    18.3,
+    13.7
+   ],
+   "b": [
+    0,
+    13.7
+   ],
+   "h": 4.3,
+   "t": 0.2,
+   "mat": "paint",
+   "color": "#efe6d8"
+  },
+  {
+   "id": "w4",
+   "name": "Left wall",
+   "a": [
+    0,
+    13.7
+   ],
+   "b": [
+    0,
+    0
+   ],
+   "h": 4.3,
+   "t": 0.2,
+   "mat": "paint",
+   "color": "#efe6d8"
+  }
+ ],
+ "openings": [
+  {
+   "id": "o1",
+   "type": "door",
+   "wall": "w3",
+   "at": 9.15,
+   "w": 1.83,
+   "h": 2.44,
+   "sill": 0,
+   "name": "Main doors"
+  },
+  {
+   "id": "o2",
+   "type": "door",
+   "wall": "w2",
+   "at": 2.5,
+   "w": 0.91,
+   "h": 2.13,
+   "sill": 0,
+   "name": "Service door"
+  },
+  {
+   "id": "o3",
+   "type": "window",
+   "wall": "w4",
+   "at": 3,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  },
+  {
+   "id": "o4",
+   "type": "window",
+   "wall": "w4",
+   "at": 6.85,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  },
+  {
+   "id": "o5",
+   "type": "window",
+   "wall": "w4",
+   "at": 10.7,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  },
+  {
+   "id": "o6",
+   "type": "window",
+   "wall": "w3",
+   "at": 4,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  },
+  {
+   "id": "o7",
+   "type": "window",
+   "wall": "w3",
+   "at": 13.5,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  },
+  {
+   "id": "o8",
+   "type": "window",
+   "wall": "w3",
+   "at": 14.3,
+   "w": 1.5,
+   "h": 2,
+   "sill": 0.9
+  }
+ ],
+ "items": [
+  {
+   "id": "stage1",
+   "kind": "stage",
+   "x": 9.15,
+   "z": 2.08,
+   "y": 0,
+   "rot": 0,
+   "w": 6.1,
+   "d": 3.66,
+   "h": 0.6,
+   "mat": "wood",
+   "color": null
+  },
+  {
+   "id": "dance1",
+   "kind": "dance_floor",
+   "x": 9.15,
+   "z": 6.85,
+   "y": 0,
+   "rot": 0,
+   "w": 4.88,
+   "d": 4.88,
+   "h": 0.03,
+   "mat": "parquet",
+   "color": null
+  },
+  {
+   "id": "bar1",
+   "kind": "bar",
+   "x": 17.1,
+   "z": 10.5,
+   "y": 0,
+   "rot": -90,
+   "w": 2.44,
+   "d": 0.7,
+   "h": 1.07,
+   "mat": "wood",
+   "color": null
+  },
+  {
+   "id": "i_ml0ahw",
+   "kind": "table_round",
+   "x": 5.03,
+   "z": 5.53,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 1",
+   "dress": {
+    "linen": "lap",
+    "runner": "satin",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_ktoezl",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 6.61,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "sash": "#efc7c2",
+    "cover": "none"
+   }
+  },
+  {
+   "id": "i_g8ymr7",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 6.294,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_6f5qwj",
+   "kind": "chair",
+   "x": 6.11,
+   "z": 5.53,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_861bvz",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 4.766,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_467fp7",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 4.45,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_g4rg51",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 4.766,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_nkv60j",
+   "kind": "chair",
+   "x": 3.95,
+   "z": 5.53,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ahajo6",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 6.294,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_ml0ahw",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_mbp633",
+   "kind": "table_round",
+   "x": 5.03,
+   "z": 8.75,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 2",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_90i7kr",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 9.83,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_5elcbo",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 9.514,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_35e4op",
+   "kind": "chair",
+   "x": 6.11,
+   "z": 8.75,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_i7eb0i",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 7.986,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_qbaqhc",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 7.67,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_7sn8vj",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 7.986,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_wzcrwx",
+   "kind": "chair",
+   "x": 3.95,
+   "z": 8.75,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_zs985a",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 9.514,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_mbp633",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_fw7kuo",
+   "kind": "table_round",
+   "x": 8.25,
+   "z": 11.97,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 3",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_7snbp3",
+   "kind": "chair",
+   "x": 8.25,
+   "z": 13.05,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ln38vl",
+   "kind": "chair",
+   "x": 9.014,
+   "z": 12.734,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_qnz4k1",
+   "kind": "chair",
+   "x": 9.33,
+   "z": 11.97,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_b6t9ja",
+   "kind": "chair",
+   "x": 9.014,
+   "z": 11.206,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_a4wu8s",
+   "kind": "chair",
+   "x": 8.25,
+   "z": 10.89,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_sxwnam",
+   "kind": "chair",
+   "x": 7.486,
+   "z": 11.206,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_uz7u79",
+   "kind": "chair",
+   "x": 7.17,
+   "z": 11.97,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_vnio2e",
+   "kind": "chair",
+   "x": 7.486,
+   "z": 12.734,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_fw7kuo",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_hhysse",
+   "kind": "table_round",
+   "x": 11.47,
+   "z": 11.97,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 4",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_lt80gm",
+   "kind": "chair",
+   "x": 11.47,
+   "z": 13.05,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_vfz4il",
+   "kind": "chair",
+   "x": 12.234,
+   "z": 12.734,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_m75opi",
+   "kind": "chair",
+   "x": 12.55,
+   "z": 11.97,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_432ciw",
+   "kind": "chair",
+   "x": 12.234,
+   "z": 11.206,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_gy2ft0",
+   "kind": "chair",
+   "x": 11.47,
+   "z": 10.89,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_4wh0re",
+   "kind": "chair",
+   "x": 10.706,
+   "z": 11.206,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_5hyv54",
+   "kind": "chair",
+   "x": 10.39,
+   "z": 11.97,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_8btacd",
+   "kind": "chair",
+   "x": 10.706,
+   "z": 12.734,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_hhysse",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_xx3p8o",
+   "kind": "table_round",
+   "x": 14.69,
+   "z": 5.53,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 5",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_8cn5mv",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 6.61,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_riqcr1",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 6.294,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_5fote9",
+   "kind": "chair",
+   "x": 15.77,
+   "z": 5.53,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_7zabd7",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 4.766,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ttkl2g",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 4.45,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_r9jass",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 4.766,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_xw3bhz",
+   "kind": "chair",
+   "x": 13.61,
+   "z": 5.53,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_w9py8o",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 6.294,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_xx3p8o",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_qff4xq",
+   "kind": "table_round",
+   "x": 14.69,
+   "z": 8.75,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 6",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_7a04rf",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 9.83,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_b85rve",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 9.514,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_25u85w",
+   "kind": "chair",
+   "x": 15.77,
+   "z": 8.75,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_8z7qk7",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 7.986,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_rq1hrj",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 7.67,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_xwk72g",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 7.986,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_om6692",
+   "kind": "chair",
+   "x": 13.61,
+   "z": 8.75,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_fo4t3y",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 9.514,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_qff4xq",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_7gh55b",
+   "kind": "table_round",
+   "x": 5.03,
+   "z": 11.97,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 7",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_9t0hl0",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 13.05,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ux565p",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 12.734,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_gtrbki",
+   "kind": "chair",
+   "x": 6.11,
+   "z": 11.97,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_blqfv5",
+   "kind": "chair",
+   "x": 5.794,
+   "z": 11.206,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ek7pwr",
+   "kind": "chair",
+   "x": 5.03,
+   "z": 10.89,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_u3lb0z",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 11.206,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_ovd1mm",
+   "kind": "chair",
+   "x": 3.95,
+   "z": 11.97,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_bblahu",
+   "kind": "chair",
+   "x": 4.266,
+   "z": 12.734,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_7gh55b",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_upmf19",
+   "kind": "table_round",
+   "x": 14.69,
+   "z": 2.31,
+   "y": 0,
+   "rot": 0,
+   "w": 1.52,
+   "d": 1.52,
+   "h": 0.76,
+   "mat": "fabric",
+   "color": "#f7f5f0",
+   "label": "Table 8",
+   "dress": {
+    "linen": "lap",
+    "linenColor": "#f7f5f0",
+    "overlay": "none",
+    "runner": "satin",
+    "charger": null,
+    "napkin": null
+   }
+  },
+  {
+   "id": "i_a69ylx",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 3.39,
+   "y": 0,
+   "rot": 180,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_uqbd5b",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 3.074,
+   "y": 0,
+   "rot": 135,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_drv4i1",
+   "kind": "chair",
+   "x": 15.77,
+   "z": 2.31,
+   "y": 0,
+   "rot": 90,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_pfurwd",
+   "kind": "chair",
+   "x": 15.454,
+   "z": 1.546,
+   "y": 0,
+   "rot": 45,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_i0yi6b",
+   "kind": "chair",
+   "x": 14.69,
+   "z": 1.23,
+   "y": 0,
+   "rot": 0,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_y6c0no",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 1.546,
+   "y": 0,
+   "rot": 315,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_kon7sd",
+   "kind": "chair",
+   "x": 13.61,
+   "z": 2.31,
+   "y": 0,
+   "rot": 270,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_d57n75",
+   "kind": "chair",
+   "x": 13.926,
+   "z": 3.074,
+   "y": 0,
+   "rot": 225,
+   "w": 0.42,
+   "d": 0.45,
+   "h": 0.9,
+   "mat": "gold",
+   "color": null,
+   "group": "i_upmf19",
+   "dress": {
+    "cover": "none",
+    "sash": "#efc7c2"
+   }
+  },
+  {
+   "id": "i_9qf3mu",
+   "kind": "balloon_full_arch",
+   "x": 9.15,
+   "z": 6.85,
+   "y": 0,
+   "rot": 0,
+   "w": 3,
+   "d": 0.7,
+   "h": 3,
+   "mat": "fabric",
+   "color": null,
+   "palette": [
+    "#16255a",
+    "#f6892f",
+    "#2f8a4c",
+    "#ffffff"
+   ]
+  }
+ ],
+ "lights": [
+  {
+   "id": "L0",
+   "kind": "ambient",
+   "color": "#ffffff",
+   "intensity": 0.35,
+   "name": "Room fill"
+  },
+  {
+   "id": "L1",
+   "kind": "sun",
+   "x": -6,
+   "y": 9,
+   "z": 4,
+   "color": "#ffefe1",
+   "intensity": 1.2,
+   "name": "Daylight"
+  },
+  {
+   "id": "L2",
+   "kind": "point",
+   "x": 4.575,
+   "y": 4,
+   "z": 4.566666666666666,
+   "color": "#ffb16e",
+   "intensity": 6,
+   "range": 12,
+   "name": "Chandelier 1"
+  },
+  {
+   "id": "L3",
+   "kind": "point",
+   "x": 13.725000000000001,
+   "y": 4,
+   "z": 4.566666666666666,
+   "color": "#ffb16e",
+   "intensity": 6,
+   "range": 12,
+   "name": "Chandelier 2"
+  },
+  {
+   "id": "L4",
+   "kind": "point",
+   "x": 4.575,
+   "y": 4,
+   "z": 9.133333333333333,
+   "color": "#ffb16e",
+   "intensity": 6,
+   "range": 12,
+   "name": "Chandelier 3"
+  },
+  {
+   "id": "L5",
+   "kind": "point",
+   "x": 13.725000000000001,
+   "y": 4,
+   "z": 9.133333333333333,
+   "color": "#ffb16e",
+   "intensity": 6,
+   "range": 12,
+   "name": "Chandelier 4"
+  },
+  {
+   "id": "L6",
+   "kind": "spot",
+   "x": 9.15,
+   "y": 4.1,
+   "z": 5,
+   "tx": 9.15,
+   "ty": 0.6,
+   "tz": 1.8,
+   "color": "#ffd3af",
+   "intensity": 30,
+   "angle": 35,
+   "name": "Stage wash"
+  }
+ ],
+ "views": [
+  {
+   "id": "vw1",
+   "name": "From the doors",
+   "pos": [
+    9.15,
+    1.65,
+    12.899999999999999
+   ],
+   "target": [
+    9.15,
+    1.2,
+    2
+   ]
+  },
+  {
+   "id": "vw2",
+   "name": "From the stage",
+   "pos": [
+    9.15,
+    2.2,
+    2
+   ],
+   "target": [
+    9.15,
+    0.8,
+    11.7
+   ]
+  }
+ ],
+ "sets": {}
+}

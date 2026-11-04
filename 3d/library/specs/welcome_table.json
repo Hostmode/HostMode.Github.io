@@ -1,0 +1,42 @@
+{
+ "id": "welcome_table",
+ "name": "Welcome table",
+ "category": "Lounge & accents",
+ "tags": [
+  "welcome",
+  "guest book",
+  "entrance"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday",
+  "corporate"
+ ],
+ "styles": [
+  "classic",
+  "romantic",
+  "modern"
+ ],
+ "size": {
+  "w": 1.83,
+  "d": 0.76,
+  "h": 0.76
+ },
+ "materials": [
+  "fabric"
+ ],
+ "colors": "Any color",
+ "placement": "By the entrance.",
+ "compatible": [],
+ "modeling": "The rectangular table with a sign, a guest book, frames and flowers.",
+ "priority": "now",
+ "findings": [
+  "decor_trends_2026"
+ ],
+ "status": "checked"
+}

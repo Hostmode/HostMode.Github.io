@@ -46,7 +46,7 @@ export function checkSpec(s, findingIds = null) {
   if (!strList(s.tags)) p.push("needs tags");
   if (!strList(s.events, EVENTS)) p.push("events must come from: " + EVENTS.join(", "));
   if (!strList(s.styles, STYLES)) p.push("styles must come from: " + STYLES.join(", "));
-  if (!s.size || !["w", "d", "h"].every(k => num(s.size[k], 0.01, 40))) p.push("size needs w, d and h in meters");
+  if (!s.size || !["w", "d", "h"].every(k => num(s.size[k], 0.001, 40))) p.push("size needs w, d and h in meters"); // 1 mm and up, like asset records (an aisle runner is 5 mm)
   if (!strList(s.materials)) p.push("needs materials");
   if (!isStr(s.placement, 400)) p.push("say where it goes");
   if (!isStr(s.modeling, 800)) p.push("say how to build its shape");

@@ -1,0 +1,42 @@
+{
+ "id": "champagne_wall",
+ "name": "Champagne wall",
+ "category": "Backdrops & drapery",
+ "tags": [
+  "champagne",
+  "glasses",
+  "self-serve"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday"
+ ],
+ "styles": [
+  "glam",
+  "romantic",
+  "modern"
+ ],
+ "size": {
+  "w": 1.22,
+  "d": 0.3,
+  "h": 2.44
+ },
+ "materials": [
+  "wood",
+  "glass"
+ ],
+ "colors": "Any color",
+ "placement": "Near the entrance or bar.",
+ "compatible": [],
+ "modeling": "Framed wall, slotted shelves, instanced flutes with champagne, a sign on top.",
+ "priority": "now",
+ "findings": [
+  "champagne_walls"
+ ],
+ "status": "checked"
+}

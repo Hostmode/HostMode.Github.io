@@ -1,0 +1,39 @@
+{
+ "id": "table_serpentine",
+ "name": "Serpentine table",
+ "category": "Tables",
+ "tags": [
+  "serpentine",
+  "curved"
+ ],
+ "events": [
+  "wedding",
+  "anniversary",
+  "gala",
+  "corporate"
+ ],
+ "styles": [
+  "modern",
+  "romantic",
+  "rustic"
+ ],
+ "size": {
+  "w": 1.83,
+  "d": 1.83,
+  "h": 0.76
+ },
+ "materials": [
+  "fabric",
+  "wood"
+ ],
+ "colors": "Any color",
+ "placement": "Four make a circle, two an S; chairs along the outer curve.",
+ "compatible": [],
+ "modeling": "A quarter of a ring: ring top, curved skirts with folds, flat ends; legs when bare.",
+ "priority": "now",
+ "findings": [
+  "serpentine_tables",
+  "decor_trends_2026"
+ ],
+ "status": "checked"
+}
