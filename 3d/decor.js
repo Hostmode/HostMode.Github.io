@@ -76,6 +76,10 @@ function surface(name) {
     const [hc, hg] = cv(N); hg.fillStyle = "#e0e0e0"; hg.fillRect(0, 0, N, N);
     if (name === "tile") { const g = col.getContext("2d"); g.strokeStyle = "rgba(90,85,80,.45)"; hg.strokeStyle = "#000"; g.lineWidth = hg.lineWidth = 3; for (let k = 0; k <= N; k += 256) { [g, hg].forEach(x => { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, N); x.moveTo(0, k); x.lineTo(N, k); x.stroke(); }); } }
     hgt = hc; span = name === "tile" ? 1.2 : 2; bump = 2;
+  } else if (name === "carpet_plain") { // plain plush carpet: no pattern, a soft even pile
+    const n = fbm(N, 96, 2, 17), fine = fbm(N, 220, 1, 23), h = new Float32Array(N * N);
+    for (let i = 0; i < N * N; i++) h[i] = n[i] * 0.6 + fine[i] * 0.4;
+    col = fromField(N, h, v => { const b = 226 + v * 26; return [b, b, b]; }); hgt = fromField(N, h, v => [v * 255, v * 255, v * 255]); span = 1.2; bump = 5;
   } else if (name === "carpet") { // patterned banquet carpet with a deep pile
     const n = fbm(N, 64, 2, 9), [c, g] = cv(N);
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, N, N); g.strokeStyle = "rgba(0,0,0,.28)"; g.fillStyle = "rgba(0,0,0,.14)"; g.lineWidth = 6;

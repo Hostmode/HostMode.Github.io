@@ -69,6 +69,7 @@ function addTab() {
 const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "navy", "dark purple", "lavender", "burgundy", "emerald", "sage", "orange"];
 // pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
 const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen"]);
+const CARPET_COLS = ["burgundy", "red", "navy", "blue", "grey", "black", "brown", "champagne", "ivory", "sage", "emerald", "dark purple"];
 function grpCard() {
   const g = ed.grp, n = g.all.length, name = g.set ? ((ed.s.sets || {})[g.set] || {}).name || "Set" : "";
   return `<div class="card"><b>${g.set ? esc(name) : g.ids.length + " picked"}</b> <span class="muted">${n} piece${n === 1 ? "" : "s"} in all</span>
@@ -144,6 +145,8 @@ function roomTab() {
   <p class="muted">Mark each size as measured, confirmed by the venue, or estimated, so nobody plans around a guess.</p>
   <h3>Surfaces</h3><div class="row">
    ${[["floor", "Floor"], ["walls", "Walls"], ["ceiling", "Ceiling"]].map(([k, l]) => `<label class="f">${l}<select data-surf="${k}">${Object.entries(S.MATERIALS).map(([m, M]) => `<option value="${m}" ${R[k] === m ? "selected" : ""}>${esc(M.label)}</option>`).join("")}</select></label>`).join("")}</div>
+  ${/carpet/.test(R.floor) ? `<h3>Carpet color</h3><div class="row">${CARPET_COLS.map(n => `<button class="sw" title="${n}" aria-label="${n} carpet" data-fcol="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="floorCol" aria-label="Any carpet color" value="${R.floorColor || S.MATERIALS[R.floor].color}"></div>`
+    : `<div class="row" style="margin-top:6px"><button class="btn l" data-x="carpet">Carpet the floor</button></div>`}
   <label class="f" style="margin-top:6px">Wall color<input type="color" id="wallCol" value="${R.wallColor}"></label>
   <h3>Doors and windows</h3>
   ${ed.s.walls.map(w => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(w.name)} <span class="muted">${fmt(S.wallLen(w))} · ${ed.s.openings.filter(o => o.wall === w.id).map(o => o.type).join(", ") || "plain"}</span></span><button class="btn l" data-open="door" data-wall="${w.id}">+ Door</button><button class="btn l" data-open="window" data-wall="${w.id}">+ Window</button></div>`).join("")}
@@ -213,6 +216,8 @@ body.addEventListener("click", async e => {
   if (d.go) return ed.goView(d.go);
   if (d.openp) { const s = await ed.store.open(d.openp); if (s) { ed.load(s); toast("Opened " + s.name); } return; }
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
+  if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
+  if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
   // sets and several picked things
   const gt = ed.grpTarget();
   switch (d.x) {
@@ -241,6 +246,7 @@ body.addEventListener("click", async e => {
 });
 body.addEventListener("change", async e => {
   const t = e.target, it = ed.sel && ed.itemOf(ed.sel);
+  if (t.id === "floorCol") { ed.run([{ op: "change_material", id: "floor", color: t.value }]); return; }
   if (t.id === "setName" && ed.grp && ed.grp.set) { ed.run([{ op: "rename_set", set: ed.grp.set, name: t.value }]); return; }
   if (t.dataset.sz && it) ed.run([{ op: "resize_object", id: it.id, [t.dataset.sz]: fromU(t.value) }]);
   if (t.dataset.pos && it) ed.run([{ op: "move_object", id: it.id, [t.dataset.pos]: fromU(t.value) }]);

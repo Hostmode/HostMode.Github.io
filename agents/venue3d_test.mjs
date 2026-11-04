@@ -103,6 +103,15 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
 { const src = (await import("fs")).readFileSync(new URL("../3d/decor.js", import.meta.url), "utf8"); const line = src.split("\n").find(l => l.includes('case "stage"'));
   ok(line && !/material\("wood", it\.color/.test(line) && /material\(it\.mat \|\| "wood"/.test(line), "the stage is drawn with its chosen material"); }
 
+// Carpet: patterned or plain, any color, from the Room tab or the Ask box.
+{
+  const v0 = S.sampleVenue(), said = S.interpret(v0, "plain navy carpet");
+  ok(said.ops.length === 1 && said.ops[0].mat === "carpet_plain" && said.ops[0].color === "navy", "the Ask box understands \"plain navy carpet\"");
+  ok(S.interpret(v0, "carpet the room").ops[0]?.mat === "carpet" && S.interpret(v0, "add a rug").ops[0]?.kind === "rug", "\"carpet the room\" carpets the floor; \"add a rug\" still adds a rug");
+  let r = S.apply(v0, said.ops); ok(r.ok && r.scene.room.floor === "carpet_plain" && r.scene.room.floorColor === S.COLORS.navy, "the floor is now plain navy carpet");
+  r = S.apply(r.scene, [{ op: "change_material", id: "floor", mat: "oak" }]); ok(!r.scene.room.floorColor, "changing back to a wood floor drops the carpet color");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

@@ -16,7 +16,8 @@ export const MATERIALS = {
   concrete: { label: "Concrete", color: "#9a9a96", rough: 0.9, metal: 0 },
   polished: { label: "Polished concrete", color: "#a7a7a3", rough: 0.25, metal: 0, coat: 0.6 },
   tile:     { label: "Tile",     color: "#e6e2da", rough: 0.3, metal: 0, coat: 0.3 },
-  carpet:   { label: "Carpet",   color: "#5a2f3f", rough: 1, metal: 0 },
+  carpet:   { label: "Carpet, patterned", color: "#5a2f3f", rough: 1, metal: 0 },
+  carpet_plain: { label: "Carpet, plain", color: "#5b6478", rough: 1, metal: 0 },
   glass:    { label: "Glass",    color: "#bcd8e6", rough: 0.05, metal: 0, opacity: 0.35 },
   acrylic:  { label: "Clear acrylic", color: "#eef4f7", rough: 0.08, metal: 0, opacity: 0.3 },
   metal:    { label: "Metal",    color: "#b9bcc2", rough: 0.3, metal: 1 },
@@ -475,7 +476,7 @@ const RUN = {
     const mat = o.mat; if (mat && !MATERIALS[mat]) throw new Error("unknown material " + mat);
     const color = checkColor(o.color);
     if (["floor", "walls", "ceiling"].includes(o.id || o.target)) {
-      const k = o.id || o.target; if (mat) s.room[k] = mat;
+      const k = o.id || o.target; if (mat) { s.room[k] = mat; if (!color && k !== "walls") delete s.room[k + "Color"]; }
       if (color && k === "walls") { s.room.wallColor = color; s.walls.forEach(w => w.color = color); }
       if (color && k !== "walls") s.room[k + "Color"] = color;
       return "Changed the " + k;
@@ -687,6 +688,10 @@ export function interpret(scene, text) {
     p = p.trim();
     const where = (p.match(WHERE) || [])[1] === "middle" ? "center" : (p.match(WHERE) || [])[1];
     const cols = colorsIn(p);
+    // Carpet: "carpet the room", "navy carpet", "plain gray carpet", "change the floor to carpet" (a rug is a piece, not the floor)
+    if (/carpet/.test(p) && !/\brugs?\b/.test(p) && !/^(remove|delete|take)/.test(p)) {
+      ops.push(Object.assign({ op: "change_material", id: "floor", mat: /plain|solid|plush/.test(p) ? "carpet_plain" : "carpet" }, cols.length ? { color: cols[0] } : {})); continue;
+    }
     // Linens and chair dressing: "ivory floor-length linens with gold runners", "blush sashes on the chairs"
     if (DECOR_WORD.test(p) && !/^(remove|delete|take off|take away)/.test(p)) {
       const tOp = { op: "dress_object", kind: "tables" }, cOp = { op: "dress_object", kind: "chairs" };
