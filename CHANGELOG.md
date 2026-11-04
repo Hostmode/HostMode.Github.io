@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-04 · Copilot · 3D designer placement preview now follows the pointer before placement, the walk check waits for movement, and browser zoom is enabled on phones.
 - 2026-11-04 · Roy (with Claude) · Agent office rebuilt in real 3D on the 3D designer's engine (office3d.html, 3d/office.js): two rooms joined by a corridor, the venue (the six GitHub agents) and the studio (four new crew: researcher, 3D modeler, 3D checker, Stay & Go builder, whose news comes from their real pull requests and checks), library furniture, people who walk with real depth, Venue / Studio / Both rooms buttons, tap a person to pick them. Finished crew carry their work down the corridor to Roy's door. The drawn office was retired. New check agents/office3d_check.py in check_all.sh. The designer gained open doorways and always-visible knee walls; the floating 3D window is now shared (FLOATS). New 3d-designer skill; CLAUDE.md's 3D entry shortened; new lessons in CLAUDE.md and agent-workflows.
 - 2026-11-04 · Roy (with Claude) · 3D designer: Start over (Save & share) deletes the current design with its versions and photo and opens a fresh sample ballroom, after a second tap; in the demo it clears every demo design and photo on the device, so the demo doesn't fill the phone's storage.
 - 2026-11-04 · Roy (with Claude) · 3D designer upgrade, Phase 6: final report doc, and the project record updated with what's done and what waits on Roy.

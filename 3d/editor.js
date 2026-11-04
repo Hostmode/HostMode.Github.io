@@ -390,7 +390,8 @@ export class Editor {
       down = null; cv.setPointerCapture(e.pointerId); stop(e);
     }, true);
     cv.addEventListener("pointermove", e => {
-      if (this.placementPointer && this.placementPointer.id === e.pointerId) { this.placementPoint(e); stop(e); return; }
+      if (this.placement) this.placementPoint(e);
+      if (this.placementPointer && this.placementPointer.id === e.pointerId) { stop(e); return; }
       const d = this.directDrag;
       if (!d || d.pointerId !== e.pointerId) return;
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 4) d.moved = true;
