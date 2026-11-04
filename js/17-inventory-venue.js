@@ -323,16 +323,20 @@ Object.assign(ACT,{
 function pl3dTab(){const demo=!!window.__HMPDEMO,src="venue3d.html"+(demo?"?demo=1":"");
  if(L.viewAs)return `<section class="card stack"><h2>3D designer</h2><p class="small muted m0">Designs open under the account that's signed in, so they can't be viewed from here while you're looking at someone else's portal.</p></section>`;
  return `<section class="card stack"><div class="row between"><div class="mw0"><h2 class="m0">3D designer</h2><p class="small muted m0">Lay out the room, the tables and the decor in 3D.${demo?" In the demo, designs stay on this device.":" Designs save to your account."}</p></div><a class="btn sm" href="${esc(src)}" target="_blank" rel="noopener">Open full screen ↗</a></div>
- <div id="pl3dSlot" class="pl3d" data-src="${esc(src)}"></div></section>`}
-/* The portal redraws the whole screen on every change, which would reload the designer and lose what's on it.
-   So one designer window lives outside the redraw and is lined up over the tab's empty slot (pl3dSlot), and hidden on other tabs. */
-let pl3dFrame=null;
-const pl3dPause=on=>{try{pl3dFrame.contentWindow.HM3D_PAUSED=on}catch(e){}};
-function pl3dPlace(){const slot=document.getElementById("pl3dSlot");
- if(!slot){if(pl3dFrame&&pl3dFrame.style.display!=="none"){pl3dFrame.style.display="none";pl3dPause(true)}return}
- if(!pl3dFrame){pl3dFrame=document.createElement("iframe");pl3dFrame.className="pl3dfloat";pl3dFrame.title="3D venue designer";pl3dFrame.allow="fullscreen";pl3dFrame.src=slot.dataset.src;document.body.appendChild(pl3dFrame)}
- if(pl3dFrame.style.display==="none")pl3dPause(false);const r=slot.getBoundingClientRect();Object.assign(pl3dFrame.style,{display:"block",left:(r.left+scrollX)+"px",top:(r.top+scrollY)+"px",width:r.width+"px",height:r.height+"px"})}
-const _render3d=render;render=function(f){_render3d(f);pl3dPlace()};
-if(VIEW==="planner"){addEventListener("resize",pl3dPlace);setInterval(pl3dPlace,400)}
+ <div id="pl3dSlot" class="pl3d hmfloat" data-key="d3" data-src="${esc(src)}" data-title="3D venue designer"></div></section>`}
+/* Screens redraw the whole page on every change, which would reload a 3D window and lose what's on it. So each kind of
+   window (the 3D designer, the agent office) lives once outside the redraw, lined up over its tab's empty slot
+   (<div class="hmfloat" data-key data-src data-title>), and hidden and paused while its tab isn't showing.
+   FLOAT_HOOKS run after each placing (the agent office sends its news from one). */
+const FLOATS={},FLOAT_HOOKS=[];
+const floatPause=(f,on)=>{try{f.contentWindow.HM3D_PAUSED=on}catch(e){}};
+function floatPlace(){const seen=new Set();
+ document.querySelectorAll(".hmfloat[data-key]").forEach(slot=>{const k=slot.dataset.key;seen.add(k);let f=FLOATS[k];
+  if(!f){f=FLOATS[k]=document.createElement("iframe");f.className="pl3dfloat";f.title=slot.dataset.title||"";f.allow="fullscreen";f.src=slot.dataset.src;document.body.appendChild(f)}
+  if(f.style.display==="none")floatPause(f,false);const r=slot.getBoundingClientRect();Object.assign(f.style,{display:"block",left:(r.left+scrollX)+"px",top:(r.top+scrollY)+"px",width:r.width+"px",height:r.height+"px"})});
+ Object.keys(FLOATS).forEach(k=>{const f=FLOATS[k];if(!seen.has(k)&&f.style.display!=="none"){f.style.display="none";floatPause(f,true)}});
+ FLOAT_HOOKS.forEach(h=>{try{h()}catch(e){}})}
+const _renderFloat=render;render=function(f){_renderFloat(f);floatPlace()};
+addEventListener("resize",floatPlace);setInterval(floatPlace,400);
 function plTabBody(k){return ({home:plHome,clients:hClients,leads:plLeadsTab,events:plEvents,cal:plCal,inv:plGearTab,venue:plVenueTab,d3:pl3dTab,stay:sgTab,team:hTeam,pkg:plPkgTab,show:plShowTab,rep:plReports,tpl:plTplTab,data:plDataTab,brand:hBrandCard,fb:hFeedbackCard,set:()=>(plIsHost()?hostSettings():plSettings())+privacyCard(),help:plHelp}[k]||plHome)()}
 function plTabBadge(k){const n=k==="home"?0:k==="leads"?inqNew():k==="clients"?clAttention():k==="team"?mateBehind():k==="inv"?gearIssues():k==="venue"?(venueOn()?holdsDue().length:0):k==="stay"?sgBadge():k==="pkg"?Object.keys(D.clients||{}).reduce((s,id)=>s+invList(id).filter(x=>invStatus(id,x)==="Overdue").length,0):0;return n?` <span class="pill warn">${n}</span>`:""}

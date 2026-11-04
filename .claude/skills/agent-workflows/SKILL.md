@@ -43,6 +43,11 @@ Marks that connect them: `<!-- auto-fix -->` (reviewer → builder, once per pul
 8. **Force-pushing is blocked here.** To update a builder's branch, push a new `claude/issue-N-something` branch instead.
 9. **Untrusted text never reaches a shell.** Issue titles and comments go through `env:` variables and quoted `"$VAR"`, never `${{ }}`
    inside `run:`. The builder may only run the commands listed in its `--allowedTools`; add a script to agents/ for a new check.
+10. **After a push, refresh the local copy of the branch** (`git fetch origin BR:refs/remotes/origin/BR`, then set `branch.BR.remote` and
+   `branch.BR.merge`). Without it, the end-of-turn check reports "unpushed commits" that are already on GitHub.
+11. **A push refused with "Internal Server Error" is GitHub's hiccup.** Wait a few seconds and push once more; check the branch moved.
+12. **Two pull requests that both add a line at the top of CHANGELOG.md conflict.** Merge them in order; to fix one, merge main into
+   it and keep both lines, newest first.
 
 ## Adding or changing an agent
 

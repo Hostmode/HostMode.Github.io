@@ -12,4 +12,5 @@ trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 2
 python3 agents/venue3d_asset_check.py || exit 1
 python3 agents/venue3d_photo_check.py || exit 1
+python3 agents/office3d_check.py || exit 1
 python3 agents/tester.py --scripted-only

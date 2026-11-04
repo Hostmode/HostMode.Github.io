@@ -1,11 +1,11 @@
 ---
 name: draw-a-scene
-description: Use when building or changing a drawn, interactive picture in Host Mode, like the agent office's 3D venue or the coming floor plans: angled 3D views, people and furniture, tapping, walking and zooming.
+description: Use when building or changing a flat drawn, interactive picture in Host Mode (one SVG), like the coming floor plans: angled views, people and furniture, tapping, walking and zooming. For real 3D, use the 3d-designer skill.
 ---
 
 # Draw a scene
 
-The agent office (admin console → Agents, in js/18-support-staff.js) is the worked example. Copy its pattern.
+The agent office was the worked example until Nov 4, 2026, when it moved to real 3D (the 3d-designer skill). Its drawn version is in the repo's history at commit dfb679e (js/18-support-staff.js, agScene). Use a drawing when a picture must load instantly or be printed; use real 3D when people walk in front of and behind things, which a drawing can only fake.
 
 ## Build it as one SVG
 

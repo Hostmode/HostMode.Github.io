@@ -874,54 +874,7 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
 .shcovercard{padding:0!important;overflow:hidden}.shcover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 /* Agents tab: the agent office */
 /* ---- the agent office (js/18-support-staff.js agentsBody): an isometric 400x290 SVG venue; people are SVG groups ---- */
-.agscene{position:relative;width:100%;max-width:640px;margin:0 auto;border:3px solid #16255a;border-radius:14px;overflow:hidden;background:linear-gradient(#dfe6f5,#c9d3ea)}
-.agscene.night{background:linear-gradient(#16255a,#0b1022)}
-.agiso{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
-.agzoom{position:absolute;right:6px;bottom:6px;display:flex;gap:4px}.agzoom .btn{min-width:36px;min-height:36px;background:#fff}
-.agw{cursor:pointer;outline:none}.agtagw{pointer-events:none}.agw:focus-visible .agring{stroke:#f6892f;stroke-width:2.4}
-.agbulb{opacity:.9}.agscene.night .agbulb{filter:drop-shadow(0 0 2.5px #ffd98a)}
-/* each person's parts (inside agPerson): .agbod, .agleg-l, .agleg-r, .agarm (front arm), .agarm-b, .agcarry, .agflag; .agmove wraps the person, ring and bubble */
-.agp .agarm{transform-box:view-box;transform-origin:29.5px 25px}.agp .agarm-b{transform-box:view-box;transform-origin:10.5px 25px}
-.agp .agleg-l{transform-box:view-box;transform-origin:16.5px 40px}.agp .agleg-r{transform-box:view-box;transform-origin:23.5px 40px}
-.agp .agflag{display:none}.agw.fail .agflag{display:inline}
-.agw.done .agarm{transform:rotate(-155deg)}.agw.fail .agarm{transform:rotate(-140deg)}
-/* walking: working agents walk a route on their own (translate of .agmove, in scene units from their home spot; routes use only open floor).
-   A second step-end animation flips the person (svg.agp) to face the way they walk. Only transform animates; no scripts. */
-@keyframes agm-tester{0%{transform:translate(0,0)}5.26%{transform:translate(12.6px,4.5px)}14.74%{transform:translate(12.6px,4.5px)}28.42%{transform:translate(54px,1.8px)}37.89%{transform:translate(54px,1.8px)}50%{transform:translate(32.4px,32.4px)}59.47%{transform:translate(32.4px,32.4px)}71.58%{transform:translate(54px,1.8px)}85.26%{transform:translate(12.6px,4.5px)}90.53%{transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes agf-tester{0%{transform:scaleX(1)}37.89%{transform:scaleX(-1)}59.47%{transform:scaleX(1)}71.58%{transform:scaleX(-1)}}
-@keyframes agm-builder{0%{transform:translate(0,0)}10.34%{transform:translate(-21.6px,-10.8px)}22.76%{transform:translate(-21.6px,-10.8px)}43.45%{transform:translate(21.6px,10.8px)}55.86%{transform:translate(21.6px,10.8px)}72.41%{transform:translate(-16.2px,8.1px)}84.83%{transform:translate(-16.2px,8.1px)}93.1%{transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes agf-builder{0%{transform:scaleX(-1)}22.76%{transform:scaleX(1)}55.86%{transform:scaleX(-1)}84.83%{transform:scaleX(1)}}
-@keyframes agm-reviewer{0%{transform:translate(0,0)}15.38%{transform:translate(45px,-17.1px)}27.18%{transform:translate(66.6px,-47.7px)}40.51%{transform:translate(25.2px,-45px)}48.21%{transform:translate(25.2px,-45px)}68.21%{transform:translate(-43.2px,-45px)}75.9%{transform:translate(-43.2px,-45px)}85.64%{transform:translate(-7.2px,-19.8px)}92.31%{transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes agf-reviewer{0%{transform:scaleX(1)}27.18%{transform:scaleX(-1)}75.9%{transform:scaleX(1)}}
-@keyframes agm-checks{0%{transform:translate(0,0)}5.88%{transform:translate(-1.8px,15.3px)}15.29%{transform:translate(-1.8px,15.3px)}21.18%{transform:translate(0,0)}30.59%{transform:translate(0,0)}36.47%{transform:translate(-1.8px,15.3px)}44.12%{transform:translate(-3.6px,36px)}60.59%{transform:translate(37.8px,51.3px)}69.41%{transform:translate(37.8px,51.3px)}85.88%{transform:translate(-3.6px,36px)}93.53%{transform:translate(-1.8px,15.3px)}100%{transform:translate(0,0)}}
-@keyframes agf-checks{0%{transform:scaleX(-1)}15.29%{transform:scaleX(1)}30.59%{transform:scaleX(-1)}44.12%{transform:scaleX(1)}69.41%{transform:scaleX(-1)}85.88%{transform:scaleX(1)}}
-@keyframes agm-backup{0%{transform:translate(0,0)}22.22%{transform:translate(27px,15.3px)}38.89%{transform:translate(27px,15.3px)}67.78%{transform:translate(-8.1px,-6.7px)}84.44%{transform:translate(-8.1px,-6.7px)}92.22%{transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes agf-backup{0%{transform:scaleX(1)}38.89%{transform:scaleX(-1)}84.44%{transform:scaleX(1)}}
-.agw.work.r-tester .agmove{animation:agm-tester 19s linear infinite}.agw.work.r-tester svg.agp{transform-origin:0 0;animation:agf-tester 19s step-end infinite}
-.agw.work.r-builder .agmove{animation:agm-builder 14.5s linear infinite}.agw.work.r-builder svg.agp{transform-origin:0 0;animation:agf-builder 14.5s step-end infinite}
-.agw.work.r-reviewer .agmove{animation:agm-reviewer 19.5s linear infinite}.agw.work.r-reviewer svg.agp{transform-origin:0 0;animation:agf-reviewer 19.5s step-end infinite}
-.agw.work.r-checks .agmove{animation:agm-checks 17s linear infinite}.agw.work.r-checks svg.agp{transform-origin:0 0;animation:agf-checks 17s step-end infinite}
-.agw.work.r-backup .agmove{animation:agm-backup 9s linear infinite}.agw.work.r-backup svg.agp{transform-origin:0 0;animation:agf-backup 9s step-end infinite}
-/* legs swing in turn while walking; arms do each job */
-@keyframes agleg-a{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-26deg)}}
-@keyframes agleg-b{0%,100%{transform:rotate(-26deg)}50%{transform:rotate(26deg)}}
-.agw.work.r-tester .agleg-l,.agw.work.r-builder .agleg-l,.agw.work.r-reviewer .agleg-l,.agw.work.r-checks .agleg-l,.agw.work.r-backup .agleg-l{animation:agleg-a .7s ease-in-out infinite}
-.agw.work.r-tester .agleg-r,.agw.work.r-builder .agleg-r,.agw.work.r-reviewer .agleg-r,.agw.work.r-checks .agleg-r,.agw.work.r-backup .agleg-r{animation:agleg-b .7s ease-in-out infinite}
-@keyframes agarm-tap{0%,100%{transform:rotate(-50deg)}50%{transform:rotate(-38deg)}}
-@keyframes agarm-hammer{0%,100%{transform:rotate(-80deg)}50%{transform:rotate(-5deg)}}
-@keyframes agarm-type{0%,100%{transform:rotate(-48deg)}50%{transform:rotate(-62deg)}}
-@keyframes agarm-wave{0%,100%{transform:rotate(-155deg)}50%{transform:rotate(-122deg)}}
-.agw.work.r-tester .agp .agarm{animation:agarm-tap .4s ease-in-out infinite}
-.agw.work.r-builder .agp .agarm{animation:agarm-hammer .6s ease-in infinite}
-.agw.work.r-reviewer .agp .agarm{transform:rotate(-25deg)}
-.agw.work.r-tech .agp .agarm,.agw.work.r-tech .agp .agarm-b{animation:agarm-type .35s ease-in-out infinite}.agw.work.r-tech .agp .agarm-b{animation-delay:-.17s}
-.agw.done .agp .agarm{animation:agarm-wave .7s ease-in-out infinite}
-/* string lights twinkle slowly, brighter at night */
-@keyframes agtwinkle{0%,100%{opacity:.55}50%{opacity:1}}
-.agbulb{animation:agtwinkle 3.4s ease-in-out infinite}.agbulb.b1{animation-duration:4.3s;animation-delay:-1.1s}.agbulb.b2{animation-duration:5.2s;animation-delay:-2.3s}
-.agscene.night .agbulb{animation-name:agtwinkle-n}
-@keyframes agtwinkle-n{0%,100%{opacity:.75}50%{opacity:1}}
-@media (prefers-reduced-motion:reduce){.agscene *{animation:none!important}}
+.agoffice3d{width:100%;aspect-ratio:6/5;min-height:300px;max-height:72vh;border:3px solid #16255a;border-radius:14px;background:#dfe3ec;box-sizing:border-box} /* the 3D office window (office3d.html) floats over this */
 .agpanel{border:2px solid #16255a;border-radius:12px;padding:12px;display:grid;gap:8px;background:#fff}
 .agpanel.fail{border-color:#d62d2d}
 .agneed{display:grid;gap:3px}.agbar{height:10px;border-radius:5px;background:#e3e8f3;overflow:hidden}.agbar i{display:block;height:100%;border-radius:5px}

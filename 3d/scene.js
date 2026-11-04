@@ -297,7 +297,7 @@ export function place(scene, where) {
 export const OPS = {
   set_room:     "w, d, h (meters), floor/walls/ceiling material, wallColor, dimSrc",
   add_wall:     "a [x,z], b [x,z], h, t",
-  add_opening:  "type door|window, wall id, at (meters from wall start), w, h, sill",
+  add_opening:  "type door|window|opening (an open doorway, no door), wall id, at (meters from wall start), w, h, sill",
   add_item:     "kind, x, z, rot, w/d/h optional, color, mat, label",
   move_object:  "id, x and/or z (absolute) or dx/dz, or where (center|front|back|left|right...)",
   rotate_object:"id, rot (absolute degrees) or by (relative)",
@@ -463,7 +463,7 @@ const RUN = {
     s.walls.push(w); return "Added " + w.name.toLowerCase() + " (" + fmtLen(wallLen(w)) + ")";
   },
   add_opening(s, o) {
-    const type = need(o, "type"); if (!["door", "window"].includes(type)) throw new Error("opening must be door or window");
+    const type = need(o, "type"); if (!["door", "window", "opening"].includes(type)) throw new Error("opening must be door, window or opening (an open doorway)");
     const w = s.walls.find(x => x.id === need(o, "wall")); if (!w) throw new Error("no wall " + o.wall);
     const op = { id: o.id || uid("o_"), type, wall: w.id, at: r2(o.at ?? wallLen(w) / 2), w: num(o.w ?? (type === "door" ? 0.91 : 1.2), 0.3, 10, "width"), h: num(o.h ?? (type === "door" ? 2.13 : 1.5), 0.3, 10, "height"), sill: r2(o.sill ?? (type === "door" ? 0 : 0.9)) };
     if (op.at - op.w / 2 < 0 || op.at + op.w / 2 > wallLen(w)) throw new Error("that " + type + " doesn't fit on " + w.name);
