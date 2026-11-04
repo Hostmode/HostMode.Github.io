@@ -221,8 +221,11 @@ export class Editor {
     this.cancelPlacement();
     this.gestureMode = "object"; this.mode = "translate";
     if (this.view !== "top") this.setView("top");
+    this.select(null);
     const x = this.s.room.w / 2, z = this.s.room.d / 2;
-    const item = S.mkItem(kind, x, z, 0, { id: "placement_preview" }), ghost = buildItem(item, this.s), mats = [];
+    const item = S.mkItem(kind, x, z, 0, { id: "placement_preview" });
+    if (c.ceiling) item.y = this.s.room.h - item.h;
+    const ghost = buildItem(item, this.s), mats = [];
     ghost.traverse(o => {
       if (o.isLight) { o.visible = false; return; }
       if (!o.material) return;
@@ -231,7 +234,7 @@ export class Editor {
     });
     ghost.userData.placementPreview = true;
     this.world.add(ghost);
-    this.placement = { kind, ghost, x, z, mats };
+    this.placement = { kind, ghost, x, y: item.y || 0, z, mats };
     this.syncTransformControls();
     this.emit();
     return true;
@@ -258,7 +261,7 @@ export class Editor {
     const x = c.w > R.w ? R.w / 2 : T.MathUtils.clamp(point.x, c.w / 2, R.w - c.w / 2);
     const z = c.d > R.d ? R.d / 2 : T.MathUtils.clamp(point.z, c.d / 2, R.d - c.d / 2);
     this.placement.x = x; this.placement.z = z;
-    this.placement.ghost.position.set(x, 0, z);
+    this.placement.ghost.position.set(x, this.placement.y, z);
   }
   finishPlacement(e) {
     if (!this.placement) return;
@@ -353,23 +356,24 @@ export class Editor {
         this.placementPoint(e);
         cv.setPointerCapture(e.pointerId); stop(e); return;
       }
-      if (e.isPrimary === false || this.view === "walk" || this.view === "photo" || this.gestureMode !== "object" || this.mode !== "translate" || !(this.sel || this.grp)) return;
+      if (e.isPrimary === false || this.view === "walk" || this.view === "photo" || this.picking || this.gestureMode !== "object" || this.mode !== "translate" || !(this.sel || this.grp)) return;
       const rc = cv.getBoundingClientRect(), p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
       this.ray.setFromCamera(p, this.cam);
-      const helper = this.tc.getHelper(), handles = this.ray.intersectObject(helper, true).some(h => {
+      const helper = this.tc.getHelper(), handles = this.ray.intersectObject(helper, true).filter(h => {
         for (let o = h.object; o && o !== helper; o = o.parent) if (!o.visible) return false;
-        return true;
+        return h;
       });
-      if (handles) return;
       const selected = new Set(this.grp ? this.grp.all : [this.sel, ...this.s.items.filter(i => i.group === this.sel).map(i => i.id)]);
-      let hit = null;
+      let selectedHit = null;
       for (const h of this.ray.intersectObjects(this.world.children, true)) {
         if (!h.object.visible || h.object.userData.thru) continue;
         let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent;
-        if (o && selected.has(o.userData.id)) { hit = o.userData.id; break; }
+        if (o && selected.has(o.userData.id)) selectedHit = { id: o.userData.id, distance: h.distance };
+        if (o) break;
         if (h.object.userData.floor) break;
       }
-      const point = hit && this.floorPoint(e);
+      if (!selectedHit || (handles.length && handles[0].distance < selectedHit.distance - 0.02)) return;
+      const point = this.floorPoint(e);
       if (!point) return;
       const ids = this.grp ? this.grp.all : [this.sel, ...this.s.items.filter(i => i.group === this.sel).map(i => i.id)];
       const objs = ids.map(id => this.objs.get(id)).filter(Boolean);
@@ -441,6 +445,7 @@ export class Editor {
     const op = d.grouped ? Object.assign({ op: "move_set", dx, dz }, d.target) : { op: "move_object", id: d.id, dx, dz };
     const r = this.run([op], "drag");
     if (r.ok) this.emit({ toast: "Moved. Tap Undo at the top to reverse it." });
+    else this.build();
   }
   pick(e) {
     const rc = this.r.domElement.getBoundingClientRect();

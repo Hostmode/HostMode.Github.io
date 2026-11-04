@@ -307,8 +307,8 @@ function render() {
   const pv = $("[data-view=photo]"); if (pv) pv.hidden = !ed.s.photo; placeDots();
   $("#undo").disabled = !ed.hist.length; $("#redo").disabled = !ed.fut.length;
   document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === ed.view));
-  document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", ed.gestureMode === "object" && b.dataset.mode === ed.mode));
-  document.querySelectorAll("[data-gesture]").forEach(b => b.classList.toggle("on", b.dataset.gesture === ed.gestureMode));
+  document.querySelectorAll("[data-mode]").forEach(b => { const on = ed.gestureMode === "object" && b.dataset.mode === ed.mode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  document.querySelectorAll("[data-gesture]").forEach(b => { const on = b.dataset.gesture === ed.gestureMode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
   $("#modes").style.display = ed.view === "walk" ? "none" : "flex"; $("#pad").style.display = ed.view === "walk" ? "grid" : "none";
   if (document.activeElement !== $("#name")) $("#name").value = ed.s.name;
   if (tab === "add") wantThumbs();
