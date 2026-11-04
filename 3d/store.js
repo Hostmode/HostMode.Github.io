@@ -94,6 +94,7 @@ export class Store {
     if (v) PHOTOS.set(ref, v); return v || null;
   }
   async removePhoto(ref) { PHOTOS.delete(ref); try { await idbDo("readwrite", st => st.delete(ref)); } catch (e) {} if (this.status === "cloud") { try { await this.db.ref("planners/" + this.uid + "/venue3dPhoto/" + ref).remove(); } catch (e) {} } }
+  async clearPhotos() { PHOTOS.clear(); try { await idbDo("readwrite", st => st.clear()); } catch (e) {} } // the demo's Start over: no photo left on the device
   revisions(id) { return ls.get("r_" + id, []).map(r => ({ t: r.t, items: r.s.items.length })); }
   revision(id, t) { const r = ls.get("r_" + id, []).find(x => x.t === t); return r ? validateFile(JSON.parse(JSON.stringify(r.s))) : null; }
   async remove(id) {
