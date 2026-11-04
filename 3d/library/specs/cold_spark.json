@@ -1,0 +1,37 @@
+{
+ "id": "cold_spark",
+ "name": "Cold spark machine",
+ "category": "Photo & effects",
+ "tags": [
+  "cold sparks",
+  "fountain",
+  "grand entrance"
+ ],
+ "events": [
+  "wedding",
+  "birthday",
+  "gala",
+  "graduation"
+ ],
+ "styles": [
+  "glam",
+  "playful"
+ ],
+ "size": {
+  "w": 0.32,
+  "d": 0.32,
+  "h": 2.4
+ },
+ "materials": [
+  "metal"
+ ],
+ "colors": "Any color",
+ "placement": "In pairs either side of the couple or a stage.",
+ "compatible": [],
+ "modeling": "A machine with a fountain of glowing sparks.",
+ "priority": "now",
+ "findings": [
+  "fog_and_sparks"
+ ],
+ "status": "checked"
+}

@@ -45,11 +45,18 @@ export const CATALOG = {
   table_banquet: { label: "Banquet table (8 ft)", cat: "Tables", w: 2.44, d: 0.76, h: 0.76, mat: "fabric", seats: 8, dress: "table" },
   table_farm:    { label: "Farm table (8 ft)", cat: "Tables", w: 2.44, d: 1.02, h: 0.76, mat: "wood", seats: 10, dress: "table", bare: true },
   table_cocktail:{ label: "Cocktail table", cat: "Tables", w: 0.76, d: 0.76, h: 1.07, mat: "fabric", dress: "table" },
+  // a quarter of a ring 12 ft across (30 in deep): four make a circle, two make an S
+  table_serpentine: { label: "Serpentine table", cat: "Tables", w: 1.83, d: 1.83, h: 0.76, mat: "fabric", seats: 4, dress: "table" },
+  table_sweetheart: { label: "Sweetheart table", cat: "Tables", w: 1.22, d: 0.76, h: 0.76, mat: "fabric", seats: 2, dress: "table", oneSide: true },
+  table_head:    { label: "Head table (24 ft)", cat: "Tables", w: 7.32, d: 0.76, h: 0.76, mat: "fabric", seats: 12, dress: "table", oneSide: true },
   // Seating (takes covers and sashes)
   chair:         { label: "Chiavari chair", cat: "Seating", w: 0.42, d: 0.45, h: 0.9, mat: "gold", dress: "chair" },
   chair_ghost:   { label: "Ghost chair", cat: "Seating", w: 0.45, d: 0.5, h: 0.9, mat: "acrylic", dress: "chair" },
   chair_crossback: { label: "Cross-back chair", cat: "Seating", w: 0.45, d: 0.5, h: 0.9, mat: "wood", dress: "chair" },
   chair_folding: { label: "Folding chair", cat: "Seating", w: 0.45, d: 0.48, h: 0.82, mat: "metal", dress: "chair" },
+  chair_banquet: { label: "Banquet chair", cat: "Seating", w: 0.43, d: 0.56, h: 0.93, mat: "metal", dress: "chair" },
+  chair_throne:  { label: "Throne chair", cat: "Seating", w: 0.92, d: 0.72, h: 1.8, mat: "gold" },
+  bench:         { label: "Bench (8 ft)", cat: "Seating", w: 2.44, d: 0.36, h: 0.46, mat: "wood" },
   // Balloons
   balloon_arch:  { label: "Balloon garland", cat: "Balloons", w: 2.4, d: 0.6, h: 2.2, mat: "fabric", palette: true },
   balloon_full_arch: { label: "Balloon arch", cat: "Balloons", w: 3.0, d: 0.7, h: 3.0, mat: "fabric", palette: true },
@@ -60,17 +67,26 @@ export const CATALOG = {
   pipe_drape:    { label: "Pipe and drape (10 ft)", cat: "Backdrops & drapery", w: 3.05, d: 0.3, h: 2.44, mat: "fabric" },
   flower_wall:   { label: "Flower wall", cat: "Backdrops & drapery", w: 2.4, d: 0.2, h: 2.4, mat: "fabric", palette: true },
   shimmer_wall:  { label: "Shimmer wall", cat: "Backdrops & drapery", w: 2.4, d: 0.15, h: 2.4, mat: "sequin" },
+  champagne_wall:{ label: "Champagne wall", cat: "Backdrops & drapery", w: 1.22, d: 0.3, h: 2.44, mat: "wood" },
+  entrance_arch: { label: "Draped entrance arch", cat: "Backdrops & drapery", w: 2.4, d: 0.6, h: 2.6, mat: "gold", palette: true },
+  partition:     { label: "Room divider", cat: "Backdrops & drapery", w: 1.8, d: 0.45, h: 1.9, mat: "wood" },
   ceiling_drape: { label: "Ceiling draping", cat: "Backdrops & drapery", w: 8, d: 8, h: 1.0, mat: "fabric", ceiling: true },
   // Centerpieces (sit on a table)
   centerpiece:   { label: "Low floral centerpiece", cat: "Centerpieces", w: 0.35, d: 0.35, h: 0.3, mat: "glass", top: true, palette: true },
   centerpiece_tall: { label: "Tall centerpiece", cat: "Centerpieces", w: 0.45, d: 0.45, h: 0.95, mat: "glass", top: true, palette: true },
   candle_cluster:{ label: "Candle cluster", cat: "Centerpieces", w: 0.35, d: 0.35, h: 0.25, mat: "glass", top: true },
+  bud_vases:     { label: "Bud vases", cat: "Centerpieces", w: 0.45, d: 0.25, h: 0.28, mat: "glass", top: true, palette: true },
+  table_garland: { label: "Table garland", cat: "Centerpieces", w: 1.8, d: 0.35, h: 0.12, mat: "fabric", top: true, palette: true },
+  branches:      { label: "Branch centerpiece", cat: "Centerpieces", w: 0.8, d: 0.8, h: 1.1, mat: "glass", top: true },
+  bouquet:       { label: "Bouquet", cat: "Centerpieces", w: 0.3, d: 0.42, h: 0.2, mat: "satin", top: true, palette: true },
   // Lighting and candles
   uplight:       { label: "Uplight", cat: "Lighting & candles", w: 0.25, d: 0.25, h: 0.25, mat: "metal" },
   string_lights: { label: "String lights", cat: "Lighting & candles", w: 6, d: 0.3, h: 0.6, mat: "metal", ceiling: true },
   chandelier:    { label: "Chandelier", cat: "Lighting & candles", w: 1.0, d: 1.0, h: 1.0, mat: "glass", ceiling: true },
   candle_floor:  { label: "Floor candles", cat: "Lighting & candles", w: 0.45, d: 0.45, h: 0.6, mat: "glass" },
   light_truss:   { label: "Light truss", cat: "Lighting & candles", w: 3.0, d: 0.3, h: 2.8, mat: "metal" },
+  lanterns:      { label: "Lanterns (set of 3)", cat: "Lighting & candles", w: 0.6, d: 0.45, h: 0.75, mat: "metal" },
+  spotlight:     { label: "Spotlight", cat: "Lighting & candles", w: 0.6, d: 0.6, h: 2.0, mat: "metal" },
   // Florals and greenery
   arch:          { label: "Floral arch", cat: "Florals & greenery", w: 2.1, d: 0.4, h: 2.4, mat: "gold", palette: true },
   aisle_flowers: { label: "Aisle flower stand", cat: "Florals & greenery", w: 0.45, d: 0.45, h: 1.0, mat: "gold", palette: true },
@@ -85,22 +101,36 @@ export const CATALOG = {
   welcome_sign:  { label: "Welcome sign", cat: "Lounge & accents", w: 0.65, d: 0.5, h: 1.7, mat: "wood" },
   marquee:       { label: "Marquee letters", cat: "Lounge & accents", w: 1.6, d: 0.2, h: 1.2, mat: "paint" },
   gift_table:    { label: "Gift table", cat: "Lounge & accents", w: 1.83, d: 0.76, h: 0.76, mat: "fabric", dress: "table" },
+  welcome_table: { label: "Welcome table", cat: "Lounge & accents", w: 1.83, d: 0.76, h: 0.76, mat: "fabric", dress: "table" },
+  pedestals:     { label: "Pedestals (set of 3)", cat: "Lounge & accents", w: 0.9, d: 0.45, h: 0.82, mat: "paint", palette: true },
+  sculpture:     { label: "Sculpture on a plinth", cat: "Lounge & accents", w: 0.45, d: 0.45, h: 1.6, mat: "paint" },
+  display_shelf: { label: "Display shelving", cat: "Lounge & accents", w: 1.2, d: 0.4, h: 1.8, mat: "wood" },
   // Stage, food, audio, structure
   stage:         { label: "Stage", cat: "Stage & floor", w: 6.1, d: 3.66, h: 0.6, mat: "wood", floor: true },
   dance_floor:   { label: "Dance floor", cat: "Stage & floor", w: 4.88, d: 4.88, h: 0.03, mat: "parquet", floor: true },
+  aisle_runner:  { label: "Aisle runner", cat: "Stage & floor", w: 1.02, d: 12.2, h: 0.005, mat: "fabric", floor: true },
   podium:        { label: "Podium", cat: "Stage & floor", w: 0.6, d: 0.5, h: 1.15, mat: "wood" },
   bar:           { label: "Bar", cat: "Food & drink", w: 2.44, d: 0.7, h: 1.07, mat: "wood" },
   buffet:        { label: "Buffet table", cat: "Food & drink", w: 2.44, d: 0.76, h: 0.76, mat: "fabric", dress: "table" },
   food_station:  { label: "Food station", cat: "Food & drink", w: 1.83, d: 0.9, h: 0.9, mat: "metal" },
   cake_table:    { label: "Cake table", cat: "Food & drink", w: 0.9, d: 0.9, h: 0.76, mat: "fabric", dress: "table" },
+  dessert_table: { label: "Dessert table", cat: "Food & drink", w: 2.44, d: 0.76, h: 0.76, mat: "fabric", dress: "table" },
   speaker:       { label: "Speaker", cat: "Audio & video", w: 0.5, d: 0.45, h: 1.6, mat: "metal" },
   dj_booth:      { label: "DJ booth", cat: "Audio & video", w: 1.8, d: 0.7, h: 1.07, mat: "metal" },
   screen:        { label: "Projector screen", cat: "Audio & video", w: 3.0, d: 0.15, h: 2.3, mat: "fabric" },
-  column:        { label: "Column", cat: "Structure", w: 0.5, d: 0.5, h: 3.6, mat: "stone", structure: true }
+  led_wall:      { label: "LED video wall", cat: "Audio & video", w: 5.0, d: 0.5, h: 3.0, mat: "metal" },
+  projector:     { label: "Projector", cat: "Audio & video", w: 0.5, d: 0.5, h: 1.3, mat: "metal" },
+  // Photo booths and special effects
+  photo_booth:   { label: "Photo booth", cat: "Photo & effects", w: 2.4, d: 2.4, h: 2.4, mat: "fabric" },
+  booth_360:     { label: "360 video booth", cat: "Photo & effects", w: 1.2, d: 1.2, h: 2.1, mat: "metal" },
+  fog:           { label: "Low fog (dancing on clouds)", cat: "Photo & effects", w: 4.88, d: 4.88, h: 0.4, mat: "fabric", over: true },
+  cold_spark:    { label: "Cold spark machine", cat: "Photo & effects", w: 0.32, d: 0.32, h: 2.4, mat: "metal" },
+  column:        { label: "Column", cat: "Structure", w: 0.5, d: 0.5, h: 3.6, mat: "stone", structure: true },
+  tent:          { label: "Frame tent (20 × 20 ft)", cat: "Structure", w: 6.1, d: 6.1, h: 3.8, mat: "fabric", over: true }
 };
 export const KINDS = Object.keys(CATALOG);
 // The Add tab lists categories in this order: what decorators change most often first.
-export const CAT_ORDER = ["Tables", "Seating", "Balloons", "Backdrops & drapery", "Centerpieces", "Lighting & candles", "Florals & greenery", "Lounge & accents", "Stage & floor", "Food & drink", "Audio & video", "Structure"];
+export const CAT_ORDER = ["Tables", "Seating", "Balloons", "Backdrops & drapery", "Centerpieces", "Lighting & candles", "Florals & greenery", "Lounge & accents", "Stage & floor", "Food & drink", "Audio & video", "Photo & effects", "Structure"];
 
 // Decorating options. Tables take linens; chairs take covers and sashes. A color of null means none.
 export const DRESS = {
@@ -191,13 +221,28 @@ export function mkItem(kind, x, z, rot = 0, extra = {}) {
   return Object.assign({ id: uid("i_"), kind, x: r2(x), z: r2(z), y: 0, rot: r2(rot), w: c.w, d: c.d, h: c.h, mat: c.mat, color: null }, extra);
 }
 
+// A point in a table's own frame (x along its width, z along its depth) to the room.
+function fromTable(t, lx, lz) { const a = (t.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return [t.x + lx * c - lz * s, t.z + lx * s + lz * c]; }
 export function chairsAround(t, n, kind = "chair") {
-  const out = [], rad = Math.max(t.w, t.d) / 2 + 0.32;
+  const out = [], rad = Math.max(t.w, t.d) / 2 + 0.32, C = CATALOG[t.kind] || {};
+  // A chair's front is its +z side; turning it by rot points the front at (-sin rot, cos rot). Facing the table means rot = 180° minus
+  // the chair's direction from the table. (Before Nov 3, 2026 this was 180° plus, so only the chairs at the head and foot faced the table.)
+  const facing = (x, z, cx, cz) => ((180 - Math.atan2(x - cx, z - cz) * 180 / Math.PI) % 360 + 360) % 360;
+  const face = (x, z, cx, cz) => mkItem(kind, x, z, r2(facing(x, z, cx, cz)), { group: t.id });
+  if (t.kind === "table_serpentine") { // along the outer curve, facing the ring's center
+    const [cx, cz] = fromTable(t, -t.w / 2, -t.d / 2), R = t.w + 0.3;
+    for (let k = 0; k < n; k++) { const ph = (k + 0.5) / n * Math.PI / 2, [x, z] = fromTable(t, -t.w / 2 + Math.cos(ph) * R, -t.d / 2 + Math.sin(ph) * R); out.push(face(x, z, cx, cz)); }
+    return out;
+  }
+  if (C.oneSide) { // everyone on the back side, facing the room
+    for (let k = 0; k < n; k++) { const lx = -t.w / 2 + (k + 0.5) * t.w / n, [x, z] = fromTable(t, lx, -t.d / 2 - 0.32), [cx, cz] = fromTable(t, lx, 0); out.push(face(x, z, cx, cz)); }
+    return out;
+  }
   for (let k = 0; k < n; k++) {
     const a = (k / n) * Math.PI * 2;
     // The chair's back faces away from the table: rot points its front (+z) at the table center.
     const x = t.x + Math.sin(a) * rad, z = t.z + Math.cos(a) * rad;
-    out.push(mkItem(kind, x, z, (a * 180 / Math.PI) + 180, { group: t.id }));
+    out.push(mkItem(kind, x, z, r2(facing(x, z, t.x, t.z)), { group: t.id }));
   }
   return out;
 }
@@ -214,7 +259,8 @@ const overlap = (A, B, pad = 0) => A.x0 < B.x1 - pad && A.x1 > B.x0 + pad && A.z
 // Which items sit on the floor layer (stage, dance floor) vs stand on it. Things can stand on floors and stages.
 const isFloorLayer = it => !!(CATALOG[it.kind] || {}).floor;
 // Things on a table or hanging from the ceiling don't bump into furniture on the floor.
-export const offFloor = it => !!((CATALOG[it.kind] || {}).top || (CATALOG[it.kind] || {}).ceiling);
+// Tents and fog stand over everything else, so they don't either.
+export const offFloor = it => { const c = CATALOG[it.kind] || {}; return !!(c.top || c.ceiling || c.over); };
 
 export function collisions(scene, it) {
   if (offFloor(it)) return [];
@@ -533,7 +579,7 @@ const RUN = {
     // Tables go on an even lattice (rows the way a banquet captain sets them). Try several lattice offsets and
     // keep whichever fits the most tables, then use the spots nearest the center.
     const pitch = foot + aisle, boxAt = (x, z) => ({ x0: x - foot / 2, x1: x + foot / 2, z0: z - foot / 2, z1: z + foot / 2 });
-    const free = (x, z) => { const b = boxAt(x, z); return b.x0 >= edge && b.z0 >= edge && b.x1 <= R.w - edge && b.z1 <= R.d - edge && !s.items.some(i => overlap(footprint(i), b, -edge)); };
+    const free = (x, z) => { const b = boxAt(x, z); return b.x0 >= edge && b.z0 >= edge && b.x1 <= R.w - edge && b.z1 <= R.d - edge && !s.items.some(i => !(CATALOG[i.kind] || {}).over && overlap(footprint(i), b, -edge)); };
     let spots = [];
     for (let ox = 0; ox < pitch; ox += 0.25) for (let oz = 0; oz < pitch; oz += 0.25) {
       const got = [];
@@ -594,7 +640,7 @@ const RUN = {
   },
   decorate_tables(s, o) {
     const kind = need(o, "kind"); if (!CATALOG[kind] || !CATALOG[kind].top) throw new Error(kind + " doesn't go on a table");
-    const tables = s.items.filter(i => CATALOG[i.kind].dress === "table" && /^table_(round|rect|banquet|farm)/.test(i.kind) && (o.tables === "all" || !o.tables || o.tables.includes(i.id)));
+    const tables = s.items.filter(i => CATALOG[i.kind].dress === "table" && /^table_(round|rect|banquet|farm|serpentine|head|sweetheart)/.test(i.kind) && (o.tables === "all" || !o.tables || o.tables.includes(i.id)));
     if (!tables.length) throw new Error("there are no guest tables");
     // One centerpiece per table: swap out whatever centerpiece is already there.
     const gone = new Set(s.items.filter(i => CATALOG[i.kind].top && tables.some(t => t.id === i.group)).map(i => i.id));
@@ -659,6 +705,15 @@ export function fmtLen(m, units = "ft") {
 // reported back instead of guessed. A model (Claude) can send ops JSON directly through the same apply().
 const NUMS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20 };
 const KIND_WORDS = [
+  // the pieces added Nov 3, 2026 first: their names are more specific than the older words below ("LED wall behind the stage" is an LED wall)
+  [/throne/, "chair_throne"], [/banquet chairs?|stack(?:able|ing) chairs?|hotel chairs?/, "chair_banquet"], [/\bbench(?:es)?\b/, "bench"],
+  [/serpentine|s-?curve|curved tables?/, "table_serpentine"], [/sweetheart/, "table_sweetheart"], [/head table|wedding party table/, "table_head"],
+  [/champagne (?:wall|display)|toast(?:ing)? wall/, "champagne_wall"], [/entrance arch|draped arch/, "entrance_arch"], [/divider|partition|folding screen/, "partition"],
+  [/bud vases?/, "bud_vases"], [/table garland|garland runner|greenery runner|eucalyptus/, "table_garland"], [/branch(?:es)?|manzanita/, "branches"], [/bouquet/, "bouquet"],
+  [/lanterns?/, "lanterns"], [/spot ?lights?/, "spotlight"], [/welcome table|guest ?book table|sign-?in table/, "welcome_table"], [/pedestals?|plinths?/, "pedestals"], [/sculpture|statue/, "sculpture"], [/shel(?:f|ves|ving)|bookcase/, "display_shelf"],
+  [/aisle runner|walkway/, "aisle_runner"], [/dessert (?:table|display|bar)|sweets? table|candy (?:bar|table)/, "dessert_table"],
+  [/led (?:wall|screen)|video wall/, "led_wall"], [/projector|projection/, "projector"], [/threesixty|three sixty/, "booth_360"], [/photo ?booth|selfie booth/, "photo_booth"],
+  [/\bfog\b|dry ice|dancing on (?:the )?clouds/, "fog"], [/cold sparks?|spark(?:ler)? (?:machine|fountain)s?|\bsparks?\b/, "cold_spark"], [/\btents?\b|canopy/, "tent"],
   [/balloon (?:wall|backdrop)/, "balloon_wall"], [/balloon columns?|balloon towers?/, "balloon_column"], [/balloon garland|organic balloon/, "balloon_arch"], [/balloon arch|balloons?/, "balloon_full_arch"],
   [/flower wall|floral wall/, "flower_wall"], [/shimmer|sequin wall/, "shimmer_wall"], [/pipe (?:and|&) drape|drapes? panel/, "pipe_drape"], [/ceiling (?:drap|swag)|draping/, "ceiling_drape"],
   [/string lights?|bistro lights?|fairy lights?/, "string_lights"], [/chandeliers?/, "chandelier"], [/uplights?/, "uplight"], [/floor candles?|pillar candles?/, "candle_floor"],
@@ -690,7 +745,7 @@ export function interpret(scene, text) {
   let pendingCenter = null;
 
   for (let p of parts) {
-    p = p.trim();
+    p = p.trim().replace(/\b360(?=[ -]*(?:degree|booth|video|camera|photo|spin))/g, "threesixty"); // "a 360 booth" is one booth, not 360
     const where = (p.match(WHERE) || [])[1] === "middle" ? "center" : (p.match(WHERE) || [])[1];
     const cols = colorsIn(p);
     // Carpet: "carpet the room", "navy carpet", "plain gray carpet", "change the floor to carpet" (a rug is a piece, not the floor)
@@ -698,7 +753,7 @@ export function interpret(scene, text) {
       ops.push(Object.assign({ op: "change_material", id: "floor", mat: /plain|solid|plush/.test(p) ? "carpet_plain" : "carpet" }, cols.length ? { color: cols[0] } : {})); continue;
     }
     // Linens and chair dressing: "ivory floor-length linens with gold runners", "blush sashes on the chairs"
-    if (DECOR_WORD.test(p) && !/^(remove|delete|take off|take away)/.test(p)) {
+    if (DECOR_WORD.test(p) && !/aisle runner|walkway/.test(p) && !/^(remove|delete|take off|take away)/.test(p)) {
       const tOp = { op: "dress_object", kind: "tables" }, cOp = { op: "dress_object", kind: "chairs" };
       for (const sub of p.split(/\s+(?:with|and|plus|&)\s+/)) {
         const c = colorsIn(sub)[0];
@@ -718,13 +773,13 @@ export function interpret(scene, text) {
       if (ops.length) continue;
     }
     // Chair style: "switch to ghost chairs", "use cross-back chairs"
-    const sw = p.match(/(ghost|cross-?back|chiavari|folding) chairs?/);
+    const sw = p.match(/(ghost|cross-?back|chiavari|folding|banquet) chairs?/);
     if (sw && /switch|use|change|swap|make|replace|chiavari|instead/.test(p)) {
-      ops.push({ op: "swap_style", from: "chairs", to: { ghost: "chair_ghost", chiavari: "chair", folding: "chair_folding" }[sw[1]] || "chair_crossback" }); continue;
+      ops.push({ op: "swap_style", from: "chairs", to: { ghost: "chair_ghost", chiavari: "chair", folding: "chair_folding", banquet: "chair_banquet" }[sw[1]] || "chair_crossback" }); continue;
     }
     // Centerpieces on every table: "put tall centerpieces on every table", "add candles to each table"
-    if (/centerpiece|candles?|votive|flowers?|floral/.test(p) && /(each|every|all|the) (?:guest )?tables?|tables/.test(p) && !/floor candle|flower wall|floral wall/.test(p)) {
-      const kind = /tall/.test(p) ? "centerpiece_tall" : /candle|votive/.test(p) && !/flower|floral/.test(p) ? "candle_cluster" : "centerpiece";
+    if (/centerpiece|candles?|votive|flowers?|floral|bud vases?|garlands?|branch|manzanita/.test(p) && /(each|every|all|the) (?:guest )?tables?|tables/.test(p) && !/floor candle|flower wall|floral wall/.test(p)) {
+      const kind = /bud vase/.test(p) ? "bud_vases" : /garland/.test(p) ? "table_garland" : /branch|manzanita/.test(p) ? "branches" : /tall/.test(p) ? "centerpiece_tall" : /candle|votive/.test(p) && !/flower|floral/.test(p) ? "candle_cluster" : "centerpiece";
       ops.push(Object.assign({ op: "decorate_tables", kind, tables: "all" }, cols.length ? { palette: cols } : {})); continue;
     }
     // "set up this venue for a wedding with 120 guests"
@@ -767,7 +822,7 @@ export function interpret(scene, text) {
     }
     // "add / create / place a stage at the front", "add a dance floor in the center"
     m = p.match(/^(?:add|create|place|put|set up|build|make)\s+(?:a|an|the|another|one|two|three|four|\d+)?\s*(.+?)(?:\s+(?:at|in|on|to|by|along)\s+(?:the\s+)?(.+))?$/);
-    if (m && kindOf(m[1]) && (!/light|lighting|look|feel/.test(p) || /string_lights|chandelier|uplight/.test(kindOf(m[1])))) {
+    if (m && kindOf(m[1]) && (!/light|lighting|look|feel/.test(p) || /string_lights|chandelier|uplight|spotlight|lanterns/.test(kindOf(m[1])))) {
       const k = kindOf(m[1]); const count = Math.min(n(p) || 1, 20); const w2 = (String(m[2] || "").match(WHERE) || [])[1] || where;
       const C = CATALOG[k], extra = C.palette && cols.length ? { palette: cols } : C.palette && /hostmode|host mode/.test(p) ? { palette: "hostmode" } : {};
       if (!C.palette && cols.length && !C.dress) extra.color = cols[0];
@@ -777,7 +832,8 @@ export function interpret(scene, text) {
       if (anchor) {
         const f = footprint(anchor), C2 = CATALOG[k];
         let x = anchor.x, z = anchor.z;
-        if (!C2.ceiling && !/over|above|on/.test(near[0])) { z = /behind/.test(near[0]) ? f.z0 - C2.d / 2 - 0.2 : f.z1 + C2.d / 2 + 0.3; if (z > scene.room.d - C2.d) z = f.z0 - C2.d / 2 - 0.3; }
+        if (!C2.ceiling && !/over|above|on/.test(near[0])) { z = /behind/.test(near[0]) ? f.z0 - C2.d / 2 - 0.2 : f.z1 + C2.d / 2 + 0.3; if (z > scene.room.d - C2.d) z = f.z0 - C2.d / 2 - 0.3;
+          z = Math.max(C2.d / 2 + 0.05, Math.min(scene.room.d - C2.d / 2 - 0.05, z)); } // against the wall at most: an LED wall behind a stage that's against the wall stands on the stage's back edge
         for (let i = 0; i < count; i++) { const id = uid("i_"); ops.push(Object.assign({ op: "add_item", kind: k, id, x: x + (count > 1 ? (i - (count - 1) / 2) * ((C2.ceiling ? (f.x1 - f.x0) : C2.w + 0.4) / Math.max(1, count - (C2.ceiling ? 0 : 1)) ) : 0), z }, extra)); }
         continue;
       }
@@ -814,7 +870,7 @@ export function interpret(scene, text) {
       ops.push({ op: "dress_object", kind: "tables", linen: "floor", linenColor: "ivory", runner: "satin", runnerColor: "champagne", charger: "gold", napkin: "ivory" });
       if (scene.items.some(i => CATALOG[i.kind].dress === "chair")) ops.push({ op: "change_material", kind: "chairs", mat: "gold", color: "gold" }, { op: "dress_object", kind: "chairs", sash: "champagne" });
       ops.push({ op: "modify_lighting", id: "all", kelvin: 2700, scale: 0.85 });
-      if (scene.items.some(i => /^table_(round|rect|banquet|farm)/.test(i.kind))) ops.push({ op: "decorate_tables", kind: "centerpiece_tall", tables: "all", palette: "classic" });
+      if (scene.items.some(i => /^table_(round|rect|banquet|farm|serpentine|head|sweetheart)/.test(i.kind))) ops.push({ op: "decorate_tables", kind: "centerpiece_tall", tables: "all", palette: "classic" });
       notes.push("ivory floor-length linens, champagne runners and sashes, gold chargers, tall centerpieces, and warmer, softer light"); continue;
     }
     // "remove the bar" / "delete the podium" — needs the person's OK in the editor

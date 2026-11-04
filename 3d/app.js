@@ -1,5 +1,7 @@
 // The 3D venue designer's screens: the Ask box, the library, the selected object, lights, room, views and files.
 import { Editor, S, esc } from "./editor.js";
+import { searchAssets, assetById } from "./library/assets.js";
+import { EVENTS, STYLES } from "./library/contracts.js";
 
 // Same Firebase project as games.html (js/02-core.js). Signing in there signs you in here (same website).
 const FIREBASE_CONFIG = { apiKey: "AIzaSyAMWgxbGsq4yiQrsuLYJ1pEb5Qc-8o4zg0", authDomain: "spark-drinks-2d185.firebaseapp.com", databaseURL: "https://spark-drinks-2d185-default-rtdb.firebaseio.com", projectId: "spark-drinks-2d185", appId: "1:497288236361:web:468bd29601daa92e621e98" };
@@ -59,16 +61,46 @@ $("#banner").addEventListener("click", e => {
 });
 
 // ---------- Add ----------
+// The library: search words, an event and a style narrow it down (searchAssets in 3d/library/assets.js). With nothing typed
+// or picked it's every piece by category. Each piece gets a small picture, drawn a few at a time while this tab is open.
+let libQ = "", libEv = "", libSt = "";
+const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+function libCard(k) { const c = S.CATALOG[k], u = THUMBS.get(k), a = assetById(k);
+  return `<button class="lib" data-add="${k}" title="${esc(a && a.description || "")}"><img class="th" data-k="${k}" alt="" ${u ? `src="${u}"` : ""}>${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`; }
+function libList() {
+  if (!libQ.trim() && !libEv && !libSt) {
+    const cats = {}; Object.keys(S.CATALOG).forEach(k => (cats[S.CATALOG[k].cat] = cats[S.CATALOG[k].cat] || []).push(k));
+    return S.CAT_ORDER.filter(c => cats[c]).map(cat => `<h3>${esc(cat)}</h3><div class="grid">${cats[cat].map(libCard).join("")}</div>`).join("");
+  }
+  const hits = searchAssets(libQ, { event: libEv, style: libSt }).filter(a => S.CATALOG[a.id]);
+  return `<p class="muted" role="status">${hits.length ? hits.length + (hits.length === 1 ? " piece" : " pieces") : "Nothing matches. Try fewer words, or clear the filters."}</p><div class="grid">${hits.map(a => libCard(a.id)).join("")}</div>`;
+}
 function addTab() {
-  const cats = {}; Object.entries(S.CATALOG).forEach(([k, c]) => (cats[c.cat] = cats[c.cat] || []).push([k, c]));
-  return `<p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>` + S.CAT_ORDER.filter(c => cats[c]).map(cat => [cat, cats[cat]]).map(([cat, list]) => `<h3>${esc(cat)}</h3><div class="grid">${list.map(([k, c]) => `<button class="lib" data-add="${k}">${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`).join("")}</div>`).join("") +
-    `<p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
+  return `<input id="libQ" type="search" class="search" placeholder="Search: arch, gold, rustic, throne…" aria-label="Search the library" value="${esc(libQ)}">
+  <div class="row" style="margin:8px 0 2px"><label class="f">Event<select id="libEv"><option value="">Any event</option>${EVENTS.map(e => `<option value="${e}" ${libEv === e ? "selected" : ""}>${cap(e)}</option>`).join("")}</select></label>
+  <label class="f">Style<select id="libSt"><option value="">Any style</option>${STYLES.map(e => `<option value="${e}" ${libSt === e ? "selected" : ""}>${cap(e)}</option>`).join("")}</select></label>
+  <button class="btn l" data-x="libClear" style="align-self:flex-end" ${libQ || libEv || libSt ? "" : "hidden"}>Clear</button></div>
+  <p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>
+  <div id="libList">${libList()}</div>
+  <p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
+}
+// Typing only redraws the results, never the search box, so the keyboard stays up on a phone.
+function refreshLib() { const el = $("#libList"); if (el) { el.innerHTML = libList(); wantThumbs(); } const c = $("[data-x=libClear]"); if (c) c.hidden = !(libQ || libEv || libSt); }
+// Library pictures: made on this device the first time the Add tab shows them, kept until the page closes.
+const THUMBS = new Map(); let thumbQ = [], thumbBusy = false;
+function paintThumbs() { document.querySelectorAll("#libList img[data-k]").forEach(i => { const u = THUMBS.get(i.dataset.k); if (u && i.getAttribute("src") !== u) i.src = u; }); }
+function wantThumbs() { thumbQ = [...new Set([...document.querySelectorAll("#libList img[data-k]")].map(i => i.dataset.k))].filter(k => !THUMBS.has(k)); paintThumbs(); if (!thumbBusy && thumbQ.length) { thumbBusy = true; requestAnimationFrame(stepThumbs); } }
+function stepThumbs() {
+  if (tab !== "add" || window.HM3D_PAUSED || !thumbQ.length) { thumbBusy = false; return; }
+  const batch = thumbQ.splice(0, 2);
+  try { ed.thumbs(batch).forEach((u, i) => THUMBS.set(batch[i], u)); } catch (e) { thumbQ = []; thumbBusy = false; return; } // no pictures is fine: the names still show
+  paintThumbs(); requestAnimationFrame(stepThumbs);
 }
 
 // ---------- Selected ----------
 const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "navy", "dark purple", "lavender", "burgundy", "emerald", "sage", "orange"];
 // pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
-const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen"]);
+const NO_MAT = new Set(["pipe_drape", "shimmer_wall", "ceiling_drape", "candle_cluster", "uplight", "string_lights", "chandelier", "candle_floor", "hanging_greenery", "sofa", "lounge_chair", "ottoman", "marquee", "speaker", "screen", "fog", "cold_spark", "led_wall", "projector", "spotlight", "booth_360", "tent", "bud_vases", "table_garland", "bouquet", "branches"]);
 const CARPET_COLS = ["burgundy", "red", "navy", "blue", "grey", "black", "brown", "champagne", "ivory", "sage", "emerald", "dark purple"];
 function grpCard() {
   const g = ed.grp, n = g.all.length, name = g.set ? ((ed.s.sets || {})[g.set] || {}).name || "Set" : "";
@@ -191,6 +223,7 @@ function render() {
   document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === ed.mode));
   $("#modes").style.display = ed.view === "walk" ? "none" : "flex"; $("#pad").style.display = ed.view === "walk" ? "grid" : "none";
   if (document.activeElement !== $("#name")) $("#name").value = ed.s.name;
+  if (tab === "add") wantThumbs();
 }
 let lastSel = null;
 ed.on(info => {
@@ -231,6 +264,7 @@ body.addEventListener("click", async e => {
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
+  if (d.x === "libClear") { libQ = libEv = libSt = ""; render(); return; }
   if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
   if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
   // sets and several picked things
@@ -259,8 +293,10 @@ body.addEventListener("click", async e => {
     case "glb": try { dl(await ed.exportGLB(), safeName(ed.s) + ".glb"); } catch (er) { toast("Couldn't make the 3D model file"); } break;
   }
 });
+body.addEventListener("input", e => { if (e.target.id === "libQ") { libQ = e.target.value.slice(0, 60); refreshLib(); } });
 body.addEventListener("change", async e => {
   const t = e.target, it = ed.sel && ed.itemOf(ed.sel);
+  if (t.id === "libEv" || t.id === "libSt") { if (t.id === "libEv") libEv = t.value; else libSt = t.value; refreshLib(); return; }
   if (t.id === "floorCol") { ed.run([{ op: "change_material", id: "floor", color: t.value }]); return; }
   if (t.id === "setName" && ed.grp && ed.grp.set) { ed.run([{ op: "rename_set", set: ed.grp.set, name: t.value }]); return; }
   if (t.dataset.sz && it) ed.run([{ op: "resize_object", id: it.id, [t.dataset.sz]: fromU(t.value) }]);

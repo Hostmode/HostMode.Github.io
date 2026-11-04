@@ -1,0 +1,42 @@
+{
+ "id": "photo_booth",
+ "name": "Photo booth",
+ "category": "Photo & effects",
+ "tags": [
+  "photo booth",
+  "backdrop",
+  "camera"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary",
+  "gala",
+  "graduation",
+  "holiday",
+  "corporate"
+ ],
+ "styles": [
+  "playful",
+  "glam",
+  "modern"
+ ],
+ "size": {
+  "w": 2.4,
+  "d": 2.4,
+  "h": 2.4
+ },
+ "materials": [
+  "fabric"
+ ],
+ "colors": "Any color",
+ "placement": "In a corner near the dance floor.",
+ "compatible": [],
+ "modeling": "A backdrop facing a camera kiosk with a ring light.",
+ "priority": "now",
+ "findings": [
+  "photo_booths"
+ ],
+ "status": "checked"
+}

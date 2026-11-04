@@ -1,0 +1,37 @@
+{
+ "id": "display_shelf",
+ "name": "Display shelving",
+ "category": "Lounge & accents",
+ "tags": [
+  "shelves",
+  "display"
+ ],
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "corporate"
+ ],
+ "styles": [
+  "boho",
+  "rustic",
+  "modern"
+ ],
+ "size": {
+  "w": 1.2,
+  "d": 0.4,
+  "h": 1.8
+ },
+ "materials": [
+  "wood"
+ ],
+ "colors": "Any color",
+ "placement": "Gift areas, lounges, favors.",
+ "compatible": [],
+ "modeling": "Open shelves with books, vases and frames.",
+ "priority": "now",
+ "findings": [
+  "pedestals_display"
+ ],
+ "status": "checked"
+}

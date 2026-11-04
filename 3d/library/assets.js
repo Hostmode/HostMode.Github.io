@@ -10,7 +10,7 @@ export const BUDGET = {
   "Tables": { tris: 30000, meshes: 10 }, "Seating": { tris: 6000, meshes: 6 }, "Balloons": { tris: 250000, meshes: 12 },
   "Backdrops & drapery": { tris: 250000, meshes: 40 }, "Centerpieces": { tris: 40000, meshes: 16 }, "Lighting & candles": { tris: 60000, meshes: 30 },
   "Florals & greenery": { tris: 120000, meshes: 30 }, "Lounge & accents": { tris: 40000, meshes: 30 }, "Stage & floor": { tris: 20000, meshes: 12 },
-  "Food & drink": { tris: 30000, meshes: 20 }, "Audio & video": { tris: 20000, meshes: 12 }, "Structure": { tris: 20000, meshes: 8 }
+  "Food & drink": { tris: 30000, meshes: 20 }, "Audio & video": { tris: 20000, meshes: 12 }, "Photo & effects": { tris: 40000, meshes: 16 }, "Structure": { tris: 20000, meshes: 8 }
 };
 const ALL = ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"];
 const SOCIAL = ["wedding", "shower", "birthday", "anniversary", "gala", "graduation", "holiday"];
@@ -67,7 +67,36 @@ const META = {
   speaker:          ["Speaker on a stand.", ["speaker", "sound", "audio"], ALL, ["modern"]],
   dj_booth:         ["DJ booth with a lit front.", ["dj", "music", "booth"], ALL, ["modern", "playful", "glam"]],
   screen:           ["Screen for slideshows or a big screen game.", ["screen", "slideshow", "video"], ALL, ["modern", "minimal"]],
-  column:           ["Column, to match pillars in the real venue.", ["column", "pillar", "structure"], ALL, ["classic"]]
+  column:           ["Column, to match pillars in the real venue.", ["column", "pillar", "structure"], ALL, ["classic"]],
+  // Added Nov 3, 2026 (Phase 4). The research behind each one is in research/ and specs/.
+  table_serpentine: ["Curved serpentine table: four make a circle, two make an S.", ["serpentine", "curved", "s-curve", "guest table"], ["wedding", "anniversary", "gala", "corporate"], ["modern", "romantic", "rustic"]],
+  table_sweetheart: ["Table for two, so the couple faces their guests.", ["sweetheart", "couple", "head table"], ["wedding", "anniversary"], ["romantic", "classic", "glam"]],
+  table_head:       ["24-foot head table that seats 12 on one side, facing the room.", ["head table", "wedding party", "one side"], ["wedding", "gala", "corporate"], ["classic", "glam"]],
+  chair_banquet:    ["Stackable padded banquet chair, the hotel ballroom standard.", ["banquet", "stackable", "hotel", "padded", "seating"], ["wedding", "corporate", "gala", "community", "graduation", "holiday"], ["classic", "minimal"]],
+  chair_throne:     ["High-backed throne chair for the couple or guest of honor.", ["throne", "king", "queen", "guest of honor", "statement", "seating"], SOCIAL, ["glam", "romantic", "classic"]],
+  bench:            ["8-foot wooden bench for ceremony rows or family-style tables.", ["bench", "ceremony", "family style", "seating"], ["wedding", "community", "holiday", "shower"], ["rustic", "boho", "garden"]],
+  champagne_wall:   ["Self-serve champagne wall that doubles as a photo spot.", ["champagne", "glasses", "self-serve", "drinks", "photo backdrop"], SOCIAL, ["glam", "romantic", "modern"]],
+  entrance_arch:    ["Arch with sheer draping and flowers for an entrance or aisle.", ["arch", "entrance", "drape", "flowers", "ceremony"], ["wedding", "anniversary", "gala", "shower"], ["romantic", "glam", "garden"]],
+  partition:        ["Folding room divider to hide service areas or make a corner.", ["divider", "screen", "partition", "folding"], ["wedding", "corporate", "gala", "community"], ["boho", "classic", "modern"]],
+  bud_vases:        ["Group of bud vases with single blooms.", ["bud vases", "single stem", "flowers", "centerpiece"], SOCIAL, ["minimal", "garden", "boho"]],
+  table_garland:    ["Greenery garland down the middle of a table.", ["garland", "greenery", "runner", "eucalyptus", "centerpiece"], SOCIAL, ["garden", "rustic", "boho"]],
+  branches:         ["Tall branch centerpiece with hanging crystals.", ["branches", "manzanita", "tall", "crystals", "centerpiece"], ["wedding", "gala", "holiday", "anniversary"], ["glam", "modern", "garden"]],
+  bouquet:          ["Bouquet laid on the sweetheart or head table.", ["bouquet", "bridal", "flowers"], ["wedding", "anniversary", "shower"], ["romantic", "garden", "classic"]],
+  lanterns:         ["Three candle lanterns for paths, steps and entrances.", ["lanterns", "candles", "path", "entrance"], SOCIAL, ["rustic", "boho", "romantic"]],
+  spotlight:        ["Spotlight on a stand, to light the couple, the cake or a stage.", ["spotlight", "beam", "stage", "lighting"], ["wedding", "gala", "corporate", "graduation", "community"], ["modern", "glam"]],
+  welcome_table:    ["Welcome table with a sign, guest book, frames and flowers.", ["welcome", "guest book", "entrance", "sign"], ["wedding", "shower", "birthday", "anniversary", "gala", "graduation", "corporate"], ["classic", "romantic", "modern"]],
+  pedestals:        ["Three display pedestals with flowers and candles.", ["pedestals", "plinths", "display", "risers"], ["wedding", "shower", "birthday", "gala", "corporate"], ["modern", "minimal", "glam"]],
+  sculpture:        ["Abstract sculpture on a plinth for lounges and entrances.", ["sculpture", "art", "plinth", "gallery"], ["gala", "corporate", "wedding", "anniversary"], ["modern", "minimal", "glam"]],
+  display_shelf:    ["Open display shelving for favors, gifts or a lounge.", ["shelves", "shelving", "display", "favors"], ["wedding", "shower", "birthday", "corporate", "holiday"], ["boho", "rustic", "modern"]],
+  aisle_runner:     ["Aisle runner, 40 inches wide, in any color.", ["aisle", "runner", "ceremony", "walkway"], ["wedding", "anniversary", "gala"], ["classic", "romantic"]],
+  dessert_table:    ["Dessert table with a tiered cake, cupcakes and candy jars.", ["desserts", "sweets", "cake", "cupcakes", "candy"], SOCIAL, ["romantic", "playful", "classic"]],
+  led_wall:         ["16 by 10 foot LED video wall for a stage or slideshows.", ["led wall", "video wall", "screen", "stage"], ["corporate", "gala", "graduation", "community", "wedding", "birthday"], ["modern", "glam"]],
+  projector:        ["Projector on a stand for a screen or projection on a wall.", ["projector", "projection", "video"], ["corporate", "wedding", "birthday", "gala", "graduation"], ["modern"]],
+  photo_booth:      ["Open-air photo booth: a backdrop and a camera with a ring light.", ["photo booth", "camera", "backdrop", "photos"], ["wedding", "shower", "birthday", "graduation", "corporate", "gala", "holiday"], ["playful", "glam", "modern"]],
+  booth_360:        ["360 video booth: a platform with a camera arm that circles the guests.", ["360 booth", "video", "platform", "photos"], ["wedding", "birthday", "graduation", "corporate", "gala"], ["playful", "modern", "glam"]],
+  fog:              ["Low fog over the dance floor for the first dance.", ["fog", "clouds", "dry ice", "first dance", "effect"], ["wedding", "anniversary", "gala"], ["romantic", "glam"]],
+  cold_spark:       ["Cold spark fountain for grand entrances and first dances.", ["cold sparks", "sparklers", "fountain", "grand entrance", "effect"], ["wedding", "birthday", "gala", "graduation"], ["glam", "playful"]],
+  tent:             ["20 by 20 foot frame tent: about 33 guests at round tables.", ["tent", "outdoor", "canopy", "frame tent"], ["wedding", "shower", "birthday", "graduation", "community", "corporate", "holiday"], ["classic", "garden"]]
 };
 
 // The settings a person can change on each piece in the Selected tab.
@@ -91,9 +120,12 @@ export const ASSETS = Object.entries(CATALOG).map(([id, c]) => {
 export const assetById = id => ASSETS.find(a => a.id === id);
 export const metaIds = () => Object.keys(META);
 
-// Search the library: words match the name, description and tags; filters narrow by event, style and category.
+// Search the library: words match the name, description, category, tags, event types and styles; filters narrow by event, style and category.
+// Everyday words for an event, so "baby shower" or "quinceañera" finds the right pieces.
+const SAY = { baby: "shower", gender: "shower", reveal: "shower", bridal: "wedding", reception: "wedding", ceremony: "wedding", quince: "birthday", quinceanera: "birthday", party: "birthday",
+  office: "corporate", conference: "corporate", company: "corporate", grad: "graduation", christmas: "holiday", church: "community", school: "community" };
 export function searchAssets(q = "", f = {}) {
-  const words = String(q).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = String(q).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean).map(w => SAY[w] || SAY[w.replace(/s$/, "")] || w);
   return ASSETS.filter(a => (!f.event || a.events.includes(f.event)) && (!f.style || a.styles.includes(f.style)) && (!f.category || a.category === f.category)
-    && words.every(w => (a.name + " " + a.description + " " + a.tags.join(" ")).toLowerCase().includes(w)));
+    && words.every(w => (a.name + " " + a.description + " " + a.category + " " + a.tags.join(" ") + " " + a.events.join(" ") + " " + a.styles.join(" ")).toLowerCase().includes(w.replace(/(s|es)$/, "")))); // "weddings" finds wedding pieces
 }

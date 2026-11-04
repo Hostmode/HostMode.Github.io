@@ -1,0 +1,25 @@
+{
+ "id": "throne_chairs",
+ "topic": "Throne chairs",
+ "events": [
+  "wedding",
+  "shower",
+  "birthday",
+  "anniversary"
+ ],
+ "summary": "Throne chairs are tall, carved, high-backed statement chairs for the couple, the guest of honor or a baby shower mom-to-be, rented singly or as a pair, often gold, silver or white with velvet. A typical king size is about 92 cm wide, 180 cm tall and 72 cm deep.",
+ "sources": [
+  {
+   "url": "https://www.boutiquepartyhire.co.uk/product/single-throne-chair",
+   "title": "Silver Throne Chair Hire (Boutique Party Hire)",
+   "note": "92 x 180 x 72 cm; weddings, birthdays, baby showers"
+  },
+  {
+   "url": "https://columbusparties.com/white-royal-throne-chair-rentals-OH",
+   "title": "White royal throne chair rentals (Columbus Parties)"
+  }
+ ],
+ "confidence": "medium",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-03"
+}

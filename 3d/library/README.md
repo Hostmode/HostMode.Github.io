@@ -29,10 +29,18 @@ labels (`3d: research`, `3d: spec`, …), so the builder queue and the Monday re
 
 ## Detail budgets
 
-Measured Nov 3, 2026 in headless Chrome. The sample room is 57 pieces, about 40,000 triangles and 696 separately drawn
-parts. Separately drawn parts (draw calls) are what slow phones, not triangles: a dressed table is up to 32 parts and a
-Chiavari chair 14. Drawing repeated parts in one go (instancing) is a Phase 3 goal; until then table and chair budgets sit at
-today's numbers, so nothing gets heavier.
+Set in `BUDGET` in `assets.js`, one per category. Separately drawn parts (draw calls) are what slow phones more than
+triangles. Since Phase 3 the parts of a piece that share a material are joined, so a chair is 2 to 3 draws and a dressed table
+about 5; the sample room is 57 pieces, about 90,000 triangles and 168 separately drawn parts. Tiny repeated things (buttons,
+sparks, candies) use the low-detail `DOT` sphere, or they blow the budget.
+
+## Adding a piece (Phase 4 did 28 this way)
+
+1. A finding in `research/` with at least one real page, and a spec in `specs/` pointing at it.
+2. Its entry in `CATALOG` (`3d/scene.js`) with a real size in meters and the right flags, and its shape in `buildItem` (`3d/decor.js`).
+3. Its line in `META` (`assets.js`): description, tags, event types, styles. Search reads all of these.
+4. Its words near the top of `KIND_WORDS` (`scene.js`), so "add a …" in the Ask box finds it.
+5. `bash agents/check_all.sh`, then look at it: the asset check proves it builds and fits its budget, not that it looks right.
 
 ## Rules
 

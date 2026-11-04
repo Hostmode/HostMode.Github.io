@@ -224,8 +224,8 @@ function bloomGeo(kind) {
 }
 // A curved leaf with a fold down its middle, pointing along +X like the old flat leaf.
 const LEAF = (() => { const P = petalGeo(0.36, 1, -0.5, 0.18, 0, 2, 4, 99), g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(P.pos, 3)); g.setIndex(P.idx); g.rotateZ(-Math.PI / 2); g.computeVertexNormals(); return g; })();
-const SHRUB = new T.SphereGeometry(1, 14, 10), BALL = new T.SphereGeometry(1, 20, 14);
-[SHRUB, BALL, LEAF].forEach(g => g.userData.shared = true); // reused by every item: never disposed
+const SHRUB = new T.SphereGeometry(1, 14, 10), BALL = new T.SphereGeometry(1, 20, 14), PUFF = new T.SphereGeometry(1, 12, 8), DOT = new T.SphereGeometry(1, 8, 6); // DOT: buttons, sparks, candies
+[SHRUB, BALL, PUFF, DOT, LEAF].forEach(g => g.userData.shared = true); // reused by every item: never disposed
 const petalMat = c => material("velvet", c, { size: 0.2, side: T.DoubleSide, vc: true });
 const UP = new T.Vector3(0, 1, 0);
 const facing = (n, spin) => new T.Quaternion().setFromUnitVectors(UP, n).multiply(new T.Quaternion().setFromAxisAngle(UP, spin));
@@ -240,15 +240,31 @@ function roseBall(g, r, cx, cy, cz, colors, count = 90, seed = 3, foliage = fals
   const leaves = []; for (let i = 0; i < count * 0.6; i++) { const u = rr() * 2 - 1, a = rr() * Math.PI * 2, s = Math.sqrt(1 - u * u); leaves.push({ p: [cx + Math.cos(a) * s * r * 1.05, cy + u * r * 1.05, cz + Math.sin(a) * s * r * 1.05], s: r * 0.32, r: [rr() * 6, rr() * 6, rr() * 6] }); }
   g.add(inst(LEAF, material("velvet", "#4b7a4f", { side: T.DoubleSide, size: 0.2 }), leaves));
 }
-function placeSettings(it, scene) { // where each guest sits: from the table's own chairs, or evenly around it
+// Where each guest sits, in the table's own frame: in front of each of its chairs, or spread out when it has none.
+// Returns [{x, z, a}], a = the direction from the table's middle (for turning the napkin).
+function placeSettings(it, scene) {
+  const C = S.CATALOG[it.kind], W = it.w, D = it.d, R = W / 2, round = /round|cocktail|cake/.test(it.kind), n = C.seats || 0;
   const ch = scene ? scene.items.filter(c => c.group === it.id && c.kind.startsWith("chair")) : [];
-  const ang = ch.length ? ch.map(c => Math.atan2(c.x - it.x, c.z - it.z) + (it.rot || 0) * Math.PI / 180) : Array.from({ length: (S.CATALOG[it.kind].seats || 0) }, (_, k) => k / (S.CATALOG[it.kind].seats || 1) * Math.PI * 2);
-  return ang;
+  const th = (it.rot || 0) * Math.PI / 180, cs = Math.cos(th), sn = Math.sin(th);
+  let loc = ch.map(c => { const dx = c.x - it.x, dz = c.z - it.z; return [dx * cs + dz * sn, -dx * sn + dz * cs]; });
+  if (!loc.length) {
+    if (round) loc = Array.from({ length: n }, (_, k) => { const a = k / n * Math.PI * 2; return [Math.sin(a) * W, Math.cos(a) * W]; });
+    else if (C.oneSide) loc = Array.from({ length: n }, (_, k) => [-W / 2 + (k + 0.5) * W / n, -D]);
+    else { const per = Math.ceil(n / 2); loc = Array.from({ length: n }, (_, k) => { const top = k < per, j = top ? k : k - per, m = top ? per : n - per; return [-W / 2 + (j + 0.5) * W / m, top ? D : -D]; }); }
+  }
+  const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+  return loc.map(([x, z]) => {
+    const a = Math.atan2(x, z);
+    if (round) return { x: Math.sin(a) * (R - 0.2), z: Math.cos(a) * (R - 0.2), a };
+    if (Math.abs(x) > W / 2 && W > 0.6) return { x: Math.sign(x) * (W / 2 - 0.2), z: clamp(z, D / 2 - 0.2), a: Math.sign(x) * Math.PI / 2 };
+    return { x: clamp(x, W / 2 - 0.2), z: Math.sign(z || -1) * (D / 2 - 0.2), a: z >= 0 ? 0 : Math.PI };
+  });
 }
 function buildTable(g, it, scene) {
   const W = it.w, D = it.d, H = it.h, d = S.dressOf(it), round = /round|cocktail|cake/.test(it.kind), R = W / 2;
   const linenC = d.linenColor || it.color || "#f7f5f0", lm = material(d.linen === "spandex" ? "satin" : "fabric", linenC, { size: 1 });
   const legs = material("metal", "#3b3b40"), top = material(S.CATALOG[it.kind].bare ? "wood" : "wood", null, { size: W });
+  if (it.kind === "table_serpentine") return buildSerpentine(g, it, d, linenC, top, legs);
   const showLegs = d.linen === "none" || d.linen === "lap";
   if (showLegs) { // the table itself shows: top and legs
     if (round) { g.add(cyl(R, R, 0.035, top, 0, H - 0.035, 0, 48)); g.add(cyl(0.04, 0.04, H - 0.04, legs, 0, 0, 0, 12)); g.add(cyl(R * 0.35, R * 0.4, 0.03, legs, 0, 0, 0, 24)); }
@@ -264,7 +280,7 @@ function buildTable(g, it, scene) {
       const folds = d.linen === "pleated" ? 64 : d.linen === "spandex" ? 0 : Math.round(R * 18);
       g.add(mesh(drapeLathe(prof, folds, d.linen === "pleated" ? 0.006 : 0.014, hem, H - 0.05, 160), lm));
     } else {
-      const geo = new T.BoxGeometry(W + 0.05, H - hem, D + 0.05, Math.round(W * 40), 1, Math.round(D * 40)), p = geo.attributes.position, v = new T.Vector3();
+      const geo = new T.BoxGeometry(W + 0.05, H - hem, D + 0.05, Math.round(W * (W > 3 ? 24 : 40)), 1, Math.round(D * 40)), p = geo.attributes.position, v = new T.Vector3();
       const f = d.linen === "pleated" ? 90 : 30, a = d.linen === "pleated" ? 0.008 : d.linen === "spandex" ? 0 : 0.012;
       for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const t = (H - hem) / 2 - v.y, k = t / (H - hem); if (Math.abs(Math.abs(v.x) - (W + 0.05) / 2) < 1e-3) v.x += Math.sign(v.x) * (a * k * (1 + Math.sin(v.z * f))); if (Math.abs(Math.abs(v.z) - (D + 0.05) / 2) < 1e-3) v.z += Math.sign(v.z) * (a * k * (1 + Math.sin(v.x * f))); p.setXYZ(i, v.x, v.y, v.z); }
       geo.computeVertexNormals(); const o = mesh(geo, lm); o.position.y = hem + (H - hem) / 2; g.add(o);
@@ -281,10 +297,9 @@ function buildTable(g, it, scene) {
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), over = Math.abs(x) - edge; if (over > 0) { p.setX(i, Math.sign(x) * (edge + 0.004)); p.setY(i, -over); } }
     geo.computeVertexNormals(); const o = mesh(geo, material(d.runner === "sequin" ? "sequin" : "satin", d.runnerColor || "#c9a24a", { side: T.DoubleSide, size: 0.5 })); o.position.y = H + 0.012; g.add(o);
   }
-  if ((d.charger || d.napkin) && !/cocktail|buffet|cake|gift/.test(it.kind)) { // a place setting in front of each chair
+  if ((d.charger || d.napkin) && !/cocktail|buffet|cake|gift|dessert|welcome/.test(it.kind)) { // a place setting in front of each chair
     const chg = d.charger && material("gold", d.charger), nap = d.napkin && material("fabric", d.napkin, { size: 0.3 }), plate = material("tile", "#fbfaf7", { size: 0.3 });
-    placeSettings(it, scene).forEach(a => {
-      const rr = round ? R - 0.2 : null, x = round ? Math.sin(a) * rr : Math.sign(Math.sin(a)) * Math.min(W / 2 - 0.25, Math.abs(Math.sin(a) * W / 2)), z = round ? Math.cos(a) * rr : Math.sign(Math.cos(a)) * (D / 2 - 0.2);
+    placeSettings(it, scene).forEach(({ x, z, a }) => {
       if (chg) { const c = cyl(0.165, 0.165, 0.008, chg, x, H + 0.012, z, 32); g.add(c); }
       g.add(cyl(0.135, 0.12, 0.012, plate, x, H + 0.02, z, 32));
       if (nap) { const n = box(0.09, 0.02, 0.2, nap, 0, 0, 0); const grp = new T.Group(); grp.add(n); grp.position.set(x, H + 0.032, z); grp.rotation.y = -a + Math.PI / 2; g.add(grp); }
@@ -292,7 +307,47 @@ function buildTable(g, it, scene) {
   }
   if (it.kind === "cake_table") { const ic = material("fabric", "#fffaf2", { size: 0.3 }); [0.2, 0.15, 0.1].forEach((r, i) => g.add(cyl(r, r, 0.12, ic, 0, H + i * 0.12, 0))); }
   if (it.kind === "buffet") { const steel = material("metal"); [-W / 3, 0, W / 3].forEach(x => { g.add(box(W / 4, 0.06, D * 0.55, steel, x, H, 0)); g.add(cyl(0.1, 0.1, 0.06, steel, x, H + 0.06, 0, 16)); }); }
+  if (it.kind === "dessert_table") { // a tiered cake on a stand, two cake stands of cupcakes, candy jars
+    const ic = material("fabric", "#fffaf2", { size: 0.3 }), st = material("gold"), cz = -D * 0.12, r = rng(9), cups = [], tops = [];
+    g.add(cyl(0.05, 0.09, 0.1, st, 0, H, cz, 24)); g.add(cyl(0.2, 0.2, 0.012, st, 0, H + 0.1, cz, 32));
+    [0.17, 0.13, 0.09].forEach((rr, i) => g.add(cyl(rr, rr, 0.13, ic, 0, H + 0.112 + i * 0.13, cz, 32)));
+    [-1, 1].forEach(sd => { const x = sd * W * 0.3;
+      g.add(cyl(0.02, 0.05, 0.1, st, x, H, 0, 16)); g.add(cyl(0.16, 0.16, 0.01, st, x, H + 0.1, 0, 32)); g.add(cyl(0.012, 0.012, 0.16, st, x, H + 0.11, 0, 8)); g.add(cyl(0.11, 0.11, 0.01, st, x, H + 0.27, 0, 32));
+      [[6, 0.11, H + 0.11], [4, 0.06, H + 0.28]].forEach(([n, rad, y]) => { for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 + sd; cups.push({ p: [x + Math.cos(a) * rad, y, Math.sin(a) * rad], s: 1 }); tops.push({ p: [x + Math.cos(a) * rad, y + 0.045, Math.sin(a) * rad], s: [0.028, 0.022, 0.028] }); } });
+    });
+    const cup = new T.CylinderGeometry(0.026, 0.018, 0.04, 12); cup.translate(0, 0.02, 0); cup.userData.keep = true;
+    g.add(inst(cup, material("paint", "#f3ead6"), cups)); multi(g, DOT, c => material("velvet", c, { size: 0.1 }), tops, ["#f1a7bd", "#ffffff", "#c9a24a"]);
+    [-1, 1].forEach(sd => { const x = sd * W * 0.44, z = D * 0.15; g.add(cyl(0.06, 0.06, 0.2, material("glass"), x, H, z, 20, true)); g.add(cyl(0.065, 0.065, 0.02, st, x, H + 0.2, z, 20)); const cand = []; for (let k = 0; k < 18; k++) cand.push({ p: [x + (r() - 0.5) * 0.08, H + 0.02 + r() * 0.14, z + (r() - 0.5) * 0.08], s: 0.018 }); multi(g, DOT, latex, cand, ["#f1a7bd", "#a9cbe8", "#ffffff"]); });
+  }
+  if (it.kind === "welcome_table") { // a framed sign, an open guest book with a pen, two photo frames and a little bouquet
+    const st = material("gold"), sign = new T.Group(); sign.position.set(-W * 0.25, H, -D * 0.15); sign.rotation.x = -0.18; g.add(sign);
+    sign.add(box(0.42, 0.56, 0.025, st, 0, 0.02, 0)); const face = new T.Mesh(new T.PlaneGeometry(0.37, 0.51), new T.MeshStandardMaterial({ map: signTex("Welcome", (it.label || "to our celebration").slice(0, 26), 370, 510), roughness: 0.7 })); face.position.set(0, 0.3, 0.014); sign.add(face);
+    g.add(stick(new T.Vector3(-W * 0.25, H, -D * 0.15 - 0.02), new T.Vector3(-W * 0.25, H + 0.15, -D * 0.15 - 0.16), 0.008, st));
+    const pg = material("paint", "#fbf9f4", { size: 0.2 }), cov = material("velvet", "#16255a", { size: 0.2 });
+    [-1, 1].forEach(sd => { const pgs = box(0.16, 0.02, 0.22, pg, 0, 0, 0), c = box(0.165, 0.008, 0.225, cov, 0, -0.008, 0), b = new T.Group(); b.add(c, pgs); b.position.set(W * 0.05 + sd * 0.083, H + 0.008, D * 0.1); b.rotation.z = sd * 0.06; g.add(b); });
+    g.add(stick(new T.Vector3(W * 0.17, H + 0.04, D * 0.02), new T.Vector3(W * 0.17 + 0.12, H + 0.04, D * 0.12), 0.005, st));
+    [[W * 0.3, -D * 0.2, 0.18, 0.24], [W * 0.4, D * 0.05, 0.14, 0.18]].forEach(([x, z, w, h]) => { const f = new T.Group(); f.position.set(x, H, z); f.rotation.set(-0.12, -0.3, 0); f.add(box(w, h, 0.02, st, 0, 0, 0)); f.add(box(w - 0.03, h - 0.03, 0.022, material("paint", "#d8d2c6"), 0, 0.015, 0)); g.add(f); });
+    g.add(cyl(0.06, 0.045, 0.07, st, -W * 0.42, H, D * 0.12, 20)); roseBall(g, 0.09, -W * 0.42, H + 0.12, D * 0.12, palOf(it, ["#ffffff", "#efc7c2", "#f3ead6"]), 22, 31);
+  }
   if (it.kind === "gift_table") { const r = rng(5); for (let k = 0; k < 7; k++) { const s = 0.15 + r() * 0.18, c = ["#f1a7bd", "#ffffff", "#c9a24a", "#a9cbe8", "#9cae8f"][k % 5]; g.add(box(s, s * 0.8, s, material("satin", c, { size: 0.4 }), -W / 2 + 0.2 + k * (W - 0.4) / 7, H, (r() - 0.5) * D * 0.4)); } }
+}
+
+// A serpentine is a quarter of a ring 30 in deep. Its ring's middle is the corner at (-W/2, -D/2), so four turned
+// by 90° each make a circle. The cloth is a ring top, curved skirts that fall in folds, and flat ends.
+function buildSerpentine(g, it, d, linenC, top, legs) {
+  const W = it.w, H = it.h, cx = -W / 2, cz = -it.d / 2, Ro = W, Ri = W - 0.76, Q = Math.PI / 2;
+  const showLegs = d.linen === "none" || d.linen === "lap", hem = d.linen === "lap" ? Math.max(0.05, H - 0.38) : 0.004;
+  const ringTop = (r0, r1, m, y) => { const geo = new T.RingGeometry(r0, r1, 40, 1, -Q, Q); geo.rotateX(-Math.PI / 2); const o = mesh(geo, m); o.position.set(cx, y, cz); g.add(o); };
+  if (showLegs) { ringTop(Ri, Ro, top, H); [0.12, Q / 2, Q - 0.12].forEach(ph => [Ri + 0.12, Ro - 0.12].forEach(r => g.add(box(0.05, H - 0.02, 0.05, legs, cx + Math.cos(ph) * r, 0, cz + Math.sin(ph) * r)))); }
+  if (d.linen === "none") return;
+  const m = material(d.linen === "spandex" ? "satin" : "fabric", linenC, { size: 1, side: T.DoubleSide }), folds = d.linen === "pleated" ? 70 : d.linen === "spandex" ? 0 : 24, amp = d.linen === "pleated" ? 0.006 : 0.012;
+  ringTop(Ri - 0.02, Ro + 0.02, m, H + 0.004);
+  [Ro + 0.02, Ri - 0.02].forEach((r, k) => { // the outer and inner skirts
+    const geo = new T.CylinderGeometry(r, r, H - hem, 90, 4, true, 0, Q), p = geo.attributes.position, v = new T.Vector3();
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const t = ((H - hem) / 2 - v.y) / (H - hem), a = Math.atan2(v.x, v.z), f = 1 + (amp * t * (1 + Math.sin(a * folds * (k ? 0.6 : 1)))) / r * (k ? -1 : 1); p.setXYZ(i, v.x * f, v.y, v.z * f); }
+    geo.computeVertexNormals(); const o = mesh(geo, m); o.position.set(cx, hem + (H - hem) / 2, cz); g.add(o);
+  });
+  g.add(box(Ro - Ri + 0.04, H - hem, 0.01, m, cx + (Ri + Ro) / 2, hem, cz)); g.add(box(0.01, H - hem, Ro - Ri + 0.04, m, cx, hem, cz + (Ri + Ro) / 2));
 }
 
 // ---------- Chairs and chair dressing ----------
@@ -319,6 +374,14 @@ function buildChair(g, it) {
       [-1, 1].forEach(a => bk.add(cyl(leg * 0.9, leg, bh, m, a * lx, 0, 0, 10)));
       [0.12, bh * 0.55, bh - 0.04].forEach((y, k) => bk.add(rbox(W - 0.05, k === 2 ? 0.035 : 0.022, 0.024, 0.009, m, 0, y - 0.011, 0)));
       for (let k = 1; k < 5; k++) bk.add(cyl(0.007, 0.009, bh - 0.17, m, -lx + k * (2 * lx) / 5, 0.13, 0, 6));
+    } else if (it.kind === "chair_banquet") { // stackable banquet chair: a tube frame, a padded seat, a padded back that leans a little
+      const fr = material(it.mat || "metal", null, { size: 0.5 }), fab = material("fabric", it.color || "#30333d", { size: 0.5 }), lx = W / 2 - 0.025, lz = D / 2 - 0.04;
+      [[-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(0.011, 0.012, sh - 0.04, fr, a * lx, 0, b * lz, 8)));
+      g.add(rbox(W, 0.075, D - 0.06, 0.03, fab, 0, sh - 0.045, 0.01));
+      const bk = new T.Group(); bk.position.set(0, 0, back + 0.01); bk.rotation.x = -0.12; g.add(bk);
+      [-1, 1].forEach(a => bk.add(cyl(0.011, 0.012, H, fr, a * lx, 0, 0, 8)));
+      bk.add(rbox(W - 0.01, H - sh - 0.06, 0.05, 0.025, fab, 0, sh + 0.04, 0));
+      [0.12, sh - 0.06].forEach(y => { const st = cyl(0.008, 0.008, W - 0.05, fr, 0, 0, 0, 6); st.rotation.z = Math.PI / 2; st.position.set(0, y, lz); g.add(st); });
     } else { // folding chairs
       const leg = 0.018;
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(leg, leg * 0.8, sh, m, a * (W / 2 - 0.03), 0, b * (D / 2 - 0.03), 10)));
@@ -336,7 +399,7 @@ function buildChair(g, it) {
   }
   if (d.sash) { // a satin ribbon wrapped round the back, tied in a bow behind the chair, two tails falling with a little wave
     const sm = material("satin", d.sash, { size: 0.3, side: T.DoubleSide }), y = (H - sh) * 0.45, sg = new T.Group();
-    sg.position.set(0, sh, back); if (it.kind === "chair" && (d.cover === "none" || !d.cover)) sg.rotation.x = -0.09; g.add(sg);
+    sg.position.set(0, sh, back); if (d.cover === "none" || !d.cover) sg.rotation.x = it.kind === "chair" ? -0.09 : it.kind === "chair_banquet" ? -0.12 : 0; g.add(sg);
     const hw = W / 2 + 0.03, hd = 0.05, band = [];
     for (let k = 0; k <= 48; k++) { const a = k / 48 * Math.PI * 2, c = Math.cos(a), s2 = Math.sin(a); band.push([Math.sign(c) * Math.pow(Math.abs(c), 0.35) * hw, Math.sign(s2) * Math.pow(Math.abs(s2), 0.35) * hd]); }
     sg.add(mesh(ribbon(band.map(([x, z]) => [x, y, z]), [0, 1, 0], 0.085, 0.006), sm));
@@ -357,6 +420,31 @@ function ribbon(pts, across, width, bulge) {
   for (let i = 0; i < n - 1; i++) for (let j = 0; j < 2; j++) { const a = i * 3 + j, b2 = a + 1, c = a + 3, dd = c + 1; idx.push(a, c, b2, b2, c, dd); }
   const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
+
+// ---------- Helpers for signs, single blooms and sticks ----------
+// A sign face: a canvas with a title and a smaller line, any proportions. Cached by its words.
+const SIGNS = new Map();
+function signTex(title, sub, w = 512, h = 512, o = {}) {
+  const k = [title, sub, w, h, JSON.stringify(o)].join("|"); if (SIGNS.has(k)) return SIGNS.get(k);
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d");
+  x.fillStyle = o.bg || "#fbf9f4"; x.fillRect(0, 0, w, h); if (o.border !== false) { x.strokeStyle = o.line || "#c9a24a"; x.lineWidth = Math.max(4, w / 50); x.strokeRect(w * 0.05, h * 0.05, w * 0.9, h * 0.9); }
+  x.fillStyle = o.ink || "#16255a"; x.textAlign = "center"; x.textBaseline = "middle";
+  const fit = (t, size, y, style) => { let f = size; do { x.font = style + " " + f + "px Georgia, serif"; f -= 2; } while (x.measureText(t).width > w * 0.84 && f > 8); x.fillText(t, w / 2, y); };
+  fit(title, Math.round(h * (sub ? 0.22 : 0.3)), h * (sub ? 0.43 : 0.5), "italic"); if (sub) fit(sub, Math.round(h * 0.09), h * 0.66, "");
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; SIGNS.set(k, t); return t;
+}
+// One bloom at a spot, facing n: queued with the piece's other blooms so they're drawn together.
+function bloomAt(g, sp, color, p, s, n = UP, spin = 0) { const pend = g.userData.blooms = g.userData.blooms || new Map(), k = sp + "|" + color; if (!pend.has(k)) pend.set(k, []); pend.get(k).push({ p, s, q: facing(n.clone().normalize(), spin) }); }
+// A rod from a to b (branches, stems, frames).
+function stick(a, b, r, m, seg = 6, r2 = r) { const d = new T.Vector3().subVectors(b, a), o = mesh(new T.CylinderGeometry(r2, r, d.length(), seg, 1), m); o.position.copy(a).addScaledVector(d, 0.5); o.quaternion.setFromUnitVectors(UP, d.clone().normalize()); return o; }
+// A beam of light you can see: a faint cone that taps pass through. dir = where it points, from the lamp.
+function beam(g, from, dir, len, r0, r1, color) {
+  const k = "beam|" + color; if (!matCache.has(k)) matCache.set(k, new T.MeshBasicMaterial({ color: hex(color), transparent: true, opacity: 0.07, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+  const o = new T.Mesh(new T.CylinderGeometry(r0, r1, len, 24, 1, true), matCache.get(k)); const d = dir.clone().normalize();
+  o.position.copy(from).addScaledVector(d, len / 2); o.quaternion.setFromUnitVectors(new T.Vector3(0, -1, 0), d); o.userData.keep = o.userData.thru = true; o.castShadow = false; g.add(o);
+}
+const lathe = (pts, seg = 24) => new T.LatheGeometry(pts.map(([x, y]) => new T.Vector2(x, y)), seg);
+const glow = c => flat(c, { emissive: hex(c), emissiveIntensity: 2.5 });
 
 // ---------- Everything else ----------
 const palOf = (it, def) => (it.palette && it.palette.length ? it.palette : def);
@@ -393,8 +481,9 @@ export function buildItem(it, scene) {
   const flowers = palOf(it, it.color ? [it.color, "#ffffff", "#efc7c2"] : ["#ffffff", "#efc7c2", "#f1a7bd", "#f3ead6"]);
   const balloons = palOf(it, [it.color || "#efc7c2", "#ffffff", "#c9a24a"]);
   switch (it.kind) {
-    case "table_round": case "table_round72": case "table_rect": case "table_banquet": case "table_farm": case "table_cocktail": case "buffet": case "cake_table": case "gift_table": buildTable(g, it, scene); break;
-    case "chair": case "chair_ghost": case "chair_crossback": case "chair_folding": buildChair(g, it); break;
+    case "table_round": case "table_round72": case "table_rect": case "table_banquet": case "table_farm": case "table_cocktail": case "buffet": case "cake_table": case "gift_table":
+    case "table_serpentine": case "table_sweetheart": case "table_head": case "dessert_table": case "welcome_table": buildTable(g, it, scene); break;
+    case "chair": case "chair_ghost": case "chair_crossback": case "chair_folding": case "chair_banquet": buildChair(g, it); break;
     case "sofa": case "lounge_chair": {
       const v = material("velvet", it.color || null, { size: 1 }); g.add(rbox(W, 0.2, D, 0.04, v, 0, 0.12, 0)); g.add(rbox(W - 0.1, 0.14, D - 0.2, 0.06, v, 0, 0.3, 0.08));
       g.add(rbox(W, H - 0.32, 0.18, 0.06, v, 0, 0.32, -D / 2 + 0.09)); [-1, 1].forEach(a => g.add(rbox(0.16, 0.26, D, 0.06, v, a * (W / 2 - 0.08), 0.32, 0)));
@@ -496,10 +585,153 @@ export function buildItem(it, scene) {
     case "screen": g.add(box(W, H - 0.4, 0.04, material("fabric", "#ffffff", { size: 1 }), 0, 0.4, 0)); [-1, 1].forEach(a => g.add(cyl(0.03, 0.03, H, dark, a * W / 2, 0, 0, 8))); break;
     case "light_truss": [-1, 1].forEach(a => g.add(box(0.15, H, 0.15, main, a * W / 2, 0, 0))); g.add(box(W + 0.15, 0.2, 0.2, main, 0, H - 0.2, 0)); break;
     case "column": g.add(cyl(W / 2, W / 2, H, main, 0, 0, 0, 32)); g.add(box(W + 0.1, 0.12, W + 0.1, main, 0, 0, 0)); g.add(box(W + 0.1, 0.12, W + 0.1, main, 0, H - 0.12, 0)); break;
+    case "chair_throne": { // a tall arched back with a velvet panel and buttons, padded arms, a deep seat, turned legs
+      // gold on big flat carved faces reflects mostly dark room, so the throne uses a gilded finish (less mirror, more color)
+      const gk = "gilt|" + HI; if (!matCache.has(gk)) { const m = new T.MeshStandardMaterial({ color: hex("#c9a24a"), metalness: 0.55, roughness: 0.32 }); m.envMapIntensity = 4; matCache.set(gk, m); }
+      const fr = (it.mat || "gold") === "gold" ? matCache.get(gk) : material(it.mat, null, { size: 0.8 }), vel = material("velvet", it.color || "#f3ead6", { size: 0.6 }), sh = 0.5, bz = -D / 2 + 0.06, bh = H - sh - 0.16;
+      const arch = (w, h, crest) => { const sp = new T.Shape(); sp.moveTo(-w / 2, 0); sp.lineTo(-w / 2, h * 0.72); sp.bezierCurveTo(-w / 2, h * 0.95, -w * 0.12, h * 0.9, 0, h + crest); sp.bezierCurveTo(w * 0.12, h * 0.9, w / 2, h * 0.95, w / 2, h * 0.72); sp.lineTo(w / 2, 0); sp.lineTo(-w / 2, 0); return sp; };
+      const ext = (sp, dep, bev) => new T.ExtrudeGeometry(sp, { depth: dep, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 1, curveSegments: 10 });
+      const o1 = mesh(ext(arch(W - 0.1, bh, 0.16), 0.06, 0.02), fr); o1.position.set(0, sh, bz - 0.03); g.add(o1);
+      const o2 = mesh(ext(arch(W - 0.3, bh - 0.12, 0.08), 0.03, 0.025), vel); o2.position.set(0, sh + 0.06, bz + 0.03); g.add(o2);
+      const btn = []; for (let r = 0; r < 5; r++) for (let c = 0; c < (r % 2 ? 3 : 4); c++) btn.push({ p: [(c - ((r % 2 ? 3 : 4) - 1) / 2) * 0.13, sh + 0.2 + r * (bh - 0.4) / 5, bz + 0.09], s: 0.014 });
+      g.add(inst(DOT, fr, btn)); g.add(ball(0.045, fr, 0, H - 0.02, bz, 14));
+      g.add(rbox(W - 0.16, 0.14, D - 0.14, 0.06, vel, 0, sh - 0.12, 0.04)); g.add(rbox(W - 0.08, 0.07, D - 0.08, 0.025, fr, 0, sh - 0.17, 0.02));
+      [-1, 1].forEach(a => { const x = a * (W / 2 - 0.05); g.add(rbox(0.09, 0.3, D - 0.18, 0.035, fr, x, sh - 0.12, 0.02)); g.add(rbox(0.11, 0.06, D - 0.12, 0.03, vel, x, sh + 0.18, 0.03)); g.add(cyl(0.035, 0.03, 0.12, fr, x, sh + 0.06, D / 2 - 0.12, 12)); });
+      const leg = lathe([[0.001, 0], [0.04, 0.0], [0.03, 0.05], [0.045, 0.12], [0.028, 0.22], [0.04, sh - 0.17]], 14);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const l = mesh(leg, fr); l.position.set(a * (W / 2 - 0.1), 0, b * (D / 2 - 0.1)); g.add(l); }); break;
+    }
+    case "bench": { g.add(rbox(W, 0.05, D, 0.012, main, 0, H - 0.05, 0)); [-1, 1].forEach(a => { g.add(rbox(0.06, H - 0.05, D - 0.06, 0.012, main, a * (W / 2 - 0.3), 0, 0)); }); g.add(rbox(W - 0.6, 0.06, 0.04, 0.012, main, 0, 0.12, 0)); break; }
+    case "champagne_wall": { // a framed wall with slotted shelves, a flute of champagne in every slot, a sign on top
+      const fr = main, rows = 8, cols = 6, top = H - 0.32, y0 = 0.36, gap = (top - y0) / rows;
+      [-1, 1].forEach(a => g.add(rbox(0.07, H, D, 0.01, fr, a * (W / 2 - 0.035), 0, 0))); g.add(rbox(W, 0.08, D, 0.01, fr, 0, 0, 0));
+      g.add(box(W - 0.14, top - 0.08, 0.02, material(it.mat || "wood", it.color, { size: 1 }), 0, 0.08, -D / 2 + 0.03));
+      const head = mesh(new T.BoxGeometry(W, 0.32, D), [fr, fr, fr, fr, new T.MeshStandardMaterial({ map: signTex(it.label || "Sip & Celebrate", "", 610, 160, { bg: "#16255a", ink: "#f3ead6", line: "#c9a24a" }), roughness: 0.6 }), fr]); head.position.set(0, top + 0.16, 0); head.castShadow = true; g.add(head);
+      const fl = [], liq = [];
+      for (let r = 0; r < rows; r++) { const y = y0 + r * gap; g.add(box(W - 0.14, 0.025, D - 0.04, fr, 0, y, 0.01)); for (let c = 0; c < cols; c++) { const x = -W / 2 + 0.12 + c * (W - 0.24) / (cols - 1); fl.push({ p: [x, y - 0.1, 0.03], s: 1 }); liq.push({ p: [x, y + 0.05, 0.03], s: 1 }); } }
+      const flute = lathe([[0.028, 0], [0.003, 0.006], [0.0025, 0.11], [0.018, 0.125], [0.024, 0.2], [0.023, 0.25]], 14); flute.userData.keep = true;
+      const wine = new T.CylinderGeometry(0.02, 0.014, 0.08, 12); wine.translate(0, 0.04, 0); wine.userData.keep = true;
+      g.add(inst(flute, material("glass"), fl)); g.add(inst(wine, flat("#e8c766", { roughness: 0.2, metalness: 0, transparent: true, opacity: 0.85 }), liq)); break;
+    }
+    case "entrance_arch": { // a square gold frame, a sheer swag across the top, side panels gathered at the posts, flowers in the corners
+      const fr = material(it.mat || "gold", it.mat === "gold" ? null : it.color), sat = material("satin", it.mat === "gold" ? it.color || "#ffffff" : "#ffffff", { side: T.DoubleSide, opacity: 0.85, size: 1 });
+      [-1, 1].forEach(a => { g.add(cyl(0.03, 0.03, H, fr, a * W / 2, 0, 0, 10)); g.add(box(0.4, 0.02, 0.4, fr, a * W / 2, 0, 0)); }); g.add(stick(new T.Vector3(-W / 2, H, 0), new T.Vector3(W / 2, H, 0), 0.03, fr, 10));
+      const sw = new T.PlaneGeometry(W, 1, 48, 6), p = sw.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), v = 0.5 - p.getY(i), t = x / W + 0.5, sag = 0.12 + 0.5 * Math.sin(Math.PI * t); p.setXYZ(i, x, H - v * sag, 0.04 + Math.sin(x * 18) * 0.025 * v); } sw.computeVertexNormals(); const so = mesh(sw, sat); so.castShadow = false; g.add(so);
+      [-1, 1].forEach(a => { const sp = new T.PlaneGeometry(0.55, H - 0.1, 10, 16), q = sp.attributes.position; for (let i = 0; i < q.count; i++) { const x = q.getX(i), y = q.getY(i), t = 0.5 - y / (H - 0.1), k = 0.25 + 0.75 * Math.min(1, t * 1.6); q.setXYZ(i, a * W / 2 - a * (x + 0.275) * k * 0.9, y + (H - 0.1) / 2 + 0.05, 0.05 + Math.sin(x * 30) * 0.03 * k); } sp.computeVertexNormals(); const o = mesh(sp, sat); o.castShadow = false; g.add(o); });
+      roseBall(g, 0.3, -W / 2 + 0.05, H - 0.05, 0.08, flowers, 70, 41); roseBall(g, 0.18, -W / 2 + 0.3, H - 0.12, 0.1, flowers, 30, 42); roseBall(g, 0.22, W / 2 - 0.05, H - 0.08, 0.08, flowers, 40, 43); break;
+    }
+    case "partition": { // four framed panels in a zigzag, cane or fabric in the middle
+      const n = 4, al = 0.35, L = (W / n) / Math.cos(al), inset = material("fabric", it.color || "#efe6d2", { size: 0.4 }); let x = -W / 2, z = -L * Math.sin(al) / 2;
+      for (let k = 0; k < n; k++) { const a = k % 2 ? -al : al, nx = x + L * Math.cos(a), nz = z + L * Math.sin(a), pn = new T.Group(); pn.position.set((x + nx) / 2, 0, (z + nz) / 2); pn.rotation.y = -a; g.add(pn);
+        pn.add(rbox(L - 0.01, H, 0.035, 0.01, main, 0, 0, 0)); pn.add(box(L - 0.09, H - 0.24, 0.04, inset, 0, 0.14, 0)); x = nx; z = nz; } break;
+    }
+    case "bud_vases": { const r = rng(71), cols = palOf(it, ["#ffffff", "#efc7c2", "#f1a7bd"]), glass = material("glass"), stem = flat("#4a6b3e");
+      [[-0.17, -0.02, 0.14], [-0.08, 0.06, 0.2], [0.01, -0.04, 0.12], [0.1, 0.05, 0.17], [0.18, -0.03, 0.1]].forEach(([x, z, h], i) => {
+        g.add(mesh(lathe([[0.001, 0], [0.028, 0], [0.032, h * 0.25], [0.026, h * 0.55], [0.01, h * 0.75], [0.009, h], [0.012, h + 0.004]], 18), glass).translateX(x).translateZ(z));
+        const top = new T.Vector3(x + (r() - 0.5) * 0.04, h + 0.06 + r() * 0.05, z + (r() - 0.5) * 0.03); g.add(stick(new T.Vector3(x, h * 0.4, z), top, 0.0025, stem, 5));
+        bloomAt(g, ["rose", "garden", "peony"][i % 3], cols[i % cols.length], [top.x, top.y, top.z], 0.045, new T.Vector3((r() - 0.5) * 0.6, 1, (r() - 0.5) * 0.6), r() * 6); }); break; }
+    case "table_garland": { // greenery down the middle of the table with a few blooms tucked in
+      const r = rng(73), lv = [], lv2 = [], n = Math.round(W * 110);
+      for (let k = 0; k < n; k++) { const t = r(), x = (t - 0.5) * W, zc = Math.sin(t * Math.PI * 3) * 0.05, rr = 0.04 + 0.08 * Math.sin(Math.PI * t); (k % 3 ? lv : lv2).push({ p: [x, 0.02 + r() * 0.06, zc + (r() - 0.5) * rr * 2], s: 0.07 + r() * 0.04, r: [-Math.PI / 2 + (r() - 0.5) * 0.9, r() * 6.3, (r() - 0.5) * 0.6] }); }
+      g.add(inst(LEAF, material("velvet", "#5b7f5a", { side: T.DoubleSide, size: 0.2 }), lv)); g.add(inst(LEAF, material("velvet", "#8aa58a", { side: T.DoubleSide, size: 0.2 }), lv2));
+      const cols = palOf(it, ["#ffffff", "#efc7c2"]); for (let k = 0; k < Math.round(W * 6); k++) { const t = (k + 0.5) / Math.round(W * 6), x = (t - 0.5) * W * 0.9; bloomAt(g, ["rose", "garden"][k % 2], cols[k % cols.length], [x, 0.07, Math.sin(t * Math.PI * 3) * 0.05 + (r() - 0.5) * 0.06], 0.04 + r() * 0.015, new T.Vector3((r() - 0.5) * 0.5, 1, (r() - 0.5) * 0.5), r() * 6); } break;
+    }
+    case "branches": { // painted branches rising from a glass cylinder, crystals hanging from the tips
+      const r = rng(79), bm = material("paint", it.color || "#f4f1ea", { size: 0.3 }), tips = [];
+      g.add(cyl(0.07, 0.07, 0.3, material("glass"), 0, 0, 0, 24, true)); g.add(cyl(0.065, 0.065, 0.012, material("glass"), 0, 0, 0, 24));
+      const grow = (a, dir, len, rad, depth) => { const b = a.clone().addScaledVector(dir, len); g.add(stick(a, b, rad, bm, 5, rad * 0.7)); if (!depth) { tips.push(b); return; } const n = depth > 1 ? 2 + (r() < 0.5 ? 1 : 0) : 2;
+        for (let k = 0; k < n; k++) { const nd = dir.clone().add(new T.Vector3((r() - 0.5) * 1.3, (r() - 0.2) * 0.5, (r() - 0.5) * 1.3)).normalize(); grow(b, nd, len * (0.62 + r() * 0.15), rad * 0.68, depth - 1); } };
+      for (let k = 0; k < 3; k++) grow(new T.Vector3((r() - 0.5) * 0.04, 0.05, (r() - 0.5) * 0.04), new T.Vector3((r() - 0.5) * 0.25, 1, (r() - 0.5) * 0.25).normalize(), 0.42, 0.014, 3);
+      g.add(inst(BALL, material("acrylic", "#ffffff"), tips.map(t => ({ p: [t.x, t.y - 0.05, t.z], s: [0.012, 0.022, 0.012] })))); break;
+    }
+    case "bouquet": { // a dome of blooms laid on its side, stems wrapped in ribbon
+      const r = rng(83), cols = palOf(it, ["#ffffff", "#efc7c2", "#f1a7bd"]), c = new T.Vector3(0, 0.1, 0.08), ax = new T.Vector3(0, 0.15, 1).normalize(), lv = [];
+      for (let k = 0; k < 26; k++) { const n = new T.Vector3((r() - 0.5) * 2, (r() - 0.5) * 2, (r() - 0.5) * 2).normalize(); if (n.dot(ax) < 0) n.negate(); n.lerp(ax, 0.25).normalize(); bloomAt(g, ["rose", "peony", "garden"][k % 3], cols[k % cols.length], [c.x + n.x * 0.09, c.y + n.y * 0.09, c.z + n.z * 0.09], 0.04 + r() * 0.012, n, r() * 6);
+        if (k % 2) lv.push({ p: [c.x + n.x * 0.1, c.y + n.y * 0.1, c.z + n.z * 0.1 - 0.02], s: 0.06, r: [r() * 6, r() * 6, r() * 6] }); }
+      g.add(inst(LEAF, material("velvet", "#4b7a4f", { side: T.DoubleSide, size: 0.2 }), lv));
+      g.add(stick(new T.Vector3(0, 0.05, 0.02), new T.Vector3(0, 0.03, -0.2), 0.022, flat("#5d7a45"), 10, 0.014)); g.add(stick(new T.Vector3(0, 0.05, -0.01), new T.Vector3(0, 0.035, -0.11), 0.026, material("satin", it.color || "#f3ead6", { size: 0.2 }), 14)); break;
+    }
+    case "lanterns": { const lm = material(it.mat || "metal", it.color || "#2b2b30", { size: 0.3 }), gl = material("glass"), wax = material("fabric", "#fbf6ea", { size: 0.2 });
+      [[-0.18, -0.05, 0.62], [0.1, 0.08, 0.42], [0.22, -0.12, 0.3]].forEach(([x, z, h]) => { const s2 = h * 0.38;
+        g.add(box(s2 + 0.03, 0.03, s2 + 0.03, lm, x, 0, z)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(0.012, h * 0.72, 0.012, lm, x + a * s2 / 2, 0.03, z + b * s2 / 2)));
+        g.add(box(s2, h * 0.7, s2, gl, x, 0.03, z)); g.add(box(s2 + 0.03, 0.025, s2 + 0.03, lm, x, h * 0.75, z));
+        const roof = mesh(new T.ConeGeometry(s2 * 0.75, h * 0.18, 4), lm); roof.rotation.y = Math.PI / 4; roof.position.set(x, h * 0.775 + h * 0.09, z); g.add(roof);
+        const ring = mesh(new T.TorusGeometry(h * 0.05, 0.006, 6, 16), lm); ring.position.set(x, h * 0.97 + h * 0.03, z); g.add(ring);
+        g.add(cyl(s2 * 0.25, s2 * 0.25, h * 0.3, wax, x, 0.03, z, 14)); g.add(mesh(new T.ConeGeometry(0.008, 0.03, 8), flame()).translateX(x).translateY(0.05 + h * 0.3).translateZ(z)); });
+      lightHere(g, "#ffb76b", 0.8, 2.5, 0.3); break;
+    }
+    case "spotlight": { // a tripod stand with a spotlight head, a real light and a faint beam
+      [0, 2.1, 4.2].forEach(a => g.add(stick(new T.Vector3(0, 0.9, 0), new T.Vector3(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28), 0.012, dark, 6)));
+      g.add(cyl(0.018, 0.018, H - 0.95, dark, 0, 0.9, 0, 8)); const head = new T.Group(); head.position.set(0, H - 0.1, 0); g.add(head);
+      head.add(cyl(0.11, 0.13, 0.36, main, 0, -0.18, 0, 20)); const lens = mesh(new T.CircleGeometry(0.1, 20), glow(it.color || "#fff4dc")); lens.position.y = -0.181; lens.rotation.x = Math.PI / 2; head.add(lens); head.rotation.x = -(Math.PI / 2 - 0.45); // the lens (pointing down) turned to point forward and a little down
+      const dir = new T.Vector3(0, -Math.sin(0.45), Math.cos(0.45)), from = new T.Vector3(0, H - 0.1, 0).addScaledVector(dir, 0.2);
+      beam(g, from, dir, 4, 0.09, 0.7, it.color || "#fff4dc");
+      if (HI && itemLights < 8) { itemLights++; const l = new T.SpotLight(it.color || "#fff4dc", 30, 12, 0.22, 0.5, 1.4); l.position.copy(from); const tg = new T.Object3D(); tg.position.copy(from).addScaledVector(dir, 5); g.add(tg); l.target = tg; g.add(l); } break;
+    }
+    case "pedestals": { const pm = material(it.mat || "paint", it.color || "#f7f5f0", { size: 0.5 }), cols = flowers;
+      [[-0.3, 0.02, 0.61, 0.15], [0, -0.03, 0.81, 0.17], [0.3, 0.03, 0.46, 0.13]].forEach(([x, z, h, rr], i) => { g.add(cyl(rr, rr, h, pm, x, 0, z, 32));
+        if (i === 1) { g.add(cyl(0.08, 0.06, 0.06, material("gold"), x, h, z, 20)); roseBall(g, 0.13, x, h + 0.13, z, cols, 36, 91); }
+        else { g.add(cyl(0.04, 0.04, 0.12 + i * 0.04, material("fabric", "#fbf6ea", { size: 0.2 }), x, h, z, 16)); g.add(mesh(new T.ConeGeometry(0.008, 0.03, 8), flame()).translateX(x).translateY(h + 0.15 + i * 0.04).translateZ(z)); } });
+      lightHere(g, "#ffb76b", 0.5, 1.5, 0.9); break;
+    }
+    case "sculpture": { g.add(rbox(0.4, 1.0, 0.4, 0.01, main)); const k = mesh(new T.TorusKnotGeometry(0.15, 0.04, 90, 10, 2, 3), material("gold", it.mat === "paint" ? null : it.color)); k.position.y = 1.0 + 0.28; k.rotation.set(0.4, 0.3, 0); g.add(k); g.add(cyl(0.05, 0.07, 0.08, material("gold"), 0, 1.0, 0, 16)); break; }
+    case "display_shelf": { // open shelving with books, vases and frames
+      const r = rng(97), sy = [0.05, 0.45, 0.85, 1.25, H - 0.03];
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(0.035, H, 0.035, main, a * (W / 2 - 0.02), 0, b * (D / 2 - 0.02)))); sy.forEach(y => g.add(box(W, 0.03, D, main, 0, y, 0)));
+      const books = ["#16255a", "#7a1f2b", "#c9a24a", "#f3ead6", "#3f6b44"].map(c => material("paint", c, { size: 0.2 })), gl = material("glass"), gold = material("gold");
+      sy.slice(0, 4).forEach((y, k) => { const y0 = y + 0.03; let x = -W / 2 + 0.08;
+        if (k % 2 === 0) { for (let j = 0; j < 6; j++) { const h = 0.18 + r() * 0.08, t = 0.03 + r() * 0.02; g.add(box(t, h, 0.2, books[j % 5], x, y0, -0.05)); x += t + 0.004; } g.add(mesh(lathe([[0.001, 0], [0.05, 0], [0.06, 0.08], [0.03, 0.2], [0.035, 0.24]], 18), gl).translateX(W / 2 - 0.2).translateY(y0)); }
+        else { g.add(box(0.18, 0.24, 0.02, gold, -0.2, y0, -0.1)); g.add(box(0.15, 0.21, 0.022, material("paint", "#d8d2c6"), -0.2, y0 + 0.015, -0.1)); g.add(mesh(lathe([[0.001, 0], [0.07, 0], [0.08, 0.05], [0.05, 0.13], [0.06, 0.16]], 18), gold).translateX(0.2).translateY(y0)); roseBall(g, 0.06, 0.2, y0 + 0.2, 0, flowers, 12, 98 + k); } }); break;
+    }
+    case "aisle_runner": { g.add(box(W, H, D, material(it.mat || "fabric", it.color || "#ffffff", { size: 1 }))); const b = material("satin", "#d9c08a", { size: 0.5 }); [-1, 1].forEach(a => g.add(box(0.03, H + 0.001, D, b, a * (W / 2 - 0.05), 0, 0))); break; }
+    case "led_wall": { // ground-stacked frame holding a wall of 500 mm panels showing a picture
+      [-1, 1].forEach(a => { g.add(box(0.12, H, 0.12, dark, a * (W / 2 + 0.06), 0, -0.1)); g.add(box(0.12, 0.04, D, dark, a * (W / 2 + 0.06), 0, 0)); });
+      const N = 1024, c = document.createElement("canvas"); c.width = N; c.height = Math.round(N * (H - 0.3) / W); const x = c.getContext("2d"), gr = x.createLinearGradient(0, 0, N, c.height);
+      gr.addColorStop(0, "#16255a"); gr.addColorStop(0.6, it.color || "#2f6fd1"); gr.addColorStop(1, "#f6892f"); x.fillStyle = gr; x.fillRect(0, 0, N, c.height);
+      x.fillStyle = "rgba(255,255,255,0.92)"; x.textAlign = "center"; x.textBaseline = "middle"; x.font = "italic " + Math.round(c.height * 0.16) + "px Georgia, serif"; x.fillText((it.label || "Welcome").slice(0, 28), N / 2, c.height / 2);
+      x.strokeStyle = "rgba(0,0,0,0.35)"; x.lineWidth = 2; const cw = N / Math.round(W / 0.5), chh = c.height / Math.round((H - 0.3) / 0.5); for (let k = cw; k < N; k += cw) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, c.height); x.stroke(); } for (let k = chh; k < c.height; k += chh) { x.beginPath(); x.moveTo(0, k); x.lineTo(N, k); x.stroke(); }
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; const fr = flat("#121216");
+      const wall = new T.Mesh(new T.BoxGeometry(W, H - 0.3, 0.1), [fr, fr, fr, fr, new T.MeshBasicMaterial({ map: t }), fr]); wall.position.set(0, 0.3 + (H - 0.3) / 2, 0); wall.castShadow = true; wall.userData.keep = true; g.add(wall); lightHere(g, it.color || "#6a8fe0", 1.5, 5, H / 2); break;
+    }
+    case "projector": { [0, 2.1, 4.2].forEach(a => g.add(stick(new T.Vector3(0, 0.7, 0), new T.Vector3(Math.cos(a) * 0.22, 0, Math.sin(a) * 0.22), 0.01, dark, 6)));
+      g.add(cyl(0.016, 0.016, H - 0.8, dark, 0, 0.7, 0, 8)); g.add(box(0.4, 0.02, 0.36, dark, 0, H - 0.14, 0)); g.add(rbox(0.32, 0.12, 0.3, 0.02, material("paint", "#e9e9ec"), 0, H - 0.12, 0));
+      const ln = mesh(new T.CircleGeometry(0.035, 16), glow("#fff8e6")); ln.position.set(0.08, H - 0.06, 0.151); g.add(ln); beam(g, new T.Vector3(0.08, H - 0.06, 0.16), new T.Vector3(0, 0.08, 1), 4.5, 0.03, 0.9, "#fff8e6"); break; }
+    case "photo_booth": { // a backdrop facing a camera kiosk with a ring light
+      const bd = material(it.mat || "fabric", it.color || "#f1d7d3", { size: 1 }), wh = material("paint", "#f4f4f6");
+      [-1, 1].forEach(a => { g.add(box(0.05, H, 0.05, dark, a * W / 2, 0, -D / 2 + 0.05)); g.add(box(0.45, 0.015, 0.45, dark, a * W / 2, 0, -D / 2 + 0.05)); }); g.add(box(W, H - 0.05, 0.03, bd, 0, 0.05, -D / 2 + 0.05));
+      const kz = D / 2 - 0.25, kiosk = new T.Group(); kiosk.position.set(0, 0, kz); g.add(kiosk); // its screen and ring light face the backdrop, where the guests stand
+      kiosk.add(cyl(0.2, 0.22, 0.03, dark, 0, 0, 0, 24)); kiosk.add(cyl(0.035, 0.035, 1.2, wh, 0, 0.03, 0, 12)); kiosk.add(rbox(0.36, 0.5, 0.08, 0.02, wh, 0, 1.15, 0));
+      const scr = mesh(new T.PlaneGeometry(0.28, 0.4), glow("#cfe0ff")); scr.position.set(0, 1.4, -0.041); scr.rotation.y = Math.PI; kiosk.add(scr);
+      const ring = mesh(new T.TorusGeometry(0.2, 0.018, 8, 40), glow("#ffffff")); ring.position.set(0, 1.78, 0); kiosk.add(ring); kiosk.add(cyl(0.012, 0.012, 0.15, dark, 0, 1.63, 0, 6)); lightHere(g, "#ffffff", 1.2, 3.5, 1.7); break;
+    }
+    case "booth_360": { const R0 = W / 2 - 0.05, wh = material("paint", "#f4f4f6");
+      g.add(cyl(R0, R0 + 0.02, 0.16, wh, 0, 0, 0, 48)); g.add(cyl(R0 - 0.02, R0 - 0.02, 0.012, material("velvet", "#1b1b22", { size: 1 }), 0, 0.16, 0, 48));
+      const led = mesh(new T.TorusGeometry(R0 + 0.012, 0.012, 6, 64), glow(it.color || "#f6892f")); led.rotation.x = Math.PI / 2; led.position.y = 0.06; g.add(led);
+      g.add(cyl(0.05, 0.05, 0.12, main, 0, 0.17, 0, 12)); const arm = new T.Group(); arm.position.y = 0.26; arm.rotation.y = 0.7; g.add(arm);
+      arm.add(stick(new T.Vector3(0, 0, 0), new T.Vector3(R0 + 0.06, 0, 0), 0.02, main, 8)); arm.add(stick(new T.Vector3(R0 + 0.06, 0, 0), new T.Vector3(R0 + 0.06, H - 0.6, 0), 0.016, main, 8));
+      arm.add(rbox(0.04, 0.16, 0.08, 0.01, dark, R0 + 0.03, H - 0.75, 0)); const rl = mesh(new T.TorusGeometry(0.07, 0.008, 6, 24), glow("#ffffff")); rl.position.set(R0 + 0.01, H - 0.67, 0); rl.rotation.y = Math.PI / 2; arm.add(rl); break; }
+    case "fog": { // a dry-ice machine at the edge and soft see-through clouds over the floor
+      g.add(rbox(0.5, 0.55, 0.45, 0.03, dark, -W / 2 + 0.35, 0, D / 2 - 0.3)); g.add(cyl(0.06, 0.06, 0.3, dark, -W / 2 + 0.35, 0.2, D / 2 - 0.55, 12).rotateX(Math.PI / 2));
+      const k = "fog|" + HI; if (!matCache.has(k)) matCache.set(k, new T.MeshStandardMaterial({ color: "#ffffff", roughness: 1, transparent: true, opacity: 0.42, depthWrite: false }));
+      const r = rng(101), puffs = []; for (let i = 0; i < 170; i++) { const s0 = 0.35 + r() * 0.45; puffs.push({ p: [(r() - 0.5) * (W - 0.4), 0.1 + r() * 0.14, (r() - 0.5) * (D - 0.4)], s: [s0, 0.14 + r() * 0.14, s0 * (0.8 + r() * 0.4)] }); }
+      const m = inst(PUFF, matCache.get(k), puffs); m.castShadow = m.receiveShadow = false; m.userData.thru = true; m.renderOrder = 2; g.add(m); break;
+    }
+    case "cold_spark": { // the machine and a frozen moment of its fountain
+      g.add(rbox(W, 0.3, D, 0.02, dark)); g.add(cyl(0.05, 0.06, 0.04, main, 0, 0.3, 0, 16));
+      const r = rng(103), sp = []; for (let i = 0; i < 320; i++) { const t = Math.pow(r(), 0.8), y = 0.34 + t * (H - 0.4), a = r() * 6.3, rad = 0.02 + t * 0.18 + (t > 0.85 ? (t - 0.85) * 1.6 : 0) * r(); sp.push({ p: [Math.cos(a) * rad, y - (t > 0.85 ? r() * 0.4 : 0), Math.sin(a) * rad], s: 0.006 + r() * 0.006 }); }
+      const m = inst(DOT, glow("#ffd27a"), sp); m.castShadow = false; m.userData.thru = true; g.add(m); lightHere(g, "#ffc46b", 2, 4, 1.2); break;
+    }
+    case "tent": { // eight poles, a valance and a pyramid roof you can see through, so you can still design inside
+      const pole = material("metal", "#d8d8dc"), eave = 2.44, cloth = material("fabric", it.color || "#ffffff", { side: T.DoubleSide, size: 2 });
+      [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]].forEach(([a, b]) => g.add(cyl(0.04, 0.04, eave, pole, a * W / 2, 0, b * D / 2, 10)));
+      [[W, 0.3, 0.02, 0, -D / 2], [W, 0.3, 0.02, 0, D / 2], [0.02, 0.3, D, -W / 2, 0], [0.02, 0.3, D, W / 2, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cloth, x, eave - 0.3, z)));
+      const k = "tentroof|" + (it.color || "") + HI; if (!matCache.has(k)) matCache.set(k, new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: 0.72, depthWrite: false, side: T.DoubleSide }));
+      const roof = mesh(new T.ConeGeometry(Math.hypot(W, D) / 2, H - eave, 4, 1, true), matCache.get(k)); roof.rotation.y = Math.PI / 4; roof.position.y = eave + (H - eave) / 2; roof.castShadow = false; roof.userData.keep = roof.userData.thru = true; g.add(roof);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(stick(new T.Vector3(a * W / 2, eave, b * D / 2), new T.Vector3(0, H, 0), 0.025, pole, 6))); break;
+    }
     default: g.add(box(W, H, D, main));
   }
   if (C.ceiling) g.traverse(o => { if (o.isMesh) o.castShadow = false; }); // hanging decor doesn't darken the whole floor
-  if (!C.floor && !C.ceiling && !C.top && W && D) g.add(contactShadow(W, D, /round|cocktail|cake/.test(it.kind) || it.kind.startsWith("balloon_column")));
+  if (!C.floor && !C.ceiling && !C.top && !C.over && W && D) g.add(contactShadow(W, D, /round|cocktail|cake/.test(it.kind) || it.kind.startsWith("balloon_column")));
   if (g.userData.blooms) { g.userData.blooms.forEach((l, k) => { const [sp, c] = k.split("|"); g.add(inst(bloomGeo(sp), petalMat(c), l)); }); delete g.userData.blooms; }
   mergeParts(g);
   g.position.set(it.x, it.y || 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 180;

@@ -1,0 +1,36 @@
+{
+ "id": "fog",
+ "name": "Low fog",
+ "category": "Photo & effects",
+ "tags": [
+  "fog",
+  "clouds",
+  "first dance"
+ ],
+ "events": [
+  "wedding",
+  "anniversary",
+  "gala"
+ ],
+ "styles": [
+  "romantic",
+  "glam"
+ ],
+ "size": {
+  "w": 4.88,
+  "d": 4.88,
+  "h": 0.4
+ },
+ "materials": [
+  "fog"
+ ],
+ "colors": "Any color",
+ "placement": "Over the dance floor.",
+ "compatible": [],
+ "modeling": "Soft see-through puffs over the floor and a dry-ice machine; doesn't count as bumping into things.",
+ "priority": "now",
+ "findings": [
+  "fog_and_sparks"
+ ],
+ "status": "checked"
+}

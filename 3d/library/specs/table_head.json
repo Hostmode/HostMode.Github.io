@@ -1,0 +1,35 @@
+{
+ "id": "table_head",
+ "name": "Head table",
+ "category": "Tables",
+ "tags": [
+  "head table",
+  "wedding party"
+ ],
+ "events": [
+  "wedding",
+  "gala",
+  "corporate"
+ ],
+ "styles": [
+  "classic",
+  "glam"
+ ],
+ "size": {
+  "w": 7.32,
+  "d": 0.76,
+  "h": 0.76
+ },
+ "materials": [
+  "fabric"
+ ],
+ "colors": "Any color",
+ "placement": "Front of the room, guests facing; seats on one side.",
+ "compatible": [],
+ "modeling": "The rectangular table, long, with one-sided seating and fewer skirt segments.",
+ "priority": "now",
+ "findings": [
+  "head_sweetheart_tables"
+ ],
+ "status": "checked"
+}

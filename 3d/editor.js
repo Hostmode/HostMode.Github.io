@@ -228,7 +228,7 @@ export class Editor {
     const p = new T.Vector2(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
     this.ray.setFromCamera(p, this.cam);
     const hits = this.ray.intersectObjects(this.world.children, true).filter(h => h.object.visible);
-    for (const h of hits) { let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent; if (o && o.userData.id) { this.tapped(o.userData.id); return; } if (h.object.userData.floor) break; }
+    for (const h of hits) { if (h.object.userData.thru) continue; /* tent roofs, fog, sparks and light beams: tap what's behind them */ let o = h.object; while (o && !o.userData.id && o !== this.world) o = o.parent; if (o && o.userData.id) { this.tapped(o.userData.id); return; } if (h.object.userData.floor) break; }
     if (!this.picking) this.select(null);
   }
   // In "pick several" mode a tap adds or drops a thing. Otherwise tapping a piece of a set selects the whole set,
@@ -314,6 +314,28 @@ export class Editor {
   }
 
   // ---- Pictures and files ----
+  // Small pictures of library pieces for the Add tab: each piece alone in soft studio light, drawn on this same canvas
+  // between frames (then the room is drawn again before the screen updates, so nothing flickers). Returns JPEG data URLs.
+  thumbs(kinds, px = 160) {
+    if (!this.r) return [];
+    if (!this.thumbSc) {
+      const sc = new T.Scene(); sc.background = new T.Color("#cdd2dc"); sc.environment = this.scene3.environment; sc.environmentIntensity = 0.45; // a cool grey, so white linens and clear chairs still show
+      sc.add(new T.HemisphereLight("#ffffff", "#bfb6a8", 1.05)); const d = new T.DirectionalLight("#ffffff", 2.0); d.position.set(3, 5, 4); sc.add(d);
+      this.thumbSc = sc; this.thumbCam = new T.PerspectiveCamera(32, 1, 0.01, 100);
+    }
+    const el = this.r.domElement, old = [el.clientWidth, el.clientHeight], pr = this.r.getPixelRatio(), out = [], cam = this.thumbCam, dir = new T.Vector3(0.62, 0.45, 0.85).normalize();
+    this.r.setPixelRatio(1); this.r.setSize(px, px, false);
+    try {
+      for (const k of kinds) {
+        const g = buildItem(S.mkItem(k, 0, 0, 0, { id: "thumb_" + k }), null), lights = []; g.traverse(o => { if (o.isLight) lights.push(o); }); lights.forEach(l => l.parent.remove(l));
+        this.thumbSc.add(g); const b = new T.Box3().setFromObject(g), c = b.getCenter(new T.Vector3()), r = Math.max(0.05, b.getSize(new T.Vector3()).length() / 2), dist = r / Math.sin(T.MathUtils.degToRad(16));
+        cam.position.copy(c).addScaledVector(dir, dist); cam.lookAt(c); cam.near = dist / 50; cam.far = dist * 4; cam.updateProjectionMatrix();
+        this.r.render(this.thumbSc, cam); out.push(el.toDataURL("image/jpeg", 0.82));
+        this.thumbSc.remove(g); g.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
+      }
+    } finally { this.r.setPixelRatio(pr); this.r.setSize(old[0], old[1], false); this.resize(); this.tick(); }
+    return out;
+  }
   snapshot(w = 1600) { const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth); const old = [el.clientWidth, el.clientHeight]; this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.selBox.visible = false; const th = this.tc.getHelper().visible; this.tc.getHelper().visible = false; this.tick(); const url = el.toDataURL("image/png"); this.tc.getHelper().visible = th; this.r.setSize(old[0], old[1], false); this.resize(); this.select(this.sel); return url; }
   exportGLB() {
     return new Promise((ok, no) => {
