@@ -165,6 +165,26 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(A.searchAssets("baby shower").some(a => a.id === "chair_throne") && A.searchAssets("weddings").length > 40 && A.searchAssets("glasses").some(a => a.id === "champagne_wall"), "search understands event words, plurals and everyday names");
 }
 
+// Phase 5 (Nov 4, 2026): designing over a venue photo. A camera we know is used to "take" the dots, then worked out again.
+{
+  const iw = 1600, ih = 1200, pos = [5, 1.6, 12], at = [5.5, 0, 3], f = ih / 2 / Math.tan(25 * Math.PI / 180);
+  const sub = (a, b) => a.map((v, i) => v - b[i]), nrm = a => { const l = Math.hypot(...a); return a.map(v => v / l); }, cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dt = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const fw = nrm(sub(at, pos)), rt = nrm(cr(fw, [0, 1, 0])), up = cr(rt, fw), proj = q => { const d = sub(q, pos), z = dt(d, fw); return [f * dt(d, rt) / z / iw + 0.5, -f * dt(d, up) / z / ih + 0.5]; };
+  const pts = [[2, 0, 2], [8, 0, 2], [8, 0, 7], [2, 0, 7]].map(proj), P = { iw, ih, pts, w: 6, ox: 2, oz: 2 };
+  let c = S.photoCamera(P);
+  ok(c.ok && Math.hypot(...sub(c.pos, pos)) < 0.01 && Math.abs(c.fov - 50) < 0.1 && Math.abs(c.d - 5) < 0.01 && c.lens === "photo", "photo: the camera, lens and depth come back from four floor dots and one length");
+  c = S.photoCamera(Object.assign({}, P, { d: 5, dSrc: "measured" })); ok(c.ok && c.lens === "depth" && Math.hypot(...sub(c.pos, pos)) < 0.01, "photo: a measured depth gives the same camera");
+  ok(/far edge/.test(S.photoCamera(Object.assign({}, P, { pts: [pts[1], pts[0], pts[3], pts[2]] })).why || ""), "photo: dots in the wrong order get a plain-words fix, not a wrong camera");
+  ok(/too close/.test(S.photoCamera(Object.assign({}, P, { pts: [[0.5, 0.5], [0.501, 0.5], [0.501, 0.501], [0.5, 0.501]] })).why || ""), "photo: dots bunched together are refused");
+  const base = S.sampleVenue();
+  let r = S.apply(base, [{ op: "set_photo", ref: "ph_abc123", iw: 1600, ih: 1200, w: 6 }]);
+  ok(r.ok && r.scene.photo.pts.length === 4 && r.scene.photo.dSrc === undefined, "photo: set_photo keeps the photo's reference, size and default dots");
+  ok(!S.apply(base, [{ op: "set_photo", ref: "../x", iw: 10, ih: 10 }]).ok && !S.apply(r.scene, [{ op: "set_photo", pts: [[0, 0]] }]).ok, "photo: bad references and dots are refused");
+  ok(!S.apply(r.scene, [{ op: "clear_photo" }]).ok && !S.apply(r.scene, [{ op: "clear_photo", confirm: true }]).scene.photo, "photo: removing the photo needs an OK");
+  const file = Object.assign(JSON.parse(JSON.stringify(r.scene)), { photo_image: "data:image/jpeg;base64,AAAA" }), back = S.validateFile(file);
+  ok(back.photo && !back.photo_image && !S.validateFile(Object.assign(JSON.parse(JSON.stringify(r.scene)), { photo: { ref: "nope" } })).photo, "photo: opening a file keeps a valid photo marking, drops the picture data and bad markings");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");

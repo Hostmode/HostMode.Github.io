@@ -97,6 +97,69 @@ function stepThumbs() {
   paintThumbs(); requestAnimationFrame(stepThumbs);
 }
 
+// ---------- Photo: design over a photo of the real venue (Stage A) ----------
+// Choose a photo, drag four dots onto a rectangle on its floor, type that rectangle's near edge. The camera, the lens and the
+// depth are worked out (S.photoCamera); only the typed length is measured, so everything else is labeled as an estimate.
+let photoBusy = false;
+function photoTab() {
+  const P = ed.s.photo;
+  if (!P) return `<div class="card"><b>Design over a photo of your venue</b>
+    <p class="muted">Take or choose a photo of the empty room, then mark a rectangle on its floor and type one real measurement. Your tables and decor then appear in the photo, at the right size and angle, so you and your client can picture the real space.</p>
+    <label class="btn o" style="display:inline-block">${photoBusy ? "Opening…" : "Choose a photo"}<input type="file" id="phFile" accept="image/*" hidden></label>
+    <p class="muted">Best results: a wide photo taken standing, from a corner or the entrance, with lots of floor showing. The photo is kept with this design, on this device and in your own Host Mode account, and nowhere else.</p></div>`;
+  const c = S.photoCamera(P), est = c.ok ? c.d : null, src = (k) => `<span class="src ${k}">${k}</span>`;
+  const look = ed.view === "photo";
+  return `<div class="row" style="margin-bottom:10px">${look ? `<button class="btn l" data-x="phOut">Back to 3D</button><button class="btn l" data-x="phBare">${ed.photoBare ? "Show my design" : "Show the bare room"}</button><button class="btn l" data-x="png">Save picture</button>` : ed.photoMissing ? `<p class="warn" style="color:#a15c00">This design's photo isn't on this device or in your account any more. Use a different photo below, or remove it.</p>` : `<button class="btn o" data-x="phIn" ${ed.photoImg ? "" : "disabled"}>${ed.photoImg ? "Look through the photo" : "Opening the photo…"}</button>`}</div>
+  <div class="card"><b>1. Mark the floor</b>
+    <p class="muted">Drag the four dots onto the corners of something rectangular on the floor: a rug, the dance floor, a row of floor tiles, or the room's corners. Dots 1 and 2 go on the far edge (left, then right); 3 and 4 on the near edge. When they're right, the orange grid lies flat on the floor.</p>
+    <button class="btn ${ed.photoAlign && look ? "g" : "l"}" data-x="phAlign">${ed.photoAlign && look ? "Done marking" : "Move the dots"}</button></div>
+  <div class="card" style="margin-top:8px"><b>2. One real measurement</b>
+    <div class="row" style="margin-top:6px"><label class="f">Near edge, dot 4 to dot 3 (${uL()}) ${src("measured")}<input type="number" step="0.1" min="1" data-ph="w" value="${P.w ? toU(P.w) : ""}" placeholder="Measure it, e.g. 16"></label></div>
+    ${!P.w ? `<p class="muted">Until you type this, sizes in the photo are only a guess.</p>` : ""}
+    ${c.ok ? `<p style="margin:8px 0 4px">Far edge to near edge: about <b>${fmt(est)}</b> ${src(P.dSrc === "measured" ? "measured" : "estimated")}</p>
+      <div class="row"><label class="f">Know the real distance? (${uL()})<input type="number" step="0.1" min="1" data-ph="d" value="${P.dSrc === "measured" && P.d ? toU(P.d) : ""}" placeholder="Leave empty to estimate"></label></div>
+      ${c.lens === "guessed" ? `<p class="muted">The camera's lens couldn't be worked out from these dots, so a typical phone camera is assumed. Typing the real distance above fixes this.</p>` : ""}
+      <p class="muted">The photo was taken from about ${fmt(c.height)} up, with a lens about ${Math.round(c.fov)}° tall ${src("estimated")}.</p>` : `<p class="warn" style="color:#a15c00">${esc(c.why)}</p>`}</div>
+  <div class="card" style="margin-top:8px"><b>3. Where the marked floor is in the room</b>
+    <p class="muted">How far dot 1 (far left) is from the room's left wall and back wall. Leave 0 if the marked floor is the whole room.</p>
+    <div class="row"><label class="f">From the left wall (${uL()})<input type="number" step="0.5" data-ph="ox" value="${toU(P.ox || 0)}"></label><label class="f">From the back wall (${uL()})<input type="number" step="0.5" data-ph="oz" value="${toU(P.oz || 0)}"></label></div>
+    ${c.ok && P.w ? `<button class="btn l" data-x="phRoom" style="margin-top:6px">Make the room ${fmt(P.w)} × ${fmt(est)}</button>` : ""}</div>
+  <p class="muted">Sizes from a photo are estimates: check anything that has to fit before the day. Pieces can't hide behind real pillars or people in the photo yet.</p>
+  <div class="row"><label class="btn l">Use a different photo<input type="file" id="phFile" accept="image/*" hidden></label><button class="btn ${confirmDel === "photo" ? "r" : "l"}" data-x="phDel">${confirmDel === "photo" ? "Tap again: the photo is deleted, not just hidden" : "Remove the photo"}</button></div>`;
+}
+// A photo from the phone: made smaller (1600 px on its long side is plenty) and re-drawn, which also drops hidden camera details.
+async function usePhoto(file) {
+  if (!file || !/^image\//.test(file.type)) return toast("That isn't a photo");
+  photoBusy = true; render();
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(bmp, 0, 0, w, h); const url = c.toDataURL("image/jpeg", 0.85);
+    const ref = S.uid("ph_"), old = ed.s.photo && ed.s.photo.ref, r = await ed.store.savePhoto(ref, url);
+    if (!r.local && !r.cloud) toast("This photo can't be kept on this device, so it will be gone if the page closes");
+    const keep = ed.s.photo && ed.s.photo.iw && Math.abs(ed.s.photo.iw / ed.s.photo.ih - w / h) < 0.01; // same shape: keep the dots where they were
+    const res = ed.run([{ op: "set_photo", ref, iw: w, ih: h, ...(keep ? {} : { pts: [[0.3, 0.55], [0.7, 0.55], [0.86, 0.86], [0.14, 0.86]] }) }]);
+    if (res.ok) { await ed.loadPhoto(); ed.photoAlign = true; ed.setView("photo"); tab = "photo"; toast("Now drag the four dots onto a rectangle on the floor"); if (old && old !== ref) ed.store.removePhoto(old); }
+  } catch (e) { toast("That photo couldn't be opened"); }
+  photoBusy = false; render();
+}
+// The four floor dots, laid over the photo while marking. Dragging moves them live; letting go keeps it as one undo step.
+const dotsEl = document.createElement("div"); dotsEl.id = "phDots"; dotsEl.setAttribute("aria-label", "Floor corners: drag each dot onto a corner of the rectangle");
+dotsEl.innerHTML = `<svg width="100%" height="100%" preserveAspectRatio="none"><polygon fill="rgba(246,137,47,.12)" stroke="#f6892f" stroke-width="2"></polygon></svg>` + [1, 2, 3, 4].map(n => `<button class="phd" data-n="${n - 1}" aria-label="Dot ${n}">${n}</button>`).join("");
+$("#stage").appendChild(dotsEl);
+function placeDots() {
+  const on = ed.view === "photo" && ed.photoAlign && ed.s.photo && ed.photoImg; dotsEl.style.display = on ? "block" : "none"; if (!on) return;
+  const cv = ed.r.domElement; ["left", "top", "width", "height"].forEach(k => dotsEl.style[k] = cv.style[k]);
+  const pts = ed.s.photo.pts, w = cv.clientWidth, h = cv.clientHeight;
+  dotsEl.querySelector("polygon").setAttribute("points", pts.map(([u, v]) => (u * w) + "," + (v * h)).join(" "));
+  dotsEl.querySelectorAll(".phd").forEach(b => { const [u, v] = pts[+b.dataset.n]; b.style.left = (u * 100) + "%"; b.style.top = (v * 100) + "%"; });
+}
+let drag = null;
+dotsEl.addEventListener("pointerdown", e => { const b = e.target.closest(".phd"); if (!b) return; e.preventDefault(); b.setPointerCapture(e.pointerId); drag = { n: +b.dataset.n, before: ed.s.photo.pts.map(p => p.slice()) }; });
+dotsEl.addEventListener("pointermove", e => { if (!drag) return; const rc = dotsEl.getBoundingClientRect(), u = Math.max(-0.2, Math.min(1.2, (e.clientX - rc.left) / rc.width)), v = Math.max(-0.2, Math.min(1.2, (e.clientY - rc.top) / rc.height)); ed.s.photo.pts[drag.n] = [u, v]; ed.syncPhoto(); placeDots(); });
+const endDrag = () => { if (!drag) return; const pts = ed.s.photo.pts.map(p => p.slice()); ed.s.photo.pts = drag.before; drag = null; ed.run([{ op: "set_photo", pts }]); };
+dotsEl.addEventListener("pointerup", endDrag); dotsEl.addEventListener("pointercancel", endDrag);
+window.addEventListener("resize", () => setTimeout(placeDots, 50));
+
 // ---------- Selected ----------
 const SW = ["white", "ivory", "champagne", "blush", "gold", "silver", "black", "navy", "dark purple", "lavender", "burgundy", "emerald", "sage", "orange"];
 // pieces drawn with their own fixed look (lights, drapes, candles, lounge pieces, screens): Material would change nothing, so it isn't offered
@@ -217,7 +280,8 @@ function fileTab() {
 function render() {
   if (!ed.s) return;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  body.innerHTML = { ask: askTab, add: addTab, sel: selTab, light: lightTab, room: roomTab, views: viewsTab, file: fileTab }[tab]();
+  body.innerHTML = { ask: askTab, add: addTab, sel: selTab, light: lightTab, room: roomTab, views: viewsTab, photo: photoTab, file: fileTab }[tab]();
+  const pv = $("[data-view=photo]"); if (pv) pv.hidden = !ed.s.photo; placeDots();
   $("#undo").disabled = !ed.hist.length; $("#redo").disabled = !ed.fut.length;
   document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === ed.view));
   document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === ed.mode));
@@ -265,6 +329,12 @@ body.addEventListener("click", async e => {
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
   if (d.x === "libClear") { libQ = libEv = libSt = ""; render(); return; }
+  if (d.x === "phIn") { ed.setView("photo"); return; }
+  if (d.x === "phOut") { ed.photoAlign = false; ed.setView("orbit"); return; }
+  if (d.x === "phAlign") { if (ed.view !== "photo") { ed.photoAlign = true; ed.setView("photo"); } else { ed.photoAlign = !ed.photoAlign; ed.syncPhoto(); render(); } return; }
+  if (d.x === "phBare") { ed.photoBare = !ed.photoBare; ed.syncPhoto(); render(); return; }
+  if (d.x === "phRoom") { const P = ed.s.photo, c = S.photoCamera(P); if (c.ok) { const r = ed.run([{ op: "set_room", w: Math.max(2, P.w), d: Math.max(2, c.d) }, { op: "set_photo", ox: 0, oz: 0 }]); if (r.ok) toast("The room now matches the marked floor"); } return; }
+  if (d.x === "phDel") { if (confirmDel !== "photo") { confirmDel = "photo"; render(); return; } confirmDel = null; const ref = ed.s.photo && ed.s.photo.ref; const r = ed.run([{ op: "clear_photo", confirm: true }]); if (r.ok) { if (ref) ed.store.removePhoto(ref); toast("Removed the photo from this design, this device and your account"); } return; }
   if (d.fcol) { ed.run([{ op: "change_material", id: "floor", color: d.fcol }]); return; }
   if (d.x === "carpet") { ed.run([{ op: "change_material", id: "floor", mat: "carpet" }]); toast("Carpeted the floor. Pick a carpet color, or Carpet, plain, under Floor."); return; }
   // sets and several picked things
@@ -289,13 +359,15 @@ body.addEventListener("click", async e => {
     case "png": { const url = ed.snapshot(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + ".png"); break; }
     case "save": { const r = await ed.store.save(ed.s, true); toast(r.cloud ? "Saved to your account" : r.local ? "Saved on this device" : "Couldn't save"); refreshProjects(); break; }
     case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample venue"); break;
-    case "json": dl(new Blob([JSON.stringify(ed.s, null, 1)], { type: "application/json" }), safeName(ed.s) + ".hostmode-venue.json"); break;
+    case "json": { const out = S.clone(ed.s); if (out.photo) { const img = await ed.store.loadPhoto(out.photo.ref); if (img) out.photo_image = img; } dl(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), safeName(ed.s) + ".hostmode-venue.json"); break; }
     case "glb": try { dl(await ed.exportGLB(), safeName(ed.s) + ".glb"); } catch (er) { toast("Couldn't make the 3D model file"); } break;
   }
 });
 body.addEventListener("input", e => { if (e.target.id === "libQ") { libQ = e.target.value.slice(0, 60); refreshLib(); } });
 body.addEventListener("change", async e => {
   const t = e.target, it = ed.sel && ed.itemOf(ed.sel);
+  if (t.id === "phFile" && t.files[0]) { usePhoto(t.files[0]); t.value = ""; return; }
+  if (t.dataset.ph) { const k = t.dataset.ph, v = t.value.trim(); if (k === "d") { ed.run([{ op: "set_photo", d: v === "" ? null : fromU(v), dSrc: "measured" }]); return; } if (v === "" || !isFinite(+v)) return; ed.run([{ op: "set_photo", [k]: fromU(v) }]); return; }
   if (t.id === "libEv" || t.id === "libSt") { if (t.id === "libEv") libEv = t.value; else libSt = t.value; refreshLib(); return; }
   if (t.id === "floorCol") { ed.run([{ op: "change_material", id: "floor", color: t.value }]); return; }
   if (t.id === "setName" && ed.grp && ed.grp.set) { ed.run([{ op: "rename_set", set: ed.grp.set, name: t.value }]); return; }
@@ -311,7 +383,7 @@ body.addEventListener("change", async e => {
   if (t.dataset.surf) ed.run([{ op: "change_material", id: t.dataset.surf, mat: t.value }]);
   if (t.id === "wallCol") ed.run([{ op: "change_material", id: "walls", color: t.value }]);
   if (t.id === "imp" && t.files[0]) {
-    try { const s = S.validateFile(JSON.parse(await t.files[0].text())); s.id = s.id || S.uid("v_"); ed.load(s); await ed.store.save(ed.s, true); refreshProjects(); toast("Opened " + s.name); }
+    try { const raw = JSON.parse(await t.files[0].text()), img = typeof raw.photo_image === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(raw.photo_image) ? raw.photo_image : null; const s = S.validateFile(raw); if (s.photo && img) await ed.store.savePhoto(s.photo.ref, img); s.id = s.id || S.uid("v_"); ed.load(s); await ed.store.save(ed.s, true); refreshProjects(); toast("Opened " + s.name); }
     catch (er) { toast(er.message || "That file couldn't be opened"); }
   }
 });
