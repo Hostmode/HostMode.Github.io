@@ -67,6 +67,16 @@ def main():
         pg.click("[data-view=orbit]"); pg.wait_for_timeout(400)
         ok(pg.evaluate("hm3d.editor.view === 'orbit' && hm3d.editor.r.domElement.style.width === '' && hm3d.editor.floorMesh.visible"), "back to 3D: the room, its floor and the full-size view return")
         ok(not pg.evaluate("document.documentElement.scrollWidth > innerWidth"), "no sideways scrolling at phone width")
+        # Start over (Save & share): tap twice, and the demo's designs, versions and photos are gone from the device
+        pg.evaluate("hm3d.run([{ op: 'add_item', kind: 'chair_throne', id: 'keepme', x: 3, z: 3 }])"); pg.evaluate("hm3d.save()"); pg.wait_for_timeout(300)
+        pg.click(".tabs button[data-tab=file]"); pg.click("[data-x=reset]"); pg.wait_for_timeout(200)
+        asked = "can't be undone" in pg.inner_text("#body") and pg.evaluate("!!hm3d.scene().photo")
+        pg.click("[data-x=reset]"); pg.wait_for_function("!hm3d.scene().items.some(i => i.id === 'keepme')", timeout=60000); pg.wait_for_timeout(500)
+        left = pg.evaluate("""async () => { const idx = JSON.parse(localStorage.getItem('hm3d_index') || '{}'), revs = Object.keys(localStorage).filter(k => k.startsWith('hm3d_r_'));
+          const n = await new Promise(res => { const r = indexedDB.open('hm3d', 1); r.onsuccess = () => { const q = r.result.transaction('photos').objectStore('photos').count(); q.onsuccess = () => res(q.result); }; r.onerror = () => res(-1); });
+          const s = hm3d.scene(); return { designs: Object.keys(idx).length, revs: revs.length, photos: n, photo: !!s.photo, throne: s.items.some(i => i.id === 'keepme'), tables: s.items.filter(i => i.kind === 'table_round').length }; }""")
+        ok(asked and left["designs"] == 1 and left["revs"] == 1 and left["photos"] == 0 and not left["photo"] and not left["throne"] and left["tables"] > 0,
+           "Start over asks first, then deletes the demo's designs, versions and photos and opens a fresh sample (%s)" % left)
         ok(not errs, "no page errors" + (": " + "; ".join(errs) if errs else ""))
         b.close()
     print("Photo check: %d problem(s)" % len(fails) if fails else "Photo check: all passed")

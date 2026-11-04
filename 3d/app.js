@@ -264,11 +264,13 @@ function viewsTab() {
 
 // ---------- Save & share ----------
 let projects = [];
+const DEMO = new URLSearchParams(location.search).get("demo") === "1";
 function fileTab() {
   const st = ed.store.status, revs = ed.store.revisions(ed.s.id);
   const cloud = { cloud: "Saved to your Host Mode account too.", "signed-out": "Only saved on this device. Sign in to Host Mode on this site to keep designs in your account.", "no-account": "Only saved on this device: this sign-in has no planner or host account.", offline: "Only saved on this device right now (can't reach Host Mode).", local: "Only saved on this device." }[st];
   return `<div class="card"><b>${esc(ed.s.name)}</b><div class="muted">${esc(cloud)}</div>
-   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample venue</button></div></div>
+   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample venue</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
+   ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh sample ballroom. It can't be undone.</p>` : ""}</div>
    <h3>Share or back up</h3><div class="row"><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
    <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${p.id}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
@@ -358,6 +360,17 @@ body.addEventListener("click", async e => {
     case "saveView": { const v = ed.currentView(); const def = "View " + (ed.s.views.length + 1), name = window.HM3D_PREVIEW ? def : (prompt("Name this view", def) ?? null); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target }]); break; }
     case "png": { const url = ed.snapshot(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + ".png"); break; }
     case "save": { const r = await ed.store.save(ed.s, true); toast(r.cloud ? "Saved to your account" : r.local ? "Saved on this device" : "Couldn't save"); refreshProjects(); break; }
+    // Start over: the design (in the demo, every demo design on this device) is deleted for good, with its versions and photo,
+    // and a fresh sample ballroom opens. Tap twice. Keeps the demo from filling the phone's storage.
+    case "reset": {
+      if (confirmDel !== "reset") { confirmDel = "reset"; render(); break; }
+      confirmDel = null; clearTimeout(ed.store.timer); // a save still waiting would bring the old design back
+      const ids = new Set(DEMO ? ed.store.list().map(p => p.id) : []); ids.add(ed.s.id);
+      const ref = ed.s.photo && ed.s.photo.ref; for (const id of ids) await ed.store.remove(id); if (ref) await ed.store.removePhoto(ref); if (DEMO) await ed.store.clearPhotos();
+      ed.photoBare = ed.photoAlign = false; ed.placeTop = null; ed.setPicking && ed.setPicking(false);
+      ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); await refreshProjects(); tab = "file"; render();
+      toast(DEMO ? "Started over: the demo's designs are deleted from this device" : "Started over: that design is deleted"); break;
+    }
     case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample venue"); break;
     case "json": { const out = S.clone(ed.s); if (out.photo) { const img = await ed.store.loadPhoto(out.photo.ref); if (img) out.photo_image = img; } dl(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), safeName(ed.s) + ".hostmode-venue.json"); break; }
     case "glb": try { dl(await ed.exportGLB(), safeName(ed.s) + ".glb"); } catch (er) { toast("Couldn't make the 3D model file"); } break;
