@@ -167,3 +167,8 @@ Plan and audit: the "3D Designer Upgrade: Audit and Plan" doc. Phases: 1 audit (
 - **Storage and privacy:** a photo is shrunk to 1600 px and re-drawn before it's kept (this drops hidden camera details like location), stored once in the browser's IndexedDB and in the planner's own account at `planners/{uid}/venue3dPhoto/{ref}`, never inside the design or its 20 versions. Same readers as the design (the planner, admins, support staff); no rule change. Removing the photo, replacing it or removing the design deletes it. Exported venue files carry the photo, and opening one stores it again.
 - Checks: 91 model checks (8 new for the photo math and steps, including planted mistakes: dots in the wrong order, dots bunched together, bad references); `agents/venue3d_photo_check.py` (13 browser checks) is in `check_all.sh`.
 - Not yet (Stage B and later): pieces can't hide behind real pillars or people; walls, doors and columns aren't read from the photo; one photo per design; lighting in the 3D pieces doesn't copy the photo's light. Not yet tried with a real venue photo: that's the next test.
+- Roy approved Phase 5 by merging it (pull request #41).
+
+### Phase 6, report — Done (Nov 4, 2026)
+- The "3D Designer Upgrade: Final Report" doc (https://claude.ai/artifact/HKAzAfMd3YKfJ1ucH7Bp81): what each phase delivered, results in numbers, how the roles hand work on, known limits, next steps with costs.
+- Waiting on Roy: a phone speed test, a real venue photo test, and decisions on a small server for Stage B and real AI in the Ask box, adding the designer to the nightly checks, and research in sessions or a weekly job.
