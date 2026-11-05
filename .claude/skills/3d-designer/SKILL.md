@@ -12,7 +12,7 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
 - `venue3d.html` with `3d/`:
   - `scene.js`: the design model, the checked steps and the plain-language reader (`interpret`, `KIND_WORDS`).
   - `editor.js`: the Three.js view.
-  - `decor.js`: surfaces and every piece's shape (`buildItem`).
+  - `decor.js`: surfaces and every piece's shape (`buildItem`); `decor_more.js` holds the newer pieces (add new ones there). See also the `3d-realism` skill.
   - `store.js`: saving on the device and to `planners/{uid}/venue3d`.
   - `app.js`: the panels.
   - Three.js is copied into `3d/vendor`, so there's no build step.
@@ -86,3 +86,6 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
 - **The Agents tab owns the data** (`js/18-support-staff.js`). It sends `{hmOffice:"state", cast, sel, night, prs, tickets, budget}`, and a tap here sends back `{hmOffice:"pick", k}`.
 - **Studio crew news** comes from real GitHub pull requests (`AG_CREW`), never made up.
 - **Who walks:** working nightly helpers walk their routes. Finished crew carry their work down the corridor to Roy's door and back.
+
+## Phase 6 note
+26 more pieces (see 3d/PROJECT-RECORD.md) live in `3d/decor_more.js`. Sizes marked ESTIMATE in `3d/library/research/estimated_sizes_p6.json` still need a real page. The ADA ramp must stay 1:12 (a test enforces it).

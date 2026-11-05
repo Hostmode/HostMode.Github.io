@@ -78,6 +78,7 @@ New files only; nothing in the live app was changed except one line in `agents/c
 - `3d/store.js` — saving: a working copy and 20 versions on the device, plus `planners/{uid}/venue3d` in Host Mode's database when signed in.
 - `3d/app.js` — the panels: Ask, Add, Selected, Lights, Room, Views, Save & share.
 - `3d/decor.js` — surfaces (textures, bump maps, sheen, clear coat) and every piece of furniture and decor.
+- `3d/decor_more.js` — shape makers for the 30 pieces added in phase 4 (food truck, bleachers, gazebo, booths and so on); `decor.js` calls `buildMore` from the default case of `buildItem`.
 - Tests: `agents/venue3d_test.mjs` (46 model checks, free) and `agents/venue3d_browser.py` (24 browser steps with screenshots).
 
 ### Test results (Nov 3, 2026, headless Chrome with software graphics)
@@ -193,8 +194,15 @@ Plan and audit: the "Outdoor Event Builder: Audit and Plan" doc (https://claude.
 ### Phase 4 (started for the pilot): outdoor pieces — Built
 - Frame tent 40 × 60 ft (legs every 10 ft, a hip roof up to 18 ft); the 20 × 20 tent and the 10 × 10 pop-up canopy share the same shape code. Wood pergola, market umbrella, towable 20 kW generator, two-station restroom trailer, crowd barricade, existing building. All within their detail budgets (asset check: 86 of 86).
 
+### Phase 6 (Nov 5, 2026): 26 more library pieces, sourced where possible
+- Built: the 19 deferred pieces plus poster easel, upright and baby grand piano, classroom table, charging station, photo backdrop frame (shapes in `3d/decor_more.js`, 170 pieces in all). New checks: every new word finds its piece, and the ramp is 1:12.
+- Sourced (by a second research engine; Claude's sandbox could not open pages): ADA ramp (ADA 405), water dispenser, cornhole board, ticket booth footprint, seminar and banquet tables. Coffee urn size was not reopened. All other sizes are ESTIMATES listed in `research/estimated_sizes_p6.json`; replace them when a real page is read.
+- Not done: re-verifying Phase 4 sizes (QSC K12.2 stand, banner and desk sizes, the 12 medium-confidence findings). Phone speed untested; pictures came from a software-rendered browser.
+
 ### The corporate luncheon pilot (Gate 1)
 - Save & share → Sample outdoor site. A 230 × 164 ft company lawn in Charlotte: the office building, a parking lot and driveway, a front walk, a paver patio, a planting bed, a gravel path, a property line with a clipped corner. 120 guests at 15 rounds of 8 under a 40 × 60 ft dining tent, a podium and speakers, a 20 × 20 buffet tent, a check-in canopy, a pergola lounge, three umbrellas with cocktail tables, a generator over 20 ft from the tents, a restroom trailer, barricades along the parking lot. May 14 at 12:30 pm: all 120 seats in shade; at 7:15 pm 42 are in the sun.
 - Checks: 30 new model checks (sun against known values, shade with a planted missing tent, site steps, refusals, damaged files, the Ask box), `agents/venue3d_site_check.py` (17 browser checks at phone size, including planted problems) in `check_all.sh`.
 - Measured in the sandbox's software graphics: the pilot is 163 pieces, about 358,000 triangles and 884 draw calls a frame with shadows (the ballroom: 380). Chairs are most of it; drawing chairs as one instanced batch is the fix if Roy's phone is slow.
 - Not yet: the other four pilots, more outdoor pieces (stages, lighting towers, fencing runs, food trucks, bleachers), slopes and trees, tracing with curves, reading an aerial picture automatically.
+
+- Categories (Nov 5, 2026): the Add tab opens by category tile (`libCat` in 3d/app.js; groups are `CAT_ORDER` in scene.js). Inventory `GEAR_CATS` (js/17-inventory-venue.js) mirrors them; keep both in step when adding a category.

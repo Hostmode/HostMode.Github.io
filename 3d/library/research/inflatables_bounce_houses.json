@@ -1,0 +1,13 @@
+{
+ "id": "inflatables_bounce_houses",
+ "topic": "Bounce houses (inflatables)",
+ "events": ["birthday", "community", "graduation", "holiday"],
+ "summary": "Common residential bounce houses are 13 x 13 ft (3.96 m) up to 15 x 15 ft; combo units run 12 x 16 to 14 x 20 ft; a standard 13 ft unit holds about 4 to 6 children. Operators plan footprint plus 3 to 5 ft clearance on every side and a 4 ft blower zone, so a 13 ft unit needs about 20 x 20 ft, with 12 to 15 ft of clear height overhead. Needs flat ground, an outlet within reach, gate and path widths for delivery, and no overhead wires or trees.",
+ "sources": [
+  {"url": "https://inflatableholiday.com/bounce-house-size-calculator", "title": "Bounce House Size Calculator: Yard Fit and Space Requirements (InflatableHoliday)"},
+  {"url": "https://www.orlandoamusements.com/setup_space_guide/", "title": "Inflatable Setup & Space Requirements Guide (Orlando Amusements)"}
+ ],
+ "confidence": "medium",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}

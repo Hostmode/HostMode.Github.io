@@ -1,0 +1,13 @@
+{
+ "id": "trade_show_booths_registration",
+ "topic": "Trade show booths, banners and check-in desks",
+ "events": ["corporate", "community", "graduation", "gala"],
+ "summary": "A standard inline exhibit is 10 x 10 ft (3.05 x 3.05 m) with an 8 ft (2.44 m) high back wall and low (about 3 ft) side rails; show floors are laid out in 10 ft increments. It holds one counter or 6 ft table (a typical counter is 48 in wide by 36 in high, 1.22 x 0.91 m), two or three visitors and a 32 to 55 in monitor on the wall; keep items in the front half of the booth under about 4 ft and leave the front 2 to 3 ft as aisle. Exhibitor kits set height limits, so check the show manual. A retractable banner stand and a branded check-in desk follow the same rules; the usual retractable banner is about 33 x 80 in (0.84 x 2.03 m), and the check-in desk reuses the 48 in counter size. Those two sizes are typical, not confirmed on a product page, so confidence is lower.",
+ "sources": [
+  {"url": "https://www.shiftdesignmn.com/guides/trade-show-booth-sizes", "title": "Trade Show Booth Sizes & Display Dimensions (SHIFT Design)", "note": "10x10 back wall, 6 ft table"},
+  {"url": "https://goshowhero.com/insights/10x10-trade-show-booth-guide", "title": "10x10 Trade Show Booth Guide (ShowHero)", "note": "8 ft back wall, 3 ft side rails, 48 x 36 in counter"}
+ ],
+ "confidence": "medium",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}

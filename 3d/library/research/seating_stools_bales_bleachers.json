@@ -1,0 +1,18 @@
+{
+ "id": "seating_stools_bales_bleachers",
+ "topic": "Bar stools, hay bales, kids' chairs and bleachers",
+ "events": ["wedding", "birthday", "community", "corporate", "graduation", "holiday"],
+ "summary": "Bar-height stools seat at 30 in (0.76 m); one molded stool is 17 x 17 x 30 in (0.43 x 0.43 x 0.76 m), a metal one has a 12 in seat and a footrest. Hay bales for seating: a real small bale is about 13 x 14 x 19 in, while a rental faux bale sturdy enough to sit on is 20 x 36 in and 17 in tall (0.51 x 0.91 x 0.43 m). Children's chairs for ages 2 to 5 have a 13.5 in seat and are 23 in (0.58 m) tall overall. Portable 3-row bleachers have a 30 in high, 60 in deep (0.76 x 1.52 m) footprint; 7.5 ft sections hold 15 people and 15 ft sections 36 (by the maker); rise is 8 in per row with a 24 in tread. Another mobile unit is 3 tiers, 79 x 62 in, seats 15. Planners must check local codes: guardrails are often required on rows above 30 in, and need level ground.",
+ "sources": [
+  {"url": "https://bubbledesignrentals.com/products/charles-off-white/", "title": "Charles bar stool, off white (Bubble Design Rentals)"},
+  {"url": "https://boxwoodeventrentals.com/rentals/ols/products/metal-white-barstool", "title": "Metal White Barstool (Boxwood Event Rentals)"},
+  {"url": "https://www.strongevents.com/rentals/p/haybales", "title": "Faux Hay Bales (Strong Events)"},
+  {"url": "https://wcep.com/product/hay-bale/", "title": "Hay Bale (West Coast Event Productions)"},
+  {"url": "https://www.grandeventrentalswa.com/product/childrens-chair/", "title": "Children's Chair (Grand Event Rentals)"},
+  {"url": "https://www.terraboundsolutions.com/product/3-row-bleachers/", "title": "3 Row Sports Bleachers (TerraBound Solutions)"},
+  {"url": "https://www.forza.com/us/mobile-bleachers", "title": "Mobile Bleachers 2-tier / 3-tier (FORZA USA)"}
+ ],
+ "confidence": "high",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}
