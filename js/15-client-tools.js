@@ -272,7 +272,7 @@ Object.assign(ACT,{
    A pretend planning business, Northlight Events, with Dublin Investments as its main client.
    Runs on demo.js's in-browser database (its own storage, separate from the Rosa's 30th demo).
    The console opens without a PIN; client and teammate portals are one tap away in the demo bar. */
-const PDEMO_V=18;
+const PDEMO_V=19;
 const pdemoOn=()=>!!window.__HMPDEMO;
 function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"{}");if(cur.pdemoV===PDEMO_V&&cur.partygames)return;
  const day=n=>{const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},ago=h=>Date.now()-h*36e5;
@@ -324,7 +324,7 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   clientDates:{dublin:{d1:{title:"Final headcount due to the caterer",date:day(5),time:"",note:"",t:1},d2:{title:"AV walkthrough at the venue",date:day(10),time:"14:00",note:"Bring the slide deck on a USB stick",t:2},d3:{title:"Conference day: registration opens",date:day(EVD),time:"08:15",note:"The Convention Centre Dublin",t:3}}},
   clientVendors:{dublin:{v1:{name:"The Convention Centre Dublin",role:"Venue",phone:"555-0101",arrive:"07:00",delivers:"Main hall and two breakout rooms",show:true,team:true,t:1},
     v2:{name:"BrightStage AV",role:"AV and staging",phone:"555-0164",email:"crew@brightstage.example",arrive:"07:30",delivers:"Screens, microphones, stage lights",show:true,team:true,t:2},
-    v3:{name:"Harbourside Catering",role:"Catering",phone:"555-0128",arrive:"10:30",delivers:"Coffee station and lunch for 180",show:true,team:true,t:3},
+    v3:{name:"Harbourside Catering",role:"Catering",phone:"555-0128",arrive:"07:30",delivers:"Coffee station and lunch for 180",show:true,team:true,t:3},
     v4:{name:"Swift Print",role:"Badges and signs",phone:"555-0177",delivers:"Name badges and QR signs",show:false,team:true,t:4,note:"Pick up the day before"}}},
   clientTemplates:{tp1:{name:"Corporate conference",t:ago(500),items:[{title:"Book the venue",owner:"planner",days:60,show:true},{title:"Finalize the agenda and speakers",owner:"client",days:10,show:true},{title:"Send the final attendee list",owner:"client",days:9,show:true},{title:"Book AV and microphones",owner:"planner",days:10,show:true},{title:"Order name badges",owner:"planner",days:9,show:true},{title:"Approve the lunch menu",owner:"client",days:8,show:true},{title:"Print QR code signs",owner:"planner",days:3,show:true},{title:"Test the big screen at the venue",owner:"planner",days:1,show:true},{title:"Send thank-you notes",owner:"planner",days:-7,show:true}]}},
   feedback:{OCONNOR:{r1:{who:"client",name:"Margaret O'Connor",rating:5,best:"Every detail was handled. I actually got to enjoy my own party!",better:"",ok:true,quote:true,t:ago(190)},
@@ -385,7 +385,7 @@ function pdemoSeed(){const cur=JSON.parse(localStorage.getItem("hm_pdemo_db")||"
   bk5:{name:"Brianna Lewis venue tour",space:"s2",date:day(3),start:"10:00",end:"11:00",kind:"Tour or tasting",guests:2,status:"confirmed",t:5}};
  pl.blocks={b1:{from:day(26),to:day(28),space:"s1",reason:"Floor refinishing",t:1},b2:{from:day(52),to:day(52),space:"",reason:"Closed for the holiday",t:2}};
  const evs=pl.events_;delete pl.events_;const idx=pl._idx;delete pl._idx;
- Object.assign(pl.clients.dublin,{venue:pl.clients.dublin.venue||"Spencer Dock, North Wall Quay, Dublin",guests:pl.clients.dublin.guests||180});pl.vpages={};pl.vcheck={};["v1","v2","v3"].forEach((vk,i)=>{const v=pl.clientVendors.dublin[vk],tok="demoVendor"+(i+1)+"x";v.tok=tok;if(vk==="v3"){v.extra="One gluten-free and two vegetarian lunches. Coffee refills at the 10:30 break.";v.vnote="Load in at the service entrance on the east side. Ask for Niamh at the desk."}
+ Object.assign(pl.clients.dublin,{venue:pl.clients.dublin.venue||"Spencer Dock, North Wall Quay, Dublin",guests:pl.clients.dublin.guests||180});pl.vpages={};pl.vcheck={};["v1","v2","v3"].forEach((vk,i)=>{const v=pl.clientVendors.dublin[vk],tok="demoVendor"+(i+1)+"x";v.tok=tok;if(vk==="v3"){v.extra="One gluten-free and two vegetarian lunches. Coffee station ready for registration at 8:15 AM, then refills at the 10:30 break.";v.vnote="Your arrival time is load-in. Use the service entrance on the east side. Ask for Niamh at the desk."}
   pl.vpages[tok]=vpBuild(Object.assign({k:vk},v),"dublin",pl.clients.dublin,pl.brand,pl.profile)});
  pl.vcheck={demoVendor2x:{here:ago(0.5),issues:{i1:{text:"Our van is 10 minutes out, traffic on the quays.",t:ago(0.6)}}}};
  pl.tv={DUBLIN:{}};Object.keys(pl.clientVendors.dublin).forEach(k=>{const v=pl.clientVendors.dublin[k];if(v.team)pl.tv.DUBLIN["dublin_"+k]={name:v.name,role:v.role||"",phone:v.phone||"",email:v.email||"",arrive:v.arrive||"",delivers:v.delivers||"",note:v.note||""}});
