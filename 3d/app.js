@@ -372,7 +372,7 @@ function fileTab() {
   const st = ed.store.status, revs = ed.store.revisions(ed.s.id);
   const cloud = { cloud: "Saved to your Host Mode account too.", "signed-out": "Only saved on this device. Sign in to Host Mode on this site to keep designs in your account.", "no-account": "Only saved on this device: this sign-in has no planner or host account.", offline: "Only saved on this device right now (can't reach Host Mode).", local: "Only saved on this device." }[st];
   return `<div class="card"><b>${esc(ed.s.name)}</b><div class="muted">${esc(cloud)}</div>
-   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample ballroom</button><button class="btn l" data-x="newSite">New outdoor site</button><button class="btn l" data-x="newLunch">Sample outdoor site</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
+   <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample ballroom</button><button class="btn l" data-x="newSite">New outdoor site</button><button class="btn l" data-x="newLunch">Sample outdoor site</button><button class="btn l" data-x="newPromo">Promo ballroom</button><button class="btn l" data-x="newPromoSite">Promo outdoor site</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
    ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh ${ed.s.site ? "sample outdoor site" : "sample ballroom"}. It can't be undone.</p>` : ""}</div>
    <h3>Share or back up</h3><div class="row"><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
@@ -501,6 +501,8 @@ body.addEventListener("click", async e => {
       toast(DEMO ? "Started over: the demo's designs are deleted from this device" : "Started over: that design is deleted"); break;
     }
     case "new": ed.load(S.sampleVenue()); await ed.store.save(ed.s, true); refreshProjects(); toast("New sample ballroom"); break;
+    case "newPromo": ed.load(S.samplePromoBallroom()); await ed.store.save(ed.s, true); refreshProjects(); tab = "room"; render(); toast("Opened the promo ballroom"); break;
+    case "newPromoSite": { if (trace) endTrace(); ed.load(S.samplePromoSite()); await ed.store.save(ed.s, true); refreshProjects(); tab = "site"; render(); toast("Opened the promo garden estate"); break; } // the golden-hour sun is part of the design: never reset it to today
     case "newSite": case "newLunch": { if (trace) endTrace(); let ns = S.sampleSite(d.x === "newSite" ? "blank" : "luncheon");
       if (d.x === "newSite") { const n = new Date(), day = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0"), r = S.apply(ns, [{ op: "set_sun", date: day, time: "12:00", tz: tzOn(day, "") }]); if (r.ok) ns = r.scene; } // a new site starts on today, at noon
       ed.load(ns); }

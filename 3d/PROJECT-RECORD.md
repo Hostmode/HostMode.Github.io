@@ -127,6 +127,8 @@ Not yet: realistic photo textures (would need licensed or self-made photo scans)
 ## 5. Next work after approval
 Live cloud-save test → real phone test → Milestone 6 photo test → planner portal integration plan (Venue tab "Open in 3D", seat counts into guest counts, saved venue templates, client portal view-only, importer/export tabs, Help desk entries, Report a problem button).
 
+Promo templates (Nov 5, 2026): the designer's Save & share panel now opens two ready-made showpieces — "Grand wedding ballroom (promo)" (174 pieces, 96 seats, 12 tables) and "Garden estate (promo)" (194 pieces, 104 seats, 13 tables, golden-hour sun June 13, 2026, 6:30 pm). They are loadable samples in the designer, not portal saved templates; the garden estate's sun is part of the design and is never reset to today.
+
 ## 6. Upgrade from Roy's master brief (Nov 3, 2026)
 
 Plan and audit: the "3D Designer Upgrade: Audit and Plan" doc. Phases: 1 audit (done) · 2 shared contracts · 3 prove it on a few pieces (Roy's OK) · 4 bigger library · 5 venue photo, Stage A · 6 report.

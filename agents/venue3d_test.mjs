@@ -233,6 +233,25 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(S.interpret(L, "add two restroom trailers at the back").ops.filter(o => o.op === "add_item" && o.kind === "restroom_trailer").length === 2, "outdoor: “restroom trailers” are found");
 }
 
+// Promo templates (Nov 5, 2026): the grandest designs the library can make, for showing the designer off.
+{
+  const P = S.samplePromoBallroom();
+  ok(!P.site && P.room.w === 24.4 && P.room.d === 18.3 && P.room.h === 5.5 && P.items.length === 174 && S.counts(P).seats === 96 && S.counts(P).tables === 12 && P.lights.length === 7 && P.views.length === 3, "promo: the ballroom is an 80 x 60 ft room, 174 pieces, 96 seats, 12 tables, 7 lights, 3 views");
+  ok(S.checkScene(P).length === 0, "promo: the ballroom has no warnings: " + JSON.stringify(S.checkScene(P).slice(0, 3)));
+  const kP = {}; P.items.forEach(i => kP[i.kind] = (kP[i.kind] || 0) + 1);
+  ok(kP.stage === 1 && kP.led_wall === 1 && kP.light_truss === 1 && kP.chair_throne === 2 && kP.table_round72 === 8 && kP.chair === 94 && kP.table_head === 1 && kP.dance_floor === 1 && kP.balloon_full_arch === 1 && kP.chandelier === 2 && kP.bar === 1 && kP.photo_booth === 1 && kP.booth_360 === 1 && kP.marquee === 1, "promo: the ballroom has the stage, LED wall, truss, thrones, 8 rounds of 10, head table, dance floor, balloon arch, chandeliers, bar and both booths");
+  ok(P.items.filter(i => ["table_head", "table_round72", "table_sweetheart"].includes(i.kind)).every(t => t.dress?.linen === "floor" && t.dress?.runner === "satin" && t.dress?.charger === "#c9a24a") && P.items.filter(i => i.kind === "chair").every(c => c.dress?.cover === "spandex" && c.dress?.sash === "#e8d6b3"), "promo: the ballroom's guest tables wear floor-length ivory linen with champagne runners and gold chargers, its chairs white spandex and champagne sashes");
+  const G = S.samplePromoSite();
+  ok(G.site && G.walls.length === 0 && G.room.w === 90 && G.room.d === 65 && G.items.length === 194 && S.counts(G).seats === 104 && S.counts(G).tables === 13 && G.lights.length === 2 && G.site.sun.date === "2026-06-13" && G.site.sun.time === "18:30", "promo: the garden estate is a 90 x 65 m site, 194 pieces, 104 seats, 13 tables, golden-hour sun June 13 2026 6:30 pm");
+  const kG = {}; G.items.forEach(i => kG[i.kind] = (kG[i.kind] || 0) + 1);
+  ok(kG.tent_40x60 === 1 && kG.tent === 1 && kG.table_round === 10 && kG.chair_crossback === 104 && kG.stage === 1 && kG.podium === 1 && kG.speaker === 2 && kG.dj_booth === 1 && kG.foh_mixer === 1 && kG.flown_line_array === 2 && kG.line_array === 2 && kG.gazebo === 1 && kG.dessert_table === 1 && kG.champagne_tower === 1 && kG.food_truck === 1 && kG.golf_cart === 1 && kG.bleachers === 1 && kG.baby_grand === 1 && kG.restroom_trailer === 1 && kG.generator === 1 && kG.barricade === 3 && kG.arch === 1 && kG.marquee === 1, "promo: the garden estate has the dining tent, buffet tent, band stage with its sound, gazebo, food truck, golf cart, bleachers, baby grand, restroom trailer, generator, barricades and the ceremony arch");
+  ok(S.checkScene(G).length === 0 && S.apply(G, [{ op: "move_object", id: "gen1", x: 66, z: 33 }]).warnings.some(x => /closer than 20 ft/.test(x.msg)), "promo: the garden estate has no warnings, and moving its generator beside a tent is flagged");
+  const rep = S.shadeReport(G), noon = S.shadeReport(G, "12:30"), dinner = G.items.filter(i => i.kind === "chair_crossback" && i.group && i.group.startsWith("t")).map(i => i.id), noonDinner = noon.seatShade.filter(([id, v]) => v === 1 && dinner.includes(id)).length;
+  ok(rep.shaded === 70 && noonDinner >= 78, "promo: at 6:30 pm 70 of 104 seats are shaded (" + rep.shaded + "), and at midday the tent shades " + noonDinner + " of 80 dinner seats");
+  const backP = S.validateFile(JSON.parse(JSON.stringify(P))), backG = S.validateFile(JSON.parse(JSON.stringify(G)));
+  ok(backP.items.length === 174 && S.counts(backP).seats === 96 && backG.items.length === 194 && S.counts(backG).seats === 104 && backG.site.sun.date === "2026-06-13" && backG.site.sun.time === "18:30", "promo: both templates survive saving and reopening, the garden estate keeping its golden-hour sun");
+}
+
 // Phase 6 pieces (Nov 5, 2026): every new word finds its piece, and the ramp is no steeper than 1:12.
 {
   const base = S.sampleVenue();
