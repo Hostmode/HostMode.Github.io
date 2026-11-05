@@ -6,6 +6,13 @@ import { Store } from "./store.js";
 import { material, buildItem, box, setQuality, resetLights } from "./decor.js";
 
 const $ = (q, el = document) => el.querySelector(q);
+const MOODS = { // time-of-day looks: exposure, reflections (env), sun and sky strength, sky/fog colour, indoor backdrop
+  day: { exp: 1, env: 1, sun: 1, sky: 1, sky2: "#bcd6ee", room: "#dfe3ec" },
+  golden: { exp: 1.05, env: 0.9, sun: 0.8, sky: 0.7, sunColor: "#ffb361", sky2: "#f2c9a0", room: "#e8d6c4" },
+  overcast: { exp: 1.1, env: 1.3, sun: 0.15, sky: 1.5, sunColor: "#dfe6ee", sky2: "#c3c9d2", room: "#d4d8df" },
+  evening: { exp: 0.9, env: 0.6, sun: 0.25, sky: 0.45, sunColor: "#ff9a6b", sky2: "#6c6f9a", room: "#5d6285" },
+  night: { exp: 0.8, env: 0.3, sun: 0.03, sky: 0.18, sunColor: "#8fa4ff", sky2: "#141a35", room: "#161b30" }
+};
 const SKY = "#bcd6ee"; // outdoor sites: a pale blue sky that fades the far lawn
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -86,7 +93,7 @@ export class Editor {
   applyQuality() {
     const hi = this.quality === "high";
     this.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, hi ? 2 : 1));
-    this.r.shadowMap.enabled = hi; this.r.shadowMap.type = T.PCFShadowMap; setQuality(hi);
+    this.r.shadowMap.enabled = hi; this.r.shadowMap.type = T.PCFSoftShadowMap; setQuality(hi);
     if (this.s) this.build();
   }
 
@@ -131,13 +138,13 @@ export class Editor {
     if (out) this.buildSite();
     this.walls = s.walls.map(w => { const g = buildWall(s, w); W.add(g); return g; });
     resetLights(); s.items.forEach(it => { const g = buildItem(it, s); W.add(g); this.objs.set(it.id, g); });
-    this.lightObjs = [];
+    this.lightObjs = []; this.sunL = this.hemiL = null;
     s.lights.forEach(L => {
       let l;
-      if (L.kind === "ambient") { l = out ? new T.HemisphereLight("#d6e8ff", "#6f7f4f", L.intensity * 2) : new T.HemisphereLight("#ffffff", "#b9a88f", L.intensity * 2); W.add(l); return; }
+      if (L.kind === "ambient") { l = out ? new T.HemisphereLight("#d6e8ff", "#6f7f4f", L.intensity * 2) : new T.HemisphereLight("#ffffff", "#b9a88f", L.intensity * 2); l.userData.base = L.intensity * 2; this.hemiL = l; W.add(l); return; }
       if (L.kind === "sun") { l = new T.DirectionalLight(L.color, L.intensity); l.position.set(L.x, L.y, L.z); l.target.position.set(R.w / 2, 0, R.d / 2); W.add(l.target);
         // outdoors the shadow box just covers the site, seen from where the sun is (set_sun keeps the light there)
-        l.castShadow = true; const c = l.shadow.camera, e = out ? Math.hypot(R.w, R.d) / 2 + 4 : Math.max(R.w, R.d); c.left = -e; c.right = e; c.top = e; c.bottom = -e; c.far = out ? 140 : 80; l.shadow.mapSize.set(2048, 2048); l.shadow.bias = -0.0005; if (out) l.shadow.normalBias = 0.03;
+        l.castShadow = true; const c = l.shadow.camera, e = out ? Math.hypot(R.w, R.d) / 2 + 4 : Math.max(R.w, R.d); c.left = -e; c.right = e; c.top = e; c.bottom = -e; c.far = out ? 140 : 80; l.shadow.mapSize.set(2048, 2048); l.shadow.bias = -0.0005; if (out) l.shadow.normalBias = 0.03; l.userData.base = L.intensity; l.userData.color = L.color; this.sunL = l;
         if (out) { W.add(l); return; } } // the sun has no marker to tap: it's moved from the Site tab
       if (L.kind === "point") { l = new T.PointLight(L.color, L.intensity, L.range || 10, 1.6); l.position.set(L.x, L.y, L.z); }
       if (L.kind === "spot") { l = new T.SpotLight(L.color, L.intensity, 30, T.MathUtils.degToRad(L.angle || 30), 0.4, 1.4); l.position.set(L.x, L.y, L.z); l.target.position.set(L.tx, L.ty, L.tz); W.add(l.target); l.castShadow = this.quality === "high"; l.shadow.mapSize.set(1024, 1024); }
@@ -147,7 +154,7 @@ export class Editor {
       this.objs.set(L.id, bulb); this.lightObjs.push(bulb);
     });
     this.lightObjs.forEach(b => b.visible = this.showLights !== false && this.view !== "walk" && this.view !== "photo");
-    this.photoGrid = null; this.syncPhoto(); this.drawTrace(); this.drawSunMarks();
+    this.photoGrid = null; this.syncPhoto(); this.drawTrace(); this.drawSunMarks(); this.applyMood();
     if (keepGrp) {
       const set = keepGrp.set && s.sets && s.sets[keepGrp.set] ? keepGrp.set : null;
       const ids = set ? S.setMembers(s, set) : keepGrp.ids.filter(id => this.objs.has(id));
@@ -210,6 +217,27 @@ export class Editor {
     this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.fitOrtho();
   }
   fitOrtho() { const R = this.s ? this.s.room : { w: 20, d: 15, h: 4 }, el = this.r.domElement, a = el.clientWidth / Math.max(1, el.clientHeight), hh = this.s && this.s.site ? 8 : R.h; const span = (this.view === "top" ? Math.max(R.w / a, R.d) : Math.max((this.view === "side" ? R.d : R.w) / a, hh * 1.4)) * 0.6; Object.assign(this.ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); this.ortho.updateProjectionMatrix(); }
+  // Look only (not saved in the design): time of day. Changes exposure, sky, fog, reflections and how strong the sun and sky light are.
+  setMood(name) { this.mood = MOODS[name] ? name : "day"; this.applyMood(); }
+  applyMood() {
+    const m = MOODS[this.mood || "day"], out = !!(this.s && this.s.site);
+    this.r.toneMappingExposure = m.exp; this.scene3.environmentIntensity = 0.12 * m.env;
+    if (this.sunL) { this.sunL.intensity = this.sunL.userData.base * m.sun; this.sunL.color.set(m.sunColor || this.sunL.userData.color); }
+    if (this.hemiL) { this.hemiL.intensity = this.hemiL.userData.base * m.sky; }
+    if (this.view !== "photo") this.scene3.background = new T.Color(out ? m.sky2 : m.room);
+    if (this.scene3.fog) this.scene3.fog.color.set(m.sky2);
+  }
+  // Camera presets for presentation pictures. Each sets the lens (field of view) and framing for that kind of shot.
+  camPreset(id) {
+    const R = this.s.room, c = new T.Vector3(R.w / 2, 0.5, R.d / 2), big = Math.max(R.w, R.d); let fov = 50, pos, tgt = c.clone();
+    const stage = this.s.items.find(i => /stage/.test(i.kind)), pick = this.sel && this.objs.get(this.sel);
+    if (id === "wide") { fov = 28; pos = [R.w * 0.5 + big * 0.9, big * 0.55, R.d + big * 1.1]; }
+    else if (id === "eye") { fov = 62; pos = [R.w / 2, 1.65, R.d - 1]; tgt.set(R.w / 2, 1.4, R.d * 0.2); }
+    else if (id === "over") { fov = 40; pos = [R.w / 2 + 0.01, big * 1.5, R.d / 2 + R.d * 0.35]; }
+    else if (id === "stage") { fov = 38; const f = stage || { x: R.w / 2, z: R.d * 0.15 }; tgt.set(f.x, 1.2, f.z); pos = [f.x, 1.7, Math.min(R.d - 0.5, f.z + 8)]; }
+    else { fov = 35; if (pick) { const b = new T.Box3().setFromObject(pick); b.getCenter(tgt); const r = Math.max(0.6, b.getSize(new T.Vector3()).length()); pos = [tgt.x + r * 0.9, tgt.y + r * 0.5, tgt.z + r * 1.1]; } else pos = [R.w / 2 + 1.6, 1.5, R.d / 2 + 2.2]; }
+    this.setView("orbit"); this.persp.fov = fov; this.persp.updateProjectionMatrix(); this.persp.position.set(...pos); this.orbit.target.copy(tgt); this.orbit.update();
+  }
   frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); }
   setView(v) {
     if (v === "photo" && !(this.s.photo && this.photoImg)) v = "orbit";

@@ -358,6 +358,8 @@ async function useAerial(file) {
 // ---------- Views ----------
 function viewsTab() {
   return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
+   <h3>Camera shots</h3><div class="row">${[["wide", "Wide"], ["eye", "Eye level"], ["over", "Overview"], ["stage", "Stage"], ["detail", "Close-up"]].map(([k, n]) => `<button class="btn l" data-cam="${k}">${n}</button>`).join("")}</div>
+   <h3>Time of day <span class="muted">(look only)</span></h3><div class="row">${[["day", "Day"], ["golden", "Golden hour"], ["overcast", "Overcast"], ["evening", "Evening"], ["night", "Night"]].map(([k, n]) => `<button class="btn ${(ed.mood || "day") === k ? "" : "l"}" data-mood="${k}">${n}</button>`).join("")}</div>
    <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${v.id}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
    <p class="muted">Walk: drag to look around, use the arrows (or W A S D on a keyboard) to move.</p>`;
 }
@@ -406,6 +408,7 @@ ed.on(info => {
 });
 
 document.querySelector(".tabs").addEventListener("click", e => { const t = e.target.dataset.tab; if (t) { tab = t; if (t === "file") refreshProjects(); render(); } });
+body.addEventListener("click", e => { const b = e.target.closest("[data-cam],[data-mood]"); if (!b) return; if (b.dataset.cam) ed.camPreset(b.dataset.cam); else { ed.setMood(b.dataset.mood); render(); } });
 document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => ed.setView(b.dataset.view));
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => ed.setMode(b.dataset.mode));
 $("#undo").onclick = () => ed.undo(); $("#redo").onclick = () => ed.redo();
