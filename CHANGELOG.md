@@ -32,3 +32,4 @@ One line per change, newest first: date · who · what changed. Every Claude ses
 - 2026-11-05 · Copilot · 3D designer: new "Presentation picture" button renders a still with ambient occlusion (3d/post.js, r187 addons copied to 3d/vendor/addons; the shared bundle and the office are untouched).
 - 2026-11-05 · Copilot · 3D designer: outdoor sites now have a gradient sky dome that follows the time-of-day looks, with a glow where the sun is.
 - 2026-11-05 · Copilot · 3D designer: grass now has individual blades in its color and bump maps and more patchy variation, so lawns look less flat up close.
+- 2026-11-05 · Copilot · 3D designer: 31 new pieces for indoor and outdoor events (food truck, bleachers, bounce house, gazebo, bell tent, runway, booths, speakers and more), sized from research in 3d/library/specs; shapes in 3d/decor_more.js.

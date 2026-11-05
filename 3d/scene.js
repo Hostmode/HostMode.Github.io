@@ -146,6 +146,38 @@ export const CATALOG = {
   generator:     { label: "Towable generator (20 kW)", cat: "Site & power", w: 3.33, d: 1.51, h: 1.7, mat: "metal" },
   restroom_trailer: { label: "Restroom trailer (2 stations)", cat: "Site & power", w: 4.27, d: 2.44, h: 3.05, mat: "paint" },
   barricade:     { label: "Crowd barricade", cat: "Site & power", w: 1.99, d: 0.6, h: 1.09, mat: "metal" },
+  // Phase 5 pieces (Nov 5, 2026): see 3d/library/specs and research
+  table_square: { label: "Square table (4 ft)", cat: "Tables", w: 1.22, d: 1.22, h: 0.77, mat: "fabric", seats: 4, dress: "table" },
+  table_picnic: { label: "Picnic table", cat: "Tables", w: 1.83, d: 1.52, h: 0.71, mat: "wood" },
+  table_kids: { label: "Kids table", cat: "Tables", w: 1.83, d: 0.76, h: 0.53, mat: "wood" },
+  bar_stool: { label: "Bar stool", cat: "Seating", w: 0.43, d: 0.43, h: 0.76, mat: "metal" },
+  hay_bale: { label: "Hay bale seat", cat: "Seating", w: 0.91, d: 0.51, h: 0.43, mat: "mulch" },
+  kids_chair: { label: "Kids chair", cat: "Seating", w: 0.3, d: 0.3, h: 0.58, mat: "metal" },
+  bleachers: { label: "Bleachers (3 rows)", cat: "Seating", w: 4.57, d: 1.52, h: 0.76, mat: "metal" },
+  bar_cart: { label: "Bar cart", cat: "Food & drink", w: 1.35, d: 0.76, h: 1.0, mat: "wood" },
+  food_truck: { label: "Food truck", cat: "Food & drink", w: 6.1, d: 2.6, h: 3.3, mat: "paint" },
+  concession_cart: { label: "Concession cart", cat: "Food & drink", w: 1.07, d: 0.71, h: 1.37, mat: "paint" },
+  grazing_table: { label: "Grazing table", cat: "Food & drink", w: 2.44, d: 0.76, h: 0.76, mat: "fabric" },
+  bounce_house: { label: "Bounce house", cat: "Lounge & accents", w: 3.96, d: 3.96, h: 3.2, mat: "fabric" },
+  neon_sign: { label: "Neon sign", cat: "Lighting & candles", w: 0.76, d: 0.04, h: 0.4, mat: "acrylic" },
+  light_tower: { label: "Light tower", cat: "Site & power", w: 0.9, d: 0.9, h: 3.3, mat: "metal" },
+  path_lights: { label: "Pathway lights (set of 6)", cat: "Lighting & candles", w: 4.57, d: 0.12, h: 0.37, mat: "metal" },
+  tiki_torch: { label: "Tiki torch", cat: "Lighting & candles", w: 0.08, d: 0.08, h: 1.52, mat: "wood" },
+  tv_monitor: { label: "TV monitor on stand", cat: "Audio & video", w: 1.25, d: 0.6, h: 1.75, mat: "metal" },
+  foh_mixer: { label: "Sound and DJ desk", cat: "Audio & video", w: 1.83, d: 0.61, h: 0.97, mat: "metal" },
+  line_array: { label: "Speaker on stand", cat: "Audio & video", w: 0.9, d: 0.9, h: 2.1, mat: "metal" },
+  runway: { label: "Runway (24 ft)", cat: "Stage & floor", w: 1.22, d: 7.32, h: 0.61, mat: "carpet_plain" },
+  riser: { label: "Riser (8 × 4 ft)", cat: "Stage & floor", w: 2.44, d: 1.22, h: 0.61, mat: "carpet_plain" },
+  tent_flooring: { label: "Event flooring (12 × 12 ft)", cat: "Stage & floor", w: 3.66, d: 3.66, h: 0.02, mat: "parquet", floor: true },
+  trade_show_booth: { label: "Exhibit booth (10 × 10 ft)", cat: "Structure", w: 3.05, d: 3.05, h: 2.44, mat: "fabric" },
+  pop_up_banner: { label: "Pop-up banner", cat: "Backdrops & drapery", w: 0.84, d: 0.3, h: 2.03, mat: "fabric" },
+  registration_desk: { label: "Registration desk", cat: "Tables", w: 1.83, d: 0.6, h: 0.91, mat: "paint" },
+  gazebo: { label: "Gazebo (10 × 10 ft)", cat: "Tents & shade", w: 3.05, d: 3.05, h: 3.27, mat: "fabric", over: true, eave: 2.0, shade: "roof" },
+  shade_sail: { label: "Shade sail", cat: "Tents & shade", w: 4.88, d: 4.23, h: 3.0, mat: "fabric", over: true, eave: 2.4, shade: "slats" },
+  bell_tent: { label: "Bell tent", cat: "Tents & shade", w: 5.0, d: 5.0, h: 3.0, mat: "fabric", over: true, eave: 1.0, shade: "round" },
+  patio_heater: { label: "Patio heater", cat: "Site & power", w: 0.83, d: 0.83, h: 2.18, mat: "metal" },
+  handwash_station: { label: "Hand wash station", cat: "Site & power", w: 0.67, d: 0.55, h: 1.57, mat: "paint" },
+  cable_ramp: { label: "Cable ramp", cat: "Site & power", w: 1.33, d: 0.48, h: 0.044, mat: "paint" },
   building:      { label: "Existing building", cat: "Site & power", w: 20, d: 12, h: 8, mat: "paint", shade: "box", site: true }
 };
 export const KINDS = Object.keys(CATALOG);
@@ -1002,6 +1034,8 @@ export function fmtLen(m, units = "ft") {
 // reported back instead of guessed. A model (Claude) can send ops JSON directly through the same apply().
 const NUMS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20 };
 const KIND_WORDS = [
+  // Phase 5 pieces (Nov 5, 2026), before the older, vaguer words
+  [/square tables?|4 ?(?:ft|foot) square/, "table_square"], [/picnic tables?/, "table_picnic"], [/kids'? tables?|children'?s? tables?/, "table_kids"], [/bar ?stools?|counter stools?/, "bar_stool"], [/hay ?bales?|straw ?bales?/, "hay_bale"], [/kids'? chairs?|children'?s? chairs?/, "kids_chair"], [/bleachers?|grandstand/, "bleachers"], [/bar cart|drinks? cart|mobile bar/, "bar_cart"], [/food trucks?/, "food_truck"], [/popcorn|cotton candy|snow ?cone|concession cart|carnival cart/, "concession_cart"], [/grazing|charcuterie/, "grazing_table"], [/bounce house|inflatable|jumper/, "bounce_house"], [/neon/, "neon_sign"], [/light(?:ing)? tower|balloon light/, "light_tower"], [/path(?:way)? lights?|aisle lights?/, "path_lights"], [/tiki|torch(?:es)?/, "tiki_torch"], [/tv|television|monitor/, "tv_monitor"], [/mixer|soundboard|sound desk|foh|front of house/, "foh_mixer"], [/pa speaker|speaker (?:stand|tripod)|line ?array/, "line_array"], [/runway|catwalk/, "runway"], [/riser|platform/, "riser"], [/tent floor(?:ing)?|event floor(?:ing)?|floor panels?|flooring/, "tent_flooring"], [/trade ?show|exhibit(?:ion)? booth|expo booth|vendor booth/, "trade_show_booth"], [/pop-?up banner|retractable banner|banner stand/, "pop_up_banner"], [/registration|check-?in desk|sign-?in desk/, "registration_desk"], [/gazebo|pavilion/, "gazebo"], [/shade sail|sail shade|sun sail/, "shade_sail"], [/bell tent|glamp/, "bell_tent"], [/patio heater|propane heater|outdoor heater/, "patio_heater"], [/hand ?wash|wash(?:ing)? station|sink/, "handwash_station"], [/cable (?:ramp|protector)/, "cable_ramp"],
   // outdoor pieces (Nov 4, 2026). Sizes like "40 by 60" are read as "size40x60" first, so they aren't counts
   [/size40x60|big tent|large tent|dining tent|reception tent/, "tent_40x60"], [/size10x10|pop-?up|canopy|canopies|vendor (?:booth|tent)|check-?in tent/, "canopy"], [/pergolas?/, "pergola"],
   [/umbrellas?/, "umbrella"], [/generators?/, "generator"], [/restrooms?|bathrooms?|toilets?|porta|portable potty/, "restroom_trailer"], [/barricades?|barriers?|bike racks?|crowd control/, "barricade"], [/buildings?/, "building"],

@@ -12,7 +12,7 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
 - `venue3d.html` with `3d/`:
   - `scene.js`: the design model, the checked steps and the plain-language reader (`interpret`, `KIND_WORDS`).
   - `editor.js`: the Three.js view.
-  - `decor.js`: surfaces and every piece's shape (`buildItem`).
+  - `decor.js`: surfaces and every piece's shape (`buildItem`); `decor_more.js` holds the newer pieces (add new ones there). See also the `3d-realism` skill.
   - `store.js`: saving on the device and to `planners/{uid}/venue3d`.
   - `app.js`: the panels.
   - Three.js is copied into `3d/vendor`, so there's no build step.

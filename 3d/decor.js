@@ -1,6 +1,7 @@
 // Host Mode 3D venue: surfaces and furniture, all drawn in code (no third-party models or textures to license).
 // Surfaces get a color map, a bump (normal) map and, where it matters, sheen (fabric) or a clear coat (polished floors).
 import * as T from "./vendor/three-bundle.min.js";
+import { buildMore } from "./decor_more.js";
 import * as S from "./scene.js";
 
 let HI = true; // high quality: bump maps, sheen, clear coat, small decor lights
@@ -563,7 +564,7 @@ export function buildItem(it, scene) {
   const balloons = palOf(it, [it.color || "#efc7c2", "#ffffff", "#c9a24a"]);
   switch (it.kind) {
     case "table_round": case "table_round72": case "table_rect": case "table_banquet": case "table_farm": case "table_cocktail": case "buffet": case "cake_table": case "gift_table":
-    case "table_serpentine": case "table_sweetheart": case "table_head": case "dessert_table": case "welcome_table": buildTable(g, it, scene); break;
+    case "table_square": case "table_serpentine": case "table_sweetheart": case "table_head": case "dessert_table": case "welcome_table": buildTable(g, it, scene); break;
     case "chair": case "chair_ghost": case "chair_crossback": case "chair_folding": case "chair_banquet": buildChair(g, it); break;
     case "sofa": case "lounge_chair": {
       const v = material("velvet", it.color || null, { size: 1 }); g.add(rbox(W, 0.2, D, 0.04, v, 0, 0.12, 0)); g.add(rbox(W - 0.1, 0.14, D - 0.2, 0.06, v, 0, 0.3, 0.08));
@@ -844,7 +845,7 @@ export function buildItem(it, scene) {
       row(D, (u, y) => { g.add(box(0.05, 1.6, 1.4, glass, W / 2, y, u)); g.add(box(0.05, 1.6, 1.4, glass, -W / 2, y, u)); });
       g.add(box(2.4, 2.4, 0.06, glass, 0, 0, D / 2 + 0.01)); g.add(box(3.4, 0.15, 1.4, cap, 0, 2.7, D / 2 + 0.7)); break;
     }
-    default: g.add(box(W, H, D, main));
+    default: if (!buildMore(it, g, { box, rbox, cyl, ball, stick, flat, mesh, material })) g.add(box(W, H, D, main));
   }
   if (C.ceiling) g.traverse(o => { if (o.isMesh) o.castShadow = false; }); // hanging decor doesn't darken the whole floor
   if (!C.floor && !C.ceiling && !C.top && !C.over && W && D) g.add(contactShadow(W, D, /round|cocktail|cake/.test(it.kind) || it.kind.startsWith("balloon_column")));

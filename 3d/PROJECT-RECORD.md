@@ -78,6 +78,7 @@ New files only; nothing in the live app was changed except one line in `agents/c
 - `3d/store.js` — saving: a working copy and 20 versions on the device, plus `planners/{uid}/venue3d` in Host Mode's database when signed in.
 - `3d/app.js` — the panels: Ask, Add, Selected, Lights, Room, Views, Save & share.
 - `3d/decor.js` — surfaces (textures, bump maps, sheen, clear coat) and every piece of furniture and decor.
+- `3d/decor_more.js` — shape makers for the 30 pieces added in phase 4 (food truck, bleachers, gazebo, booths and so on); `decor.js` calls `buildMore` from the default case of `buildItem`.
 - Tests: `agents/venue3d_test.mjs` (46 model checks, free) and `agents/venue3d_browser.py` (24 browser steps with screenshots).
 
 ### Test results (Nov 3, 2026, headless Chrome with software graphics)

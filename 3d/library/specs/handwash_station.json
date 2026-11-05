@@ -1,0 +1,17 @@
+{
+ "id": "handwash_station",
+ "name": "Hand wash station",
+ "category": "Site & power",
+ "tags": ["hand wash", "sink", "sanitation", "portable", "outdoor"],
+ "events": ["wedding", "birthday", "graduation", "corporate", "holiday", "community"],
+ "styles": ["modern", "minimal"],
+ "size": { "w": 0.67, "d": 0.55, "h": 1.57 },
+ "materials": ["metal", "paint"],
+ "colors": "Gray or white",
+ "placement": "Near food areas and portable restrooms; one per four toilets is a common rule of thumb, so check with the venue and the fire marshal.",
+ "compatible": ["restroom_trailer"],
+ "modeling": "A tall paint-colored box body 0.67 x 0.55 m, two basin boxes at 0.9 m, two small metal soap and towel boxes above, and a low foot-pump box at the front.",
+ "priority": "next",
+ "findings": ["site_sanitation_logistics"],
+ "status": "spec"
+}
