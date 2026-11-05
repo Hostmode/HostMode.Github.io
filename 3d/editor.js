@@ -329,7 +329,7 @@ export class Editor {
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
     this.ceil.visible = this.view === "walk" && !this.ceil.userData.none;
     if (this.view === "photo") this.walls.forEach(g => g.visible = false); else this.walls.forEach(g => { if (g.userData.knee) g.visible = true; });
-    this.r.render(this.scene3, this.cam);
+    if (this._post) this._post.render(); else this.r.render(this.scene3, this.cam);
   }
 
   // ---- Tapping and dragging ----
@@ -470,6 +470,13 @@ export class Editor {
   }
   snapshot(w = 1600) { const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth); const old = [el.clientWidth, el.clientHeight]; this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.selBox.visible = false; const th = this.tc.getHelper().visible; this.tc.getHelper().visible = false; this.tick(); let url = el.toDataURL("image/png");
     if (this.view === "photo" && this.photoImg) { const c = document.createElement("canvas"); c.width = el.width; c.height = el.height; const x = c.getContext("2d"); x.drawImage(this.photoImg, 0, 0, c.width, c.height); x.drawImage(el, 0, 0); url = c.toDataURL("image/jpeg", 0.92); } this.tc.getHelper().visible = th; this.r.setSize(old[0], old[1], false); this.resize(); this.select(this.sel); return url; }
+  // Still picture with ambient occlusion; slow, so never used while editing. Falls back to the plain picture if it can't run.
+  async presentation(w = 1920) {
+    if (this.view === "photo") return this.snapshot(w);
+    const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth);
+    try { this._post = await (await import("./post.js")).makePost(this.r, this.scene3, this.cam, w, h); } catch (e) { console.warn("presentation render unavailable", e); this._post = null; return this.snapshot(w); }
+    try { return this.snapshot(w); } finally { this._post.dispose(); this._post = null; this.tick(); }
+  }
   exportGLB() {
     return new Promise((ok, no) => {
       const g = this.world.clone(true); g.traverse(o => { if (o.isLight || (o.userData && o.userData.light)) o.visible = false; });
