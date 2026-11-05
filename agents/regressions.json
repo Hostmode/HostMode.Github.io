@@ -1,5 +1,5 @@
 [
-  {"name": "Vendor check-in works", "url": "games.html?pdemo=1&vendor=demoVendor3x&p=northlight", "fresh": true, "steps": [{"click": "[data-act=\"vpHere\"]"}, {"expect_text": "You checked in"}]},
+  {"name": "Vendor check-in works", "url": "games.html?pdemo=1&vendor=demoVendor3x&p=northlight", "fresh": true, "steps": [{"click": "[data-act=\"vpHere\"]"}, {"expect_text": "Checked in today at"}, {"expect_js": "!document.querySelector('.demobar')"}]},
   {"name": "The starting host PIN never shows on screen", "url": "games.html?pdemo=1#planner", "steps": [{"expect_js": "!document.body.innerText.includes(\"0102\")"}]},
   {"name": "A teammate sees their own shifts, without anyone else's name", "url": "games.html?pdemo=1&p=northlight&mate=liam", "fresh": true, "steps": [{"expect_text": "Your shifts"}, {"expect_js": "!/\u00b7 Teammate\\b/.test(document.body.innerText)"}]},
   {"name": "Per-guest packages and minimum spend show in the planner demo", "url": "games.html?pdemo=1#planner", "fresh": true, "steps": [{"expect_js": "(ACT.plTab({dataset:{k:'pkg'}}),true)"}, {"expect_text": "per guest (40 minimum)"}, {"expect_js": "(ACT.plTab({dataset:{k:'venue'}}),true)"}, {"expect_text": "under the $6,000 minimum spend"}]},
