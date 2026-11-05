@@ -1,0 +1,17 @@
+{
+ "id": "gazebo",
+ "name": "Event gazebo",
+ "category": "Tents & shade",
+ "tags": ["gazebo", "pavilion", "canopy", "pop-up", "shade", "outdoor"],
+ "events": ["wedding", "shower", "birthday", "graduation", "community", "corporate", "holiday"],
+ "styles": ["classic", "garden", "modern"],
+ "size": { "w": 3.05, "d": 3.05, "h": 3.27 },
+ "materials": ["fabric", "metal"],
+ "colors": "Any color roof",
+ "placement": "Outdoors over a buffet, guest book or lounge; needs anchoring, so check with the venue and the fire marshal.",
+ "compatible": [],
+ "modeling": "Four thin metal legs (eave height 2.0 m), a four-sided pyramid fabric roof rising to the 3.27 m peak and a short valance box around the edge. Shade type: roof (eave 2.0).",
+ "priority": "now",
+ "findings": ["pavilions_sails_bell_tents"],
+ "status": "spec"
+}
