@@ -764,7 +764,7 @@ const RUN = {
     tables.forEach(t => { const it = mkItem(kind, t.x, t.z, 0, { y: t.h, group: t.id }); if (o.palette) it.palette = checkPalette(o.palette); s.items.push(it); });
     return "Put a " + CATALOG[kind].label.toLowerCase() + " on " + tables.length + " table" + (tables.length === 1 ? "" : "s");
   },
-  save_view(s, o) { s.views.push({ id: uid("vw_"), name: String(need(o, "name")).slice(0, 40), pos: need(o, "pos").map(r2), target: need(o, "target").map(r2) }); return "Saved the view " + o.name; }
+  save_view(s, o) { s.views.push({ id: uid("vw_"), name: String(need(o, "name")).slice(0, 40), pos: need(o, "pos").map(r2), target: need(o, "target").map(r2), fov: o.fov >= 15 && o.fov <= 90 ? r2(o.fov) : 50 }); return "Saved the view " + o.name; }
 };
 
 // Keep an item inside the room when it's sent to a named spot (a stage sent "front" sits against the front wall).
