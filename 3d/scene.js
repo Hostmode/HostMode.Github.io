@@ -1000,6 +1000,218 @@ export function sampleSite(kind = "luncheon") {
   return s;
 }
 
+// Two promotional templates: the grandest designs the library can make, for showing the designer off.
+// They open from Save & share, like the other samples. The ballroom seats 96 at 12 tables; the garden estate seats 104.
+export function samplePromoBallroom() {
+  const W = 24.4, D = 18.3, H = 5.5; // 80 x 60 ft, 18 ft ceilings
+  const s = {
+    schema: SCHEMA, version: VERSION, id: uid("v_"), name: "Grand wedding ballroom (promo)", units: "ft",
+    created: Date.now(), updated: Date.now(),
+    room: { w: W, d: D, h: H, floor: "herringbone", walls: "plaster", ceiling: "paint", wallColor: "#f3ead6", dimSrc: { w: "confirmed", d: "confirmed", h: "estimated" } },
+    walls: [], openings: [], items: [], lights: [], views: []
+  };
+  const c = [[0, 0], [W, 0], [W, D], [0, D]];
+  ["Front wall", "Right wall", "Back wall", "Left wall"].forEach((name, i) =>
+    s.walls.push({ id: "w" + (i + 1), name, a: c[i], b: c[(i + 1) % 4], h: H, t: 0.2, mat: "paint", color: "#f3ead6" }));
+  s.openings.push({ id: "o1", type: "door", wall: "w3", at: W / 2, w: 1.83, h: 2.44, sill: 0, name: "Main doors" });
+  s.openings.push({ id: "o2", type: "door", wall: "w2", at: 2.5, w: 0.91, h: 2.13, sill: 0, name: "Service door" });
+  [3, 7, 11, 15].forEach((at, i) => s.openings.push({ id: "o" + (3 + i), type: "window", wall: "w4", at, w: 1.5, h: 2.0, sill: 0.9 }));
+  [4, 8, 16.4, 20.4].forEach((at, i) => s.openings.push({ id: "o" + (7 + i), type: "window", wall: "w3", at, w: 1.5, h: 2.0, sill: 0.9 }));
+  const add = (kind, x, z, rot = 0, extra = {}) => { const it = mkItem(kind, x, z, rot, extra); s.items.push(it); return it; };
+  // The elegant look: ivory floor-length linens, champagne runners and sashes, gold chargers, tall centerpieces.
+  const ELEGANT = { linen: "floor", linenColor: "#f3ead6", runner: "satin", runnerColor: "#e8d6b3", charger: "#c9a24a", napkin: "#f3ead6" };
+  const CHAIR_DRESS = { cover: "spandex", coverColor: "#f7f5f0", sash: "#e8d6b3" };
+  const BLUSH = PALETTES.blush.slice(), CLASSIC = PALETTES.classic.slice();
+  // Stage end: LED wall behind the stage, truss, floral arch, thrones, cold sparks and spotlights.
+  add("stage", 12.2, 2.4, 0, { id: "stage1" });
+  add("led_wall", 12.2, 0.45, 0, { id: "led1" });
+  add("light_truss", 12.2, 4.9, 0, { id: "truss1" });
+  add("arch", 8.6, 2.4, 0, { id: "arch1", palette: BLUSH });
+  add("chair_throne", 10.8, 2.4, 0, { id: "throne1" });
+  add("chair_throne", 13.6, 2.4, 0, { id: "throne2" });
+  add("cold_spark", 9.0, 5.0, 0, { id: "spark1" });
+  add("cold_spark", 15.4, 5.0, 0, { id: "spark2" });
+  add("spotlight", 7.2, 5.2, 0, { id: "spot1" });
+  add("spotlight", 17.2, 5.2, 0, { id: "spot2" });
+  // Head table with its 12, then 8 rounds of 10 around the dance floor.
+  const head = add("table_head", 12.2, 6.2, 0, { id: "head1", color: "#f3ead6", label: "Head table", dress: Object.assign({}, ELEGANT) });
+  s.items.push(...chairsAround(head, 12));
+  add("dance_floor", 12.2, 9.15, 0, { id: "dance1" });
+  add("fog", 12.2, 9.15, 0, { id: "fog1" });
+  add("balloon_full_arch", 12.2, 7.0, 0, { id: "barch1", palette: BLUSH });
+  [[4.6, 5.0], [19.8, 5.0], [4.6, 9.15], [19.8, 9.15], [4.6, 14.0], [9.4, 14.0], [15.0, 14.0], [19.8, 14.0]].forEach(([x, z], i) => {
+    const t = add("table_round72", x, z, 0, { id: "t" + (i + 1), color: "#f3ead6", label: "Table " + (i + 1), dress: Object.assign({}, ELEGANT) });
+    s.items.push(...chairsAround(t, 10));
+    add("centerpiece_tall", x, z, 0, { y: 0.76, group: t.id, palette: CLASSIC });
+  });
+  add("centerpiece_tall", 12.2, 6.2, 0, { y: 0.76, group: head.id, palette: CLASSIC });
+  add("table_garland", 10.0, 6.2, 0, { y: 0.76, group: head.id, palette: CLASSIC });
+  add("table_garland", 14.4, 6.2, 0, { y: 0.76, group: head.id, palette: CLASSIC });
+  // Sweetheart nook in the front-left corner, on a rug.
+  add("rug", 2.8, 2.6, 0, { id: "rug1" });
+  add("sofa", 2.2, 1.2, 0, { id: "sofa1" });
+  add("lounge_chair", 1.4, 2.6, 45, { id: "lc1" });
+  add("lounge_chair", 4.2, 2.6, -45, { id: "lc2" });
+  add("coffee_table", 2.8, 2.6, 0, { id: "ct1" });
+  const sw = add("table_sweetheart", 2.4, 4.4, 0, { id: "sw1", color: "#f3ead6", label: "Sweetheart table", dress: Object.assign({}, ELEGANT) });
+  s.items.push(...chairsAround(sw, 2));
+  // Ceiling: chandeliers, string lights, hanging greenery, draping (y set by hand, as add_item does).
+  add("chandelier", 8.0, 9.15, 0, { id: "ch1", y: H - 1.0 });
+  add("chandelier", 16.4, 9.15, 0, { id: "ch2", y: H - 1.0 });
+  add("string_lights", 12.2, 8.2, 0, { id: "sl1", y: H - 0.6 });
+  add("string_lights", 12.2, 10.2, 0, { id: "sl2", y: H - 0.6 });
+  add("hanging_greenery", 12.2, 9.15, 0, { id: "hg1", y: H - 0.8 });
+  add("ceiling_drape", 12.2, 9.15, 0, { id: "cd1", y: H - 1.0 });
+  // Food, drink and fun along the walls.
+  add("bar", 23.3, 9.15, -90, { id: "bar1" });
+  add("buffet", 23.3, 13.0, -90, { id: "buf1", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("dessert_table", 1.1, 14.5, 90, { id: "des1", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("cake_table", 1.1, 8.0, 90, { id: "cake1", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("photo_booth", 21.5, 16.5, 0, { id: "pb1" });
+  add("booth_360", 22.8, 5.0, 0, { id: "b360" });
+  add("welcome_table", 6.4, 16.2, 0, { id: "wtab", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("gift_table", 18.0, 16.2, 0, { id: "gtab", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  // Entrance at the back wall: flower and shimmer walls, LOVE marquee, draped arch, balloon columns and garlands.
+  add("flower_wall", 9.0, 17.9, 0, { id: "fw1", palette: BLUSH });
+  add("shimmer_wall", 15.4, 17.9, 0, { id: "sw2" });
+  add("marquee", 12.2, 16.0, 0, { id: "mq1", label: "LOVE" });
+  add("entrance_arch", 12.2, 17.2, 0, { id: "ea1", palette: BLUSH });
+  add("balloon_column", 10.6, 17.2, 0, { id: "bc1", palette: BLUSH });
+  add("balloon_column", 13.8, 17.2, 0, { id: "bc2", palette: BLUSH });
+  add("balloon_arch", 6.4, 17.9, 0, { id: "bg1", palette: BLUSH });
+  add("balloon_arch", 18.0, 17.9, 0, { id: "bg2", palette: BLUSH });
+  add("aisle_runner", 12.2, 14.7, 0, { id: "ar1", d: 6.0 });
+  // Uplights, candles, lanterns, plants and aisle flowers.
+  [[1.0, 5.5], [1.0, 9.15], [1.0, 17.9], [23.4, 2.0], [23.4, 7.0], [23.4, 17.9]].forEach(([x, z], i) => add("uplight", x, z, 0, { id: "up" + (i + 1) }));
+  [[6.0, 7.5], [18.4, 7.5], [6.0, 12.5], [18.4, 12.5]].forEach(([x, z], i) => add("candle_floor", x, z, 0, { id: "cf" + (i + 1) }));
+  add("lanterns", 10.0, 16.5, 0, { id: "lan1" });
+  add("lanterns", 14.4, 16.5, 0, { id: "lan2" });
+  add("plant", 1.0, 12.0, 0, { id: "pl1" });
+  add("plant", 22.0, 12.0, 0, { id: "pl2" });
+  add("aisle_flowers", 10.9, 12.3, 0, { id: "af1", palette: BLUSH });
+  add("aisle_flowers", 13.5, 12.3, 0, { id: "af2", palette: BLUSH });
+  add("pedestals", 20.5, 12.0, 0, { id: "pd1", palette: BLUSH });
+  add("sculpture", 22.5, 14.8, 0, { id: "sc1" });
+  // Every chiavari chair gets the white spandex cover and champagne sash.
+  s.items.filter(i => i.kind === "chair").forEach(c => { c.dress = Object.assign({}, CHAIR_DRESS); });
+  s.lights.push({ id: "L0", kind: "ambient", color: "#ffffff", intensity: 0.35, name: "Room fill" });
+  s.lights.push({ id: "L1", kind: "sun", x: -6, y: 9, z: 4, color: kelvinHex(5600), intensity: 1.2, name: "Daylight" });
+  [[6.1, 6.1], [18.3, 6.1], [6.1, 12.2], [18.3, 12.2]].forEach(([x, z], i) =>
+    s.lights.push({ id: "L" + (2 + i), kind: "point", x, y: H - 0.3, z, color: kelvinHex(2700), intensity: 6, range: 12, name: "Warm light " + (i + 1) }));
+  s.lights.push({ id: "L6", kind: "spot", x: 12.2, y: H - 0.2, z: 5.3, tx: 12.2, ty: 0.6, tz: 2.4, color: kelvinHex(3000), intensity: 30, angle: 35, name: "Stage wash" });
+  s.views = [
+    { id: "vw1", name: "From the doors", pos: [12.2, 1.65, 17.5], target: [12.2, 1.2, 2] },
+    { id: "vw2", name: "From the stage", pos: [12.2, 2.2, 2], target: [12.2, 0.8, 16] },
+    { id: "vw3", name: "Overview", pos: [12.2, 14, 24], target: [12.2, 0, 9] }
+  ];
+  return s;
+}
+
+export function samplePromoSite() {
+  const s = sampleVenue(); s.id = uid("v_"); s.walls = []; s.openings = []; s.items = []; s.lights = []; s.views = []; delete s.sets;
+  const W = 90, D = 65;
+  s.name = "Garden estate (promo)";
+  s.room = { w: W, d: D, h: 30, floor: "grass", walls: "paint", ceiling: "paint", wallColor: "#efe6d8", dimSrc: { w: "estimated", d: "estimated", h: "unknown" } };
+  s.site = { ground: "grass", areas: [], edge: null, sun: null, north: 0 };
+  s.lights.push({ id: "L0", kind: "ambient", color: "#ffffff", intensity: 0.5, name: "Sky light" });
+  // Golden hour on a June evening in Charlotte, as part of the design: never reset to today.
+  RUN.set_sun(s, { date: "2026-06-13", time: "18:30", tz: -4, lat: 35.2271, lng: -80.8431, place: "Charlotte, NC" });
+  s.views = [
+    { id: "vw1", name: "From the parking lot", pos: [86, 1.65, 59], target: [45, 1.5, 32] },
+    { id: "vw2", name: "From above", pos: [45, 38, 87], target: [45, 0, 32] }
+  ];
+  const area = (id, name, mat, pts) => s.site.areas.push({ id, name, mat, pts });
+  area("g_park", "Parking lot", "asphalt", [[70, 2], [88, 2], [88, 30], [70, 30]]);
+  area("g_drive", "Driveway", "asphalt", [[60, 8], [70, 8], [70, 14], [60, 14]]);
+  area("g_patio", "Patio", "pavers", [[36, 26], [54, 26], [54, 34], [36, 34]]);
+  area("g_walk", "Front walk", "concrete", [[43, 14], [47, 14], [47, 26], [43, 26]]);
+  area("g_path", "Gravel path to the restrooms", "gravel", [[66, 52], [74, 52], [74, 54.8], [66, 54.8]]);
+  area("g_bedl", "Planting bed", "mulch", [[32, 14.5], [43, 14.5], [43, 16], [32, 16]]);
+  area("g_bedr", "Planting bed", "mulch", [[47, 14.5], [58, 14.5], [58, 16], [47, 16]]);
+  area("g_bedc", "Planting bed by the ceremony lawn", "mulch", [[8, 40], [20, 40], [20, 42], [8, 42]]);
+  s.site.edge = { pts: [[2, 2], [88, 2], [88, 63], [4, 63], [2, 55]], src: "confirmed" };
+  const add = (kind, x, z, rot = 0, extra = {}) => { const it = mkItem(kind, x, z, rot, extra); s.items.push(it); return it; };
+  const ELEGANT = { linen: "floor", linenColor: "#f3ead6", runner: "satin", runnerColor: "#e8d6b3", charger: "#c9a24a", napkin: "#f3ead6" };
+  const CHAIR_DRESS = { cover: "spandex", coverColor: "#f7f5f0", sash: "#e8d6b3" };
+  const BLUSH = PALETTES.blush.slice(), CLASSIC = PALETTES.classic.slice();
+  // The manor house to the north, parking to the east.
+  add("building", 45, 8, 0, { id: "manor", w: 30, d: 12, h: 10, color: "#d9d2c5", label: "Manor house" });
+  // Ceremony lawn on the west: floral arch, LOVE marquee, aisle runner, 24 cross-back chairs facing the arch.
+  add("arch", 18, 24, 0, { id: "arch1", palette: BLUSH });
+  add("marquee", 18, 22.3, 0, { id: "mq1", label: "LOVE" });
+  add("aisle_runner", 18, 30, 0, { id: "ar1" });
+  for (let k = 0; k < 12; k++) {
+    add("chair_crossback", 16.5, 25.5 + k * 0.95, 180, { id: "cc_l" + k });
+    add("chair_crossback", 19.5, 25.5 + k * 0.95, 180, { id: "cc_r" + k });
+  }
+  // Dining under the big tent: 10 rounds of 8, dressed like the ballroom.
+  add("tent_40x60", 45.35, 38, 90, { id: "tent1", label: "Dining tent" });
+  [38.8, 41.9, 45.0, 48.1, 51.2].forEach((x, i) => [36.2, 39.8].forEach((z, j) => {
+    const t = add("table_round", x, z, 0, { id: "t" + (i * 2 + j + 1), color: "#f3ead6", label: "Table " + (i * 2 + j + 1), dress: Object.assign({}, ELEGANT) });
+    s.items.push(...chairsAround(t, 8, "chair_crossback"));
+    add("centerpiece_tall", x, z, 0, { y: 0.76, group: t.id, palette: CLASSIC });
+  }));
+  // Band stage to the south-east: podium, speakers, DJ booth, FOH mixer, line arrays.
+  add("stage", 68, 48, 0, { id: "stage1" });
+  add("podium", 64.5, 48, 90, { id: "podium1" });
+  add("speaker", 64.5, 45.8, 90, { id: "spk1" });
+  add("speaker", 64.5, 50.2, 90, { id: "spk2" });
+  add("dj_booth", 71, 51.5, 180, { id: "dj1" });
+  add("foh_mixer", 68, 54.5, 0, { id: "foh1" });
+  add("flown_line_array", 63.5, 44.8, 0, { id: "fla1" });
+  add("flown_line_array", 63.5, 51.2, 0, { id: "fla2" });
+  add("line_array", 72.5, 45.5, 0, { id: "la1" });
+  add("line_array", 72.5, 50.5, 0, { id: "la2" });
+  // Buffet tent, check-in canopy, pergola lounge.
+  add("tent", 62, 38, 0, { id: "tent2", label: "Buffet tent" });
+  add("buffet", 62, 36.5, 0, { id: "buf1", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("buffet", 62, 39.5, 180, { id: "buf2", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("canopy", 30, 20, 0, { id: "checkin", label: "Check-in" });
+  add("welcome_table", 30, 20.4, 0, { id: "wtab", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("pergola", 28, 50, 0, { id: "perg1", label: "Lounge pergola" });
+  add("sofa", 28, 50.9, 180, { id: "sofa1" });
+  add("lounge_chair", 26.6, 49.3, 90, { id: "lc1" });
+  add("lounge_chair", 29.4, 49.3, -90, { id: "lc2" });
+  add("coffee_table", 28, 49.8, 0, { id: "ct1" });
+  // Cocktail umbrellas, dance floor on the patio, gazebo with dessert and champagne.
+  [[36, 22], [54, 22], [58, 26]].forEach(([x, z], i) => {
+    add("umbrella", x, z, 0, { id: "umb" + (i + 1) });
+    add("table_cocktail", x, z, 0, { id: "ck" + (i + 1), dress: { linen: "spandex", linenColor: "#f7f5f0" } });
+  });
+  add("dance_floor", 45, 30, 0, { id: "dance1" });
+  add("gazebo", 80, 52, 0, { id: "gaz1", label: "Garden gazebo" });
+  add("dessert_table", 80, 52, 0, { id: "des1", color: "#f3ead6", dress: Object.assign({}, ELEGANT) });
+  add("champagne_tower", 78.2, 52, 0, { id: "cht1" });
+  // Games and fun on the south lawn, then the practical pieces.
+  add("fire_pit", 28, 54, 0, { id: "fp1" });
+  add("cornhole", 33, 54, 0, { id: "ch1" });
+  add("cornhole", 37, 54, 0, { id: "ch2" });
+  add("food_truck", 80, 60, 0, { id: "ft1" });
+  add("golf_cart", 72, 60, 90, { id: "gc1" });
+  add("bleachers", 60, 58, 0, { id: "bl1" });
+  add("baby_grand", 56, 50, 0, { id: "bg1" });
+  add("restroom_trailer", 72, 56, 0, { id: "rest1" });
+  add("generator", 75, 27, 90, { id: "gen1" });
+  [10, 20, 30].forEach((z, i) => add("barricade", 69, z, 90, { id: "bar" + (i + 1) }));
+  // Light and greenery: uplights, lanterns, candles, plants, path lights, signs.
+  [[32, 20], [58, 20], [32, 44], [58, 44], [36, 32], [54, 32]].forEach(([x, z], i) => add("uplight", x, z, 0, { id: "up" + (i + 1) }));
+  [[38, 27], [52, 27]].forEach(([x, z], i) => add("lanterns", x, z, 0, { id: "lan" + (i + 1) }));
+  add("candle_floor", 40, 34.5, 0, { id: "cf1" });
+  add("candle_floor", 50, 34.5, 0, { id: "cf2" });
+  [[32, 15.5], [58, 15.5], [10, 30], [68, 30], [60, 44]].forEach(([x, z], i) => add("plant", x, z, 0, { id: "pl" + (i + 1) }));
+  add("path_lights", 45, 16, 0, { id: "pth1" });
+  add("path_lights", 45, 24, 0, { id: "pth2" });
+  add("welcome_sign", 26, 20, 0, { id: "ws1" });
+  add("easel_sign", 14, 24, 0, { id: "es1" });
+  add("stanchion", 18, 37.5, 0, { id: "st1" });
+  add("topiary", 30, 15, 0, { id: "tp1" });
+  add("tree", 8, 20, 0, { id: "tr1" });
+  add("tree", 84, 48, 0, { id: "tr2" });
+  // Every cross-back chair gets the white spandex cover and champagne sash.
+  s.items.filter(i => i.kind === "chair_crossback").forEach(c => { c.dress = Object.assign({}, CHAIR_DRESS); });
+  return s;
+}
+
 // ---------- Designing over a venue photo (Stage A) ----------
 // The person drags four dots onto the corners of something rectangular on the floor of their photo (a rug, the dance floor,
 // tile lines, the room's corners): dots 1 and 2 on the far edge (left, right), 3 and 4 on the near edge (right, left), and types
