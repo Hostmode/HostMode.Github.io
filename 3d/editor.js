@@ -256,9 +256,18 @@ export class Editor {
     else if (id === "over") { fov = 40; pos = [R.w / 2 + 0.01, big * 1.5, R.d / 2 + R.d * 0.35]; }
     else if (id === "stage") { fov = 38; const f = stage || { x: R.w / 2, z: R.d * 0.15 }; tgt.set(f.x, 1.2, f.z); pos = [f.x, 1.7, Math.min(R.d - 0.5, f.z + 8)]; }
     else { fov = 35; if (pick) { const b = new T.Box3().setFromObject(pick); b.getCenter(tgt); const r = Math.max(0.6, b.getSize(new T.Vector3()).length()); pos = [tgt.x + r * 0.9, tgt.y + r * 0.5, tgt.z + r * 1.1]; } else pos = [R.w / 2 + 1.6, 1.5, R.d / 2 + 2.2]; }
-    this.setView("orbit"); this.persp.fov = fov; this.persp.updateProjectionMatrix(); this.persp.position.set(...pos); this.orbit.target.copy(tgt); this.orbit.update();
+    this.setView("orbit"); this.persp.fov = fov; this.persp.updateProjectionMatrix(); this.persp.position.set(...pos); this.orbit.target.copy(tgt); this.orbit.update(); this.clampCam();
   }
-  frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); }
+  frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); this.clampCam(); }
+  // The camera never goes beneath the floor: the lens stays a little above it, the look-at point on it or above.
+  // The top/front/side views use the orthographic camera, not this one, so they are not touched.
+  clampCam() {
+    if (!this.s) return;
+    const p = S.clampCamPos(this.s, [this.persp.position.x, this.persp.position.y, this.persp.position.z]);
+    this.persp.position.set(p[0], p[1], p[2]);
+    const t = S.clampCamTarget(this.s, [this.orbit.target.x, this.orbit.target.y, this.orbit.target.z]);
+    this.orbit.target.set(t[0], t[1], t[2]);
+  }
   setView(v) {
     if (v === "photo" && !(this.s.photo && this.photoImg)) v = "orbit";
     const R = this.s.room, was = this.view; this.view = v; this.tc.enabled = v !== "walk";
@@ -309,7 +318,8 @@ export class Editor {
     if (!on) return;
     const c = S.photoCamera(P); this.photoFit = c; if (!c.ok) return;
     const m = new T.Matrix4().makeBasis(new T.Vector3(...c.x), new T.Vector3(...c.y), new T.Vector3(...c.z));
-    this.persp.position.set(...c.pos); this.persp.quaternion.setFromRotationMatrix(m); this.persp.fov = c.fov; this.persp.updateProjectionMatrix();
+    const cp = S.clampCamPos(this.s, [...c.pos]); this.persp.position.set(cp[0], cp[1], cp[2]); // a camera worked out under the floor means the dots are wrong; don't draw from under it
+    this.persp.quaternion.setFromRotationMatrix(m); this.persp.fov = c.fov; this.persp.updateProjectionMatrix();
     if (this.photoAlign) { // a 1 ft (or 1 m) grid over the marked floor: if the dots are right, it lies flat on the real floor
       const W = P.w || 1, D = c.d, step = this.units === "m" ? 1 : S.FT, ox = P.ox || 0, oz = P.oz || 0, pts = [];
       for (let a = 0; a <= W + 1e-6; a += step) pts.push(ox + a, 0.01, oz, ox + a, 0.01, oz + D); pts.push(ox + W, 0.01, oz, ox + W, 0.01, oz + D);
@@ -325,7 +335,7 @@ export class Editor {
   goView(id) {
     const v = this.s.views.find(x => x.id === id); if (!v) return;
     if (this.view === "walk") return this.walkTo(v.pos, v.target);
-    this.setView("orbit"); this.persp.fov = v.fov || 50; this.persp.updateProjectionMatrix(); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update();
+    this.setView("orbit"); this.persp.fov = v.fov || 50; this.persp.updateProjectionMatrix(); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update(); this.clampCam();
   }
   currentView() {
     if (this.view === "walk") { const p = this.walk.pos, f = this.walkDir(); return { pos: [p.x, p.y, p.z], target: [p.x + f.x * 3, p.y + f.y * 3, p.z + f.z * 3] }; }
@@ -342,8 +352,9 @@ export class Editor {
       if (k.l) this.walk.pos.addScaledVector(rt, -sp); if (k.r) this.walk.pos.addScaledVector(rt, sp);
       if (k.tl) this.walk.yaw += 1.6 * dt; if (k.tr) this.walk.yaw -= 1.6 * dt;
       const R = this.s.room; this.walk.pos.x = T.MathUtils.clamp(this.walk.pos.x, 0.3, R.w - 0.3); this.walk.pos.z = T.MathUtils.clamp(this.walk.pos.z, 0.3, R.d - 0.3);
+      this.walk.pos.y = Math.max(this.walk.pos.y, S.floorY(this.s) + S.CAM_FLOOR_CLEARANCE); // the eye never drops under the floor
       this.persp.position.copy(this.walk.pos); this.persp.lookAt(this.walk.pos.clone().add(this.walkDir()));
-    } else if (this.view === "orbit") this.orbit.update(); else if (this.view !== "photo") this.orbitO.update();
+    } else if (this.view === "orbit") { this.orbit.update(); this.clampCam(); } else if (this.view !== "photo") this.orbitO.update();
     // Dollhouse: in the 3D view, hide walls that stand between the camera and the room.
     const cp = this.cam.position;
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });

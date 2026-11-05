@@ -9,6 +9,16 @@ ok(v.items.some(i => i.kind === "stage") && v.items.some(i => i.kind === "dance_
 ok(S.counts(v).seats === 48 && S.counts(v).tables === 6, "sample venue seats 48 at 6 tables");
 ok(S.checkScene(v).length === 0, "sample venue has no overlaps or out-of-room items: " + JSON.stringify(S.checkScene(v)));
 
+// The floor: one level the camera never goes beneath, indoors and outdoors.
+{
+  const L = S.sampleSite(), P = S.samplePromoBallroom(), G = S.samplePromoSite();
+  ok(S.floorY(v) === 0 && S.floorY(L) === 0 && S.floorY(P) === 0 && S.floorY(G) === 0, "floor: the floor is y = 0 in the ballroom, the outdoor site and both promo templates");
+  ok(S.clampCamPos(v, [5, -2, 5])[1] === S.floorY(v) + S.CAM_FLOOR_CLEARANCE && S.clampCamPos(L, [5, -0.5, 5])[1] === 0.1, "floor: a camera below the floor is lifted to just above it, indoors and outdoors");
+  ok(S.clampCamPos(v, [5, 3, 5])[1] === 3, "floor: a camera already above the floor is left alone");
+  ok(S.clampCamTarget(v, [5, -1, 5])[1] === 0 && S.clampCamTarget(L, [5, 0.4, 5])[1] === 0.4, "floor: a look-at point below the floor is lifted to the floor, one above it is left alone");
+  ok([v, L, P, G].every(s => s.views.every(w => w.pos[1] >= S.floorY(s) + S.CAM_FLOOR_CLEARANCE && w.target[1] >= S.floorY(s))), "floor: every saved view in the samples keeps the camera and its target above the floor");
+}
+
 // The demo instruction from the assignment.
 const said = "Move the stage to the front of the room, create a dance floor in the center, and arrange eight round tables around it.";
 const { ops, notes } = S.interpret(v, said);
