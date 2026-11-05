@@ -142,6 +142,42 @@ B.line_array = (it, g, h) => {
   const cab = h.rbox(0.36, 0.6, 0.35, 0.02, blk, 0, 0, 0); cab.position.set(0, H - 0.68, 0); cab.rotation.x = 0.1; g.add(cab);
   g.add(h.box(0.32, 0.54, 0.01, mt, 0, H - 0.65, 0.18));
 };
+// Line array flown from truss: two box-truss towers, a top beam, and a hang of cabinets curving down on each side (sizes are ESTIMATES, see estimated_sizes_p6).
+B.flown_line_array = (it, g, h) => {
+  const { W, D, H } = it, mt = h.material("metal", "#b9bcc2"), blk = h.material("paint", "#16161a", { size: 1 }), grille = h.flat("#0d0d10", { roughness: 0.6 }), TR = 0.15;
+  const run = (a, b) => { // a box truss between two points: four chords and a zig-zag on the two long faces
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, z]) => g.add(h.stick(V(a.x + x * TR, a.y, a.z + z * TR), V(b.x + x * TR, b.y, b.z + z * TR), 0.018, mt, 5)));
+    const len = a.distanceTo(b), n = Math.max(2, Math.round(len / 0.3));
+    for (let k = 0; k < n; k++) [-1, 1].forEach(z => { const t0 = k / n, t1 = (k + 1) / n, up = k % 2 ? 1 : -1;
+      const P = (t, y) => V(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t + y * TR, a.z + z * TR);
+      g.add(h.stick(P(t0, up), P(t1, -up), 0.008, mt, 4)); });
+  };
+  const half = W / 2 - 0.4;
+  [-1, 1].forEach(s => { run(V(s * half, 0.1, 0), V(s * half, H - 0.15, 0)); g.add(h.box(0.7, 0.05, 0.7, mt, s * half - 0.35, 0, -0.35)); });
+  run(V(-half, H - 0.15, 0), V(half, H - 0.15, 0));
+  [-1, 1].forEach(s => { const x = s * (half - 0.9), top = H - 0.2;
+    g.add(h.box(0.04, 0.04, 0.5, mt, x, top - 0.04, 0));
+    for (let k = 0; k < (H >= 4.5 ? 8 : 6); k++) { // each cabinet leans a little more than the one above it
+      const c = h.rbox(0.55, 0.25, 0.45, 0.015, blk, 0, 0, 0); c.position.set(x, top - 0.3 - k * 0.27, 0.02 * k); c.rotation.x = 0.02 + k * 0.025; g.add(c);
+      const f = h.box(0.5, 0.2, 0.01, grille, 0, 0, 0); f.position.set(x, top - 0.28 - k * 0.27, 0.23 + 0.02 * k + k * 0.006); f.rotation.x = 0.02 + k * 0.025; g.add(f); } });
+};
+B.flown_line_array_small = B.flown_line_array; // same shape, shorter hang (six cabinets a side)
+// Front-of-house engineer station for concerts: skirted table, a digital console with a tilted screen, a laptop, a rack case under the table and a stool (sizes are ESTIMATES, see estimated_sizes_p6).
+B.foh_station = (it, g, h) => {
+  const { W, D, H } = it, mt = h.material("metal", "#2b2c30"), blk = h.material("fabric", "#18181c", { size: 1 }), pale = h.flat("#9aa0a8", { roughness: 0.4 }), led = h.flat("#3fa7ff", { roughness: 0.3 }), screen = h.flat("#0b0e14", { roughness: 0.08, metalness: 0.6 });
+  const td = D - 0.55, tz = -D / 2 + td / 2 + 0.05, top = 0.76; // the table sits at the back, the stool in front of it
+  g.add(h.box(W, 0.04, td, blk, 0, top - 0.04, tz)); g.add(h.box(W - 0.04, top - 0.05, 0.01, blk, 0, 0, tz + td / 2 - 0.005));
+  corners(W - 0.1, td - 0.1).forEach(([x, z]) => g.add(h.box(0.04, top - 0.04, 0.04, mt, x, 0, tz + z)));
+  const cw = Math.min(1.1, W * 0.5), cx = -W / 2 + cw / 2 + 0.2, cz = tz + 0.02;
+  g.add(h.rbox(cw, 0.1, 0.55, 0.015, mt, cx, top, cz));
+  const lid = h.rbox(cw - 0.04, 0.012, 0.18, 0.004, mt, 0, 0, 0); lid.position.set(cx, top + 0.1, cz - 0.2); lid.rotation.x = -0.5; g.add(lid);
+  const scr = h.box(0.32, 0.2, 0.012, screen, 0, 0, 0); scr.position.set(cx, top + 0.16, cz - 0.17); scr.rotation.x = -0.9; g.add(scr);
+  for (let k = 0; k < 16; k++) { g.add(h.box(0.012, 0.004, 0.14, pale, cx - cw / 2 + 0.08 + k * ((cw - 0.16) / 15), top + 0.101, cz + 0.12)); if (k % 4 === 3) g.add(h.box(0.014, 0.006, 0.02, led, cx - cw / 2 + 0.08 + k * ((cw - 0.16) / 15), top + 0.102, cz + 0.02)); }
+  const lx = W / 2 - 0.45; g.add(h.rbox(0.34, 0.02, 0.24, 0.005, mt, lx, top, tz + 0.05));
+  const lp = h.box(0.34, 0.22, 0.01, screen, 0, 0, 0); lp.position.set(lx, top + 0.11, tz - 0.07); lp.rotation.x = -0.15; g.add(lp);
+  g.add(h.rbox(0.55, 0.6, 0.45, 0.02, blk, W / 2 - 0.5, 0.06, tz)); g.add(h.box(0.57, 0.02, 0.47, pale, W / 2 - 0.5, 0.04, tz));
+  const sz = tz + td / 2 + 0.35; g.add(h.cyl(0.17, 0.17, 0.05, blk, 0, 0.62, sz, 20)); g.add(h.cyl(0.02, 0.02, 0.62, mt, 0, 0, sz, 8)); g.add(h.cyl(0.19, 0.19, 0.015, mt, 0, 0, sz, 20));
+};
 B.runway = (it, g, h) => {
   const { W, D, H } = it, deck = h.material("carpet_plain", it.color || "#ece8e2", { size: 2 }), skirt = h.material("fabric", "#18181c", { size: 1 }), mt = h.material("metal", "#b9bcc2");
   g.add(h.box(W - 0.04, H - 0.05, D - 0.04, skirt, 0, 0, 0)); g.add(h.box(W, 0.05, D, deck, 0, H - 0.05, 0));
