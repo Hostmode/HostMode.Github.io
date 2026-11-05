@@ -126,8 +126,12 @@ function surface(name) {
   } else { TEX[name] = null; return null; }
   const map = new T.CanvasTexture(col); map.colorSpace = T.SRGBColorSpace; (window.__texT = window.__texT || {})[name] = performance.now() - t0;
   const nrm = new T.CanvasTexture(normalFrom(heightField(hgt), N, bump));
-  [map, nrm].forEach(t => { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8; });
-  return (TEX[name] = { map, nrm, span, tint: !/oak|wood|herringbone|parquet|marble|tile/.test(name) });
+  // Roughness from the same relief: light catches the surface unevenly (wood grain, carpet pile, fabric weave)
+  // instead of one flat shine. Baked around the material's own roughness so the map is the final value.
+  const baseR = (S.MATERIALS[name] || {}).rough ?? 0.8, hh = heightField(hgt);
+  const rough = new T.CanvasTexture(fromField(N, hh, v => { const r = Math.max(0.03, Math.min(1, baseR * (0.78 + 0.44 * v))) * 255; return [r, r, r]; }));
+  [map, nrm, rough].forEach(t => { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8; });
+  return (TEX[name] = { map, nrm, rough, span, tint: !/oak|wood|herringbone|parquet|marble|tile/.test(name) });
 }
 
 // ---------- Materials ----------
@@ -145,6 +149,7 @@ export function material(name, color, opts = {}) {
     const [sx, sy] = Array.isArray(size) ? size : [size, size], rx = Math.max(0.2, sx / sf.span), ry = Math.max(0.2, sy / sf.span);
     m.map = sf.map.clone(); m.map.repeat.set(rx, ry); m.map.needsUpdate = true;
     if (HI) { m.normalMap = sf.nrm.clone(); m.normalMap.repeat.set(rx, ry); m.normalMap.needsUpdate = true; m.normalScale = new T.Vector2(0.8, 0.8); }
+    if (HI && sf.rough) { m.roughnessMap = sf.rough.clone(); m.roughnessMap.repeat.set(rx, ry); m.roughnessMap.needsUpdate = true; m.roughness = 1; } // the map already holds the material's roughness, varied by the relief
   }
   if (phys && M.sheen) { m.sheen = M.sheen; m.sheenRoughness = name === "satin" ? 0.3 : 0.6; m.sheenColor = hex(color || M.color).lerp(new T.Color("#ffffff"), 0.4); }
   if (phys && M.coat) { m.clearcoat = M.coat; m.clearcoatRoughness = 0.08; }
