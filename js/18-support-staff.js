@@ -274,7 +274,11 @@ function vpNext(){const v=D.vp;if(!v||v.date!==todayISO())return null;const K=VK
 function vpNudge(){const x=vpNext();if(!x||x.inMin>5||x.inMin<0)return;const key="vpN_"+x.k+"_"+x.time;if(store.get(key,0))return;store.set(key,1);
  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
  try{if(window.Notification&&Notification.permission==="granted")new Notification("Coming up at "+fmtTime(x.time),{body:x.title+". You're on."})}catch(e){}}
-function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
+function vpHereText(t){const d=new Date(t),tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  if(iso===todayISO())return "Checked in today at "+tm;
+  if(D.vp&&iso===D.vp.date)return "Checked in on the event day at "+tm;
+  return "Checked in "+supTime(t)}
+ function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  if(!v)return `<section class="card stack narrow"><h2>This link isn't working</h2><p class="small muted m0">It may have been mistyped or turned off. Ask your planner to send it again.</p></section>`;
  const K=VK[v.kind]||VK.other,c=D.vc||{},iss=vpIssues(c),me="v:"+v.vkey,done=D.vdone||{};
  const ros=Object.keys(D.vros||{}).map(k=>Object.assign({k},D.vros[k])).sort((a,b)=>String(a.time||"99").localeCompare(String(b.time||"99"))||(a.t||0)-(b.t||0));
@@ -286,7 +290,7 @@ function vendorView(){if(!L.loaded)return loadingView();const v=D.vp;
  ${(()=>{const x=vpNext();return x?`<section class="card stack gilt vpsoon" role="status"><b>${x.inMin<=0?"Happening now":"Coming up in "+x.inMin+" min"}: ${esc(x.title)}</b><span class="small">${esc(fmtTime(x.time))} · you're on</span></section>`:""})()}
  ${(()=>{const sh=Object.values(D.vshift||{}).sort((a,b)=>(a.t||0)-(b.t||0)),tot=sh.reduce((n,z)=>n+(+z.mins||0),0),last=sh[sh.length-1];return last&&tot?`<section class="card stack"><b>The schedule moved ${tot} minutes later</b><span class="small muted">Last change at ${esc(new Date(last.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))}. The times below are up to date.</span></section>`:""})()}
  <section class="card stack"><h3>Your arrival</h3>${v.arrive?`<div class="vpbig">${esc(clFmtTime(v.arrive))}</div>`:'<p class="small muted m0">Your planner hasn\'t set an arrival time yet.</p>'}${(()=>{const f=v.arrive&&myN.find(x=>x.time);return f&&rosMin(f.time)<rosMin(v.arrive)?`<div class="small muted">Heads up: your first moment, ${esc(f.title)}, is at ${esc(clFmtTime(f.time))}, before this arrival time. Check with your planner.</div>`:""})()}${v.pickup?`<div class="small">Pick up at <b>${esc(clFmtTime(v.pickup))}</b></div>`:""}${v.delivers?`<div class="small muted">Bringing: ${esc(v.delivers)}</div>`:""}
- ${c.here?`<div class="okt"><b>✓ You checked in at ${esc(supTime(c.here))}</b></div><button class="btn xs as" data-act="vpHere" data-k="undo">That was a mistake</button>`:`<button class="btn primary vpherebtn" data-act="vpHere">I'm here</button><span class="small muted">Tap when you arrive, so ${esc(v.plan&&v.plan.name||"your planner")} knows without a call.</span>`}</section>
+ ${c.here?`<div class="okt"><b>✓ ${esc(vpHereText(c.here))}</b></div><button class="btn xs as" data-act="vpHere" data-k="undo">That was a mistake</button>`:`<button class="btn primary vpherebtn" data-act="vpHere">I'm here</button><span class="small muted">Tap when you arrive, so ${esc(v.plan&&v.plan.name||"your planner")} knows without a call.</span>`}</section>
  ${myN.length?`<section class="card stack gilt"><h3>Your moments</h3><div class="stack tight">${myN.slice(0,6).map(x=>`<div class="row between small clrow"><b>${esc(x.title)}</b><span>${esc(clFmtTime(x.time)||"")}</span></div>`).join("")}</div></section>`:""}
  ${v.date===todayISO()&&window.Notification&&Notification.permission==="default"?`<button class="btn sm as" data-act="vpNotify">Buzz my phone 5 minutes before my moments</button>`:""}
  <section class="card stack"><div class="row between"><h3>Schedule</h3>${ros.length?`<span class="pill">${ros.filter(x=>done[x.k]).length} of ${ros.length} done</span>`:""}</div>

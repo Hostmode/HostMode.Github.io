@@ -465,7 +465,7 @@ if(pdemoOn()){
  ACT.pdemoReset=()=>pdemoReset();
  if(window.top===window){addEventListener("scroll",demoFloat,{passive:true});addEventListener("resize",demoFloat);setInterval(demoFloat,400)}
 }
-function pdemoBar(){if(!pdemoOn()||window.top!==window)return "";const on=VIEW==="planner"&&QS.get("host")==="1"?"hostdemo":VIEW;const a=(href,l,v)=>`<a class="${on===v?"on":""}" href="${href}">${l}</a>`;
+function pdemoBar(){if(!pdemoOn()||window.top!==window||VIEW==="vendor")return "";const on=VIEW==="planner"&&QS.get("host")==="1"?"hostdemo":VIEW;const a=(href,l,v)=>`<a class="${on===v?"on":""}" href="${href}">${l}</a>`;
  return `<div class="demoslot"><div class="demobar"><div class="dbrow"><span class="dbt">Planner demo</span><span class="dbkeys"><a href="index.html">Home</a><button data-act="pdemoReset">Start over</button></span></div><div class="dbscreens">${a("games.html?pdemo=1#planner","Planner","planner")}${a("games.html?pdemo=1&p=northlight&client=dublin","Client","client")}${a("games.html?pdemo=1&p=northlight&mate=liam","Teammate","mate")}${a("games.html?pdemo=1&host=1#planner","Host","hostdemo")}</div>${pdemoEvRow()}</div></div>`}
 /* inside an event, a second row flips between that event's three screens */
 function pdemoEvRow(){if(!EV||!["moderator","guest","screen"].includes(VIEW))return "";const nm=(D.meta&&D.meta.name)||(C()&&C().title)||EV;
