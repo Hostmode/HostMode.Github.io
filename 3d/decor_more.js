@@ -157,10 +157,11 @@ B.flown_line_array = (it, g, h) => {
   run(V(-half, H - 0.15, 0), V(half, H - 0.15, 0));
   [-1, 1].forEach(s => { const x = s * (half - 0.9), top = H - 0.2;
     g.add(h.box(0.04, 0.04, 0.5, mt, x, top - 0.04, 0));
-    for (let k = 0; k < 8; k++) { // each cabinet leans a little more than the one above it
+    for (let k = 0; k < (H >= 4.5 ? 8 : 6); k++) { // each cabinet leans a little more than the one above it
       const c = h.rbox(0.55, 0.25, 0.45, 0.015, blk, 0, 0, 0); c.position.set(x, top - 0.3 - k * 0.27, 0.02 * k); c.rotation.x = 0.02 + k * 0.025; g.add(c);
       const f = h.box(0.5, 0.2, 0.01, grille, 0, 0, 0); f.position.set(x, top - 0.28 - k * 0.27, 0.23 + 0.02 * k + k * 0.006); f.rotation.x = 0.02 + k * 0.025; g.add(f); } });
 };
+B.flown_line_array_small = B.flown_line_array; // same shape, shorter hang (six cabinets a side)
 B.runway = (it, g, h) => {
   const { W, D, H } = it, deck = h.material("carpet_plain", it.color || "#ece8e2", { size: 2 }), skirt = h.material("fabric", "#18181c", { size: 1 }), mt = h.material("metal", "#b9bcc2");
   g.add(h.box(W - 0.04, H - 0.05, D - 0.04, skirt, 0, 0, 0)); g.add(h.box(W, 0.05, D, deck, 0, H - 0.05, 0));
