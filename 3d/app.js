@@ -65,14 +65,15 @@ $("#banner").addEventListener("click", e => {
 // ---------- Add ----------
 // The library: search words, an event and a style narrow it down (searchAssets in 3d/library/assets.js). With nothing typed
 // or picked it's every piece by category. Each piece gets a small picture, drawn a few at a time while this tab is open.
-let libQ = "", libEv = "", libSt = "";
+let libQ = "", libEv = "", libSt = "", libCat = ""; // libCat: the category opened from the tiles
 const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
 function libCard(k) { const c = S.CATALOG[k], u = THUMBS.get(k), a = assetById(k);
   return `<button class="lib" data-add="${k}" title="${esc(a && a.description || "")}"><img class="th" data-k="${k}" alt="" ${u ? `src="${u}"` : ""}>${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`; }
 function libList() {
   if (!libQ.trim() && !libEv && !libSt) {
     const cats = {}; Object.keys(S.CATALOG).forEach(k => (cats[S.CATALOG[k].cat] = cats[S.CATALOG[k].cat] || []).push(k));
-    return S.CAT_ORDER.filter(c => cats[c]).map(cat => `<h3>${esc(cat)}</h3><div class="grid">${cats[cat].map(libCard).join("")}</div>`).join("");
+    if (libCat && cats[libCat]) return `<div class="row" style="margin:6px 0"><button class="btn l" data-x="libBack">&larr; All categories</button><b>${esc(libCat)}</b></div><div class="grid">${cats[libCat].map(libCard).join("")}</div>`;
+    return `<p class="muted">Pick a category.</p><div class="grid">${S.CAT_ORDER.filter(c => cats[c]).map(c => `<button class="lib" data-x="libCat" data-c="${esc(c)}"><b>${esc(c)}</b><small>${cats[c].length} pieces</small></button>`).join("")}</div>`;
   }
   const hits = searchAssets(libQ, { event: libEv, style: libSt }).filter(a => S.CATALOG[a.id]);
   return `<p class="muted" role="status">${hits.length ? hits.length + (hits.length === 1 ? " piece" : " pieces") : "Nothing matches. Try fewer words, or clear the filters."}</p><div class="grid">${hits.map(a => libCard(a.id)).join("")}</div>`;
@@ -438,6 +439,8 @@ body.addEventListener("click", async e => {
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
   if (d.x === "libClear") { libQ = libEv = libSt = ""; render(); return; }
+  if (d.x === "libCat") { libCat = d.c; render(); return; }
+  if (d.x === "libBack") { libCat = ""; render(); return; }
   if (d.x === "phIn") { ed.setView("photo"); return; }
   if (d.x === "phOut") { ed.photoAlign = false; ed.setView("orbit"); return; }
   if (d.x === "phAlign") { if (ed.view !== "photo") { ed.photoAlign = true; ed.setView("photo"); } else { ed.photoAlign = !ed.photoAlign; ed.syncPhoto(); render(); } return; }

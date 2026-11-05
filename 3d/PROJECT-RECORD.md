@@ -204,3 +204,5 @@ Plan and audit: the "Outdoor Event Builder: Audit and Plan" doc (https://claude.
 - Checks: 30 new model checks (sun against known values, shade with a planted missing tent, site steps, refusals, damaged files, the Ask box), `agents/venue3d_site_check.py` (17 browser checks at phone size, including planted problems) in `check_all.sh`.
 - Measured in the sandbox's software graphics: the pilot is 163 pieces, about 358,000 triangles and 884 draw calls a frame with shadows (the ballroom: 380). Chairs are most of it; drawing chairs as one instanced batch is the fix if Roy's phone is slow.
 - Not yet: the other four pilots, more outdoor pieces (stages, lighting towers, fencing runs, food trucks, bleachers), slopes and trees, tracing with curves, reading an aerial picture automatically.
+
+- Categories (Nov 5, 2026): the Add tab opens by category tile (`libCat` in 3d/app.js; groups are `CAT_ORDER` in scene.js). Inventory `GEAR_CATS` (js/17-inventory-venue.js) mirrors them; keep both in step when adding a category.

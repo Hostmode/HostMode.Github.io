@@ -488,7 +488,7 @@ function imDetect(head,sheet){const h=head.map(x=>String(x||"").toLowerCase().tr
 const imPath=p=>String(p).replace(/\//g,"~"),imUnpath=p=>String(p).replace(/~/g,"/");
 const imYes=v=>/^(y|yes|true|paid|x|✓|1|done|received|settled|complete)/i.test(String(v||"").trim());
 function imGearCat(v){const s=normName(v);if(!s)return "";const hit=GEAR_CATS.find(c=>s.includes(c.toLowerCase().replace(/s$/,"")));if(hit)return hit;
- return /cloth|napkin|runner|overlay/.test(s)?"Linens":/vase|centre|floral|arrangement/.test(s)?"Centerpieces":/seat|stool|bench/.test(s)?"Chairs":/light|lamp|candle|bulb/.test(s)?"Lighting":/drape|curtain|backdrop/.test(s)?"Draping":/plate|glass|cutlery|flatware|charger|dish/.test(s)?"Tableware":/sign|easel|board/.test(s)?"Signs":"Other"}
+ return /cloth|napkin|runner|overlay/.test(s)?"Linens":/vase|centre|floral|arrangement/.test(s)?"Centerpieces":/chair|seat|stool|bench/.test(s)?"Seating":/light|lamp|candle|bulb/.test(s)?"Lighting & candles":/drape|curtain|backdrop/.test(s)?"Backdrops & drapery":/balloon/.test(s)?"Balloons":/tent|canopy/.test(s)?"Tents & shade":/table/.test(s)?"Tables":/plate|glass|cutlery|flatware|charger|dish/.test(s)?"Tableware":/sign|easel|board/.test(s)?"Signs":"Other"}
 /* builds the rows for the new kinds; same shape as imBuild: {line,name,warn,skip,dup,ex} */
 function imBuild2(I,g,extras){const seen={},type=I.type;
  const money=(o,raw,k,l)=>{const n=imNum(raw);if(n===null)o.warn.push(`couldn't read the ${l} "${String(raw).slice(0,20)}"`);else if(n!==""&&n>=0)o[k]=Math.round(n*100)/100};

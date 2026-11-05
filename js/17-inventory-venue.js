@@ -11,7 +11,10 @@
    planners/{uid}/blocks/{k}  = {from, to, space ("" = whole venue), reason, t}                   days the venue can't be booked
    Everything here is private to the planner. */
 D.gear={};D.gres={};D.vset=null;D.spaces={};D.bks={};D.vblk={};
-const GEAR_CATS=["Linens","Centerpieces","Chairs","Tables","Lighting","Draping","Decor","Tableware","Signs","Other"];
+// Same groups as the 3D designer's Add tab (3d/scene.js CAT_ORDER), plus the things that are not 3D pieces. Older saved names map to the new ones.
+const GEAR_CATS=["Tables","Seating","Linens","Tableware","Centerpieces","Florals & greenery","Balloons","Backdrops & drapery","Lighting & candles","Lounge & accents","Stage & floor","Audio & video","Photo & effects","Food & drink","Signs","Tents & shade","Site & power","Structure","Other"];
+const GEAR_OLD={Chairs:"Seating",Lighting:"Lighting & candles",Draping:"Backdrops & drapery",Decor:"Lounge & accents"};
+const gearCatOf=c=>GEAR_OLD[c]||(GEAR_CATS.includes(c)?c:"Other");
 const BK_KINDS=["Wedding","Reception","Baby shower","Birthday","Anniversary","Corporate event","Meeting","Tour or tasting","Other"];
 const BK_ST={hold:["On hold","warn"],confirmed:["Confirmed","ok"],cancelled:["Cancelled",""]};
 const GR_ST={held:["Reserved",""],out:["Out","warn"],back:["Returned","ok"]};
@@ -22,7 +25,7 @@ const numIn=(k,def)=>{const v=String(dv(k,def==null?"":def)).trim();if(!v)return
 const keyList=o=>Object.keys(o||{}).map(k=>Object.assign({k},o[k]));
 
 /* ---- inventory math ---- */
-const gearList=()=>keyList(D.gear).sort((a,b)=>GEAR_CATS.indexOf(a.cat)-GEAR_CATS.indexOf(b.cat)||String(a.name).localeCompare(String(b.name)));
+const gearList=()=>keyList(D.gear).map(it=>Object.assign({},it,{cat:gearCatOf(it.cat)})).sort((a,b)=>GEAR_CATS.indexOf(a.cat)-GEAR_CATS.indexOf(b.cat)||String(a.name).localeCompare(String(b.name)));
 const gresList=()=>keyList(D.gres).sort((a,b)=>String(a.from||"").localeCompare(String(b.from||""))||(a.t||0)-(b.t||0));
 const gearAvail=it=>Math.max(0,(+it.qty||0)-(+it.rep||0));
 const gresTo=r=>r.to&&r.to>=r.from?r.to:r.from;
@@ -47,7 +50,7 @@ const GR_F=["gr_label","gr_ref","gr_from","gr_to","gr_note"];
 function gearForm(it){const p="gi_",v=(k,d)=>esc(dv(p+k,it?(it[k]==null?"":it[k]):(d||"")));
  return `<div class="card stack tight"><div class="row between"><b>${it?"Edit "+esc(it.name):"New item"}</b><button class="btn xs" data-act="gearClose">Close</button></div><div class="grid2 g8">
  <label class="stack tight" style="grid-column:1/-1"><span class="small">What is it?</span><input type="text" data-draft="gi_name" maxlength="80" value="${v("name")}" placeholder="Ivory 120&quot; round tablecloth"></label>
- <label class="stack tight"><span class="small">Category</span><select data-draft="gi_cat">${GEAR_CATS.map(c=>`<option ${dv("gi_cat",it?it.cat:"Linens")===c?"selected":""}>${c}</option>`).join("")}</select></label>
+ <label class="stack tight"><span class="small">Category</span><select data-draft="gi_cat">${GEAR_CATS.map(c=>`<option ${dv("gi_cat",it?gearCatOf(it.cat):"Tables")===c?"selected":""}>${c}</option>`).join("")}</select></label>
  <label class="stack tight"><span class="small">How many you own</span><input type="number" min="0" inputmode="numeric" data-draft="gi_qty" value="${v("qty")}" placeholder="40"></label>
  <label class="stack tight"><span class="small">Color, size or style</span><input type="text" data-draft="gi_color" maxlength="80" value="${v("color")}" placeholder="Ivory, fits 60&quot; rounds"></label>
  <label class="stack tight"><span class="small">Where it's stored</span><input type="text" data-draft="gi_spot" maxlength="80" value="${v("spot")}" placeholder="Storage unit, shelf B"></label>
@@ -103,10 +106,10 @@ function plGearTab(){const items=gearList(),today=mateToday(),q=String(dv("gear_
  <button class="btn sm as" data-act="gearCheck">Show what's free</button>
  ${cf.from&&items.length?`<div class="stack tight">${items.map(it=>{const fr=gearFree(it,cf.from,cf.to||cf.from,null);return `<div class="row between small clrow"><span class="mw0">${esc(it.name)}<span class="db muted">${esc(it.cat||"")} · own ${+it.qty||0}${+it.rep?`, ${+it.rep} in repair`:""}</span></span><b class="${fr<=0?"bad":""}">${fr} free</b></div>`}).join("")}</div><span class="small muted">For ${esc(clFmtDate(cf.from))}${cf.to&&cf.to>cf.from?" to "+esc(clFmtDate(cf.to)):""}.</span>`:""}</section>
  <section class="card stack"><div class="row between"><h3>Your items</h3>${items.length?`<button class="btn xs" data-act="gearCsv">Download as a spreadsheet</button>`:""}</div>
- ${items.length?`<input type="search" data-draft="gear_q" value="${esc(dv("gear_q",""))}" placeholder="Search by name, color or where it's stored" aria-label="Search inventory"><div class="row small"><button class="btn xs ${cat?"":"primary"}" data-act="gearCat" data-k="">All</button>${cats.map(c=>`<button class="btn xs ${cat===c?"primary":""}" data-act="gearCat" data-k="${esc(c)}">${esc(c)}</button>`).join("")}<button class="btn xs" data-act="gearFind">Search</button></div>
- <div class="stack tight">${shown.map(it=>{const freeToday=gearFree(it,today,today,null),cf2=L.confirm==="gx"+it.k;return `<div class="mrow2 small"><div class="row between"><span class="mw0"><b>${esc(it.name)}</b> <span class="pill">${esc(it.cat||"Other")}</span><span class="db muted">${[it.color,it.spot?"Stored: "+it.spot:"",+it.cost?clMoney(it.cost)+" each":""].filter(Boolean).map(esc).join(" · ")}</span></span><span class="a"><b>${+it.qty||0}</b> <span class="muted">owned</span></span></div>
+ ${items.length?`<input type="search" data-draft="gear_q" value="${esc(dv("gear_q",""))}" placeholder="Search by name, color or where it's stored" aria-label="Search inventory"><div class="row small">${cat?`<button class="btn xs" data-act="gearCat" data-k="">&larr; All categories</button><b>${esc(cat)}</b> `:""}<button class="btn xs" data-act="gearFind">Search</button></div>
+ ${!cat&&!q?`<div class="row small" style="flex-wrap:wrap;gap:8px">${cats.map(c=>{const n=items.filter(it=>it.cat===c);return `<button class="btn" data-act="gearCat" data-k="${esc(c)}"><b>${esc(c)}</b><br><span class="small muted">${n.length} item${n.length===1?"":"s"} &middot; ${n.reduce((a,it)=>a+(+it.qty||0),0)} pieces</span></button>`}).join("")}</div>`:`<div class="stack tight">${shown.map(it=>{const freeToday=gearFree(it,today,today,null),cf2=L.confirm==="gx"+it.k;return `<div class="mrow2 small"><div class="row between"><span class="mw0"><b>${esc(it.name)}</b> <span class="pill">${esc(it.cat||"Other")}</span><span class="db muted">${[it.color,it.spot?"Stored: "+it.spot:"",+it.cost?clMoney(it.cost)+" each":""].filter(Boolean).map(esc).join(" · ")}</span></span><span class="a"><b>${+it.qty||0}</b> <span class="muted">owned</span></span></div>
   <div class="muted">${freeToday} free today${+it.rep?` · ${+it.rep} in repair or cleaning`:""}${it.note?" · "+esc(it.note):""}</div>
-  <div class="row">${+it.rep?`<button class="btn xs" data-act="gearFixed" data-k="${esc(it.k)}">Repaired, all ready</button>`:""}<button class="btn xs" data-act="gearEdit" data-k="${esc(it.k)}">Edit</button><button class="btn xs" data-act="gearDel" data-k="${esc(it.k)}">${cf2?"Tap again to delete":"Delete"}</button></div></div>`}).join("")||'<p class="small muted m0">Nothing matches.</p>'}</div>`
+  <div class="row">${+it.rep?`<button class="btn xs" data-act="gearFixed" data-k="${esc(it.k)}">Repaired, all ready</button>`:""}<button class="btn xs" data-act="gearEdit" data-k="${esc(it.k)}">Edit</button><button class="btn xs" data-act="gearDel" data-k="${esc(it.k)}">${cf2?"Tap again to delete":"Delete"}</button></div></div>`}).join("")||'<p class="small muted m0">Nothing matches.</p>'}</div>`}`
  :'<p class="small muted m0">No items yet. Tap Add an item, or bring in a spreadsheet from Import &amp; export.</p>'}</section>
  <section class="card stack"><h3>Pull lists</h3><p class="small muted m0">What's reserved for each event. Mark it out when it leaves and check it in when it's back.</p>
  ${upcoming.length?`<div class="stack tight">${upcoming.map(gresRow).join("")}</div>`:'<p class="small muted m0">Nothing reserved. Tap Reserve for an event.</p>'}
@@ -131,7 +134,7 @@ Object.assign(ACT,{
   const name=String(g("name")).trim().slice(0,80),qty=numIn("gi_qty",old.qty),rep=numIn("gi_rep",old.rep||0),cost=String(g("cost")).trim()?invParse(String(g("cost"))):0,lowS=String(g("low")).trim();
   if(!name)return toast("Give the item a name");if(isNaN(qty)||!String(g("qty")).trim())return toast("Type how many you own, like 40");if(isNaN(rep))return toast("Type how many are in repair as a number");if(rep>qty)return toast("More can't be in repair than you own");if(cost==null||cost<0)return toast("Type the cost as a number, like 18");
   const low=lowS?Math.floor(+lowS):"";if(lowS&&!(low>=0))return toast("Type the warning level as a number");
-  const rec={name,cat:GEAR_CATS.includes(g("cat","Linens"))?g("cat","Linens"):"Other",qty,rep,cost:cost||0,low,color:String(g("color")).trim().slice(0,80),spot:String(g("spot")).trim().slice(0,80),note:String(g("note")).trim().slice(0,300),t:old.t||Date.now()};
+  const rec={name,cat:GEAR_CATS.includes(g("cat","Tables"))?g("cat","Tables"):"Other",qty,rep,cost:cost||0,low,color:String(g("color")).trim().slice(0,80),spot:String(g("spot")).trim().slice(0,80),note:String(g("note")).trim().slice(0,300),t:old.t||Date.now()};
   await (k?RT(PSP+"gear/"+k).set(rec):RT(PSP+"gear").push().set(rec));L.gearEdit=null;gearClearForm();toast(k?"Saved":"Added to inventory");render(true)},
  gearDel:async el=>{const k=el.dataset.k;if(L.confirm!=="gx"+k){L.confirm="gx"+k;return render(true)}L.confirm=null;
   const used=gresList().filter(r=>r.status!=="back"&&(r.items||{})[k]).length;await RT(PSP+"gear/"+k).remove();toast(used?`Deleted. It came off ${used} pull list${used===1?"":"s"}.`:"Deleted")},
