@@ -166,6 +166,7 @@ export const CATALOG = {
   tv_monitor: { label: "TV monitor on stand", cat: "Audio & video", w: 1.25, d: 0.6, h: 1.75, mat: "metal" },
   foh_mixer: { label: "Sound and DJ desk", cat: "Audio & video", w: 1.83, d: 0.61, h: 0.97, mat: "metal" },
   flown_line_array: { label: "Line array on truss", cat: "Audio & video", w: 7.0, d: 0.9, h: 5.0, mat: "metal" },
+  flown_line_array_small: { label: "Line array on truss (compact)", cat: "Audio & video", w: 6.0, d: 0.8, h: 4.0, mat: "metal" },
   line_array: { label: "Speaker on stand", cat: "Audio & video", w: 0.9, d: 0.9, h: 2.1, mat: "metal" },
   runway: { label: "Runway (24 ft)", cat: "Stage & floor", w: 1.22, d: 7.32, h: 0.61, mat: "carpet_plain" },
   riser: { label: "Riser (8 × 4 ft)", cat: "Stage & floor", w: 2.44, d: 1.22, h: 0.61, mat: "carpet_plain" },
@@ -1088,7 +1089,7 @@ const KIND_WORDS = [
   [/round tables?|guest tables?|tables?(?! cloth)/, "table_round"], [/banquet tables?|long tables?/, "table_banquet"], [/cocktail tables?|high ?tops?/, "table_cocktail"],
   [/buffet( tables?)?/, "buffet"], [/stage/, "stage"], [/dance ?floor/, "dance_floor"], [/\bbar\b/, "bar"], [/podium|lectern/, "podium"],
   [/dj( booth)?/, "dj_booth"], [/backdrop/, "backdrop"], [/arch/, "arch"], [/cake table/, "cake_table"], [/sofa|couch/, "sofa"], [/lounge/, "lounge_chair"],
-  [/line ?arrays?|flown (?:speakers?|pa|sound)|speakers? on (?:a )?truss|pa towers?/, "flown_line_array"], [/speakers?/, "speaker"], [/screen|projector/, "screen"], [/plants?/, "plant"], [/food station/, "food_station"], [/chairs?/, "chair"]
+  [/(?:small|compact|short|low) (?:line ?arrays?|pa towers?)|(?:line ?arrays?|pa towers?) (?:\(?compact|for (?:a )?(?:small|low))/, "flown_line_array_small"], [/line ?arrays?|flown (?:speakers?|pa|sound)|speakers? on (?:a )?truss|pa towers?/, "flown_line_array"], [/speakers?/, "speaker"], [/screen|projector/, "screen"], [/plants?/, "plant"], [/food station/, "food_station"], [/chairs?/, "chair"]
 ];
 // Colors named in a sentence, in the order they appear ("navy and gold" -> navy, gold).
 function colorsIn(t) {
