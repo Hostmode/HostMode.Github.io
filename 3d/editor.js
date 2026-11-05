@@ -7,12 +7,23 @@ import { material, buildItem, box, setQuality, resetLights } from "./decor.js";
 
 const $ = (q, el = document) => el.querySelector(q);
 const MOODS = { // time-of-day looks: exposure, reflections (env), sun and sky strength, sky/fog colour, indoor backdrop
-  day: { exp: 1, env: 1, sun: 1, sky: 1, sky2: "#bcd6ee", room: "#dfe3ec" },
-  golden: { exp: 1.05, env: 0.9, sun: 0.8, sky: 0.7, sunColor: "#ffb361", sky2: "#f2c9a0", room: "#e8d6c4" },
-  overcast: { exp: 1.1, env: 1.3, sun: 0.15, sky: 1.5, sunColor: "#dfe6ee", sky2: "#c3c9d2", room: "#d4d8df" },
-  evening: { exp: 0.9, env: 0.6, sun: 0.25, sky: 0.45, sunColor: "#ff9a6b", sky2: "#6c6f9a", room: "#5d6285" },
-  night: { exp: 0.8, env: 0.3, sun: 0.03, sky: 0.18, sunColor: "#8fa4ff", sky2: "#141a35", room: "#161b30" }
+  day: { zen: "#5d93d6", exp: 1, env: 1, sun: 1, sky: 1, sky2: "#bcd6ee", room: "#dfe3ec" },
+  golden: { zen: "#7f9fc9", exp: 1.05, env: 0.9, sun: 0.8, sky: 0.7, sunColor: "#ffb361", sky2: "#f2c9a0", room: "#e8d6c4" },
+  overcast: { zen: "#aab3c0", exp: 1.1, env: 1.3, sun: 0.15, sky: 1.5, sunColor: "#dfe6ee", sky2: "#c3c9d2", room: "#d4d8df" },
+  evening: { zen: "#2f3466", exp: 0.9, env: 0.6, sun: 0.25, sky: 0.45, sunColor: "#ff9a6b", sky2: "#6c6f9a", room: "#5d6285" },
+  night: { zen: "#05081a", exp: 0.8, env: 0.3, sun: 0.03, sky: 0.18, sunColor: "#8fa4ff", sky2: "#141a35", room: "#161b30" }
 };
+// Outdoor sky: a gradient dome from the horizon colour up to a deeper zenith, with a glow where the sun is. No addon needed.
+function makeSky() {
+  const m = new T.ShaderMaterial({
+    side: T.BackSide, depthWrite: false, fog: false,
+    uniforms: { hor: { value: new T.Color() }, zen: { value: new T.Color() }, sunDir: { value: new T.Vector3(0, 1, 0) }, sunCol: { value: new T.Color() }, glow: { value: 1 } },
+    vertexShader: "varying vec3 vP; void main(){ vP = position; vec4 p = modelViewMatrix * vec4(position,1.0); gl_Position = projectionMatrix * p; }",
+    fragmentShader: "uniform vec3 hor, zen, sunDir, sunCol; uniform float glow; varying vec3 vP;\nvoid main(){ vec3 d = normalize(vP); float h = clamp(d.y, 0.0, 1.0); vec3 c = mix(hor, zen, pow(h, 0.4)); float s = max(dot(d, sunDir), 0.0); c += sunCol * glow * (pow(s, 900.0) * 6.0 + pow(s, 24.0) * 0.35 + pow(s, 4.0) * 0.06); gl_FragColor = vec4(c, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}"
+  });
+  const sky = new T.Mesh(new T.SphereGeometry(1, 32, 16), m); sky.scale.setScalar(350); sky.frustumCulled = false; sky.renderOrder = -1; sky.userData = { thru: true, sky: true };
+  return sky;
+}
 const SKY = "#bcd6ee"; // outdoor sites: a pale blue sky that fades the far lawn
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -226,6 +237,15 @@ export class Editor {
     if (this.hemiL) { this.hemiL.intensity = this.hemiL.userData.base * m.sky; }
     if (this.view !== "photo") this.scene3.background = new T.Color(out ? m.sky2 : m.room);
     if (this.scene3.fog) this.scene3.fog.color.set(m.sky2);
+    this.updateSky(m);
+  }
+  updateSky(m) {
+    const show = !!(this.s && this.s.site) && this.view !== "photo";
+    if (!show) { if (this.sky) this.sky.visible = false; return; }
+    if (!this.sky) { this.sky = makeSky(); this.scene3.add(this.sky); }
+    const u = this.sky.material.uniforms, R = this.s.room, L = this.sunL;
+    this.sky.visible = true; u.hor.value.set(m.sky2); u.zen.value.set(m.zen); u.sunCol.value.set(m.sunColor || "#fff4d8"); u.glow.value = Math.min(1, m.sun * 1.2);
+    if (L) u.sunDir.value.set(L.position.x - R.w / 2, L.position.y, L.position.z - R.d / 2).normalize();
   }
   // Camera presets for presentation pictures. Each sets the lens (field of view) and framing for that kind of shot.
   camPreset(id) {
@@ -281,7 +301,7 @@ export class Editor {
     if (on && !this.photoEl) { const im = document.createElement("img"); im.className = "v3-photo"; im.alt = ""; im.setAttribute("aria-hidden", "true"); im.style.position = "absolute"; im.style.pointerEvents = "none"; im.style.objectFit = "fill"; this.r.domElement.parentElement.insertBefore(im, this.r.domElement); this.photoEl = im; }
     if (this.photoEl) { this.photoEl.style.display = on ? "block" : "none"; if (on && this.photoEl.src !== this.photoImg.src) this.photoEl.src = this.photoImg.src; if (on) ["left", "top", "width", "height"].forEach(k => this.photoEl.style[k] = this.r.domElement.style[k]); } // same box as the canvas, even the first time
     { const mm = MOODS[this.mood || "day"]; this.scene3.background = on ? null : new T.Color(this.s && this.s.site ? mm.sky2 : mm.room); } this.r.setClearColor(0x000000, on ? 0 : 1);
-    this.r.domElement.parentElement.classList.toggle("photo", !!on);
+    this.r.domElement.parentElement.classList.toggle("photo", !!on); this.updateSky(MOODS[this.mood || "day"]);
     if (!this.floorMesh) return;
     [this.floorMesh, this.groundMesh].forEach(m => m.visible = !on); this.shadowCatch.visible = !!on;
     this.objs && this.objs.forEach((g, id) => { if (!g.userData.light) g.visible = !(on && this.photoBare); });
@@ -329,6 +349,7 @@ export class Editor {
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
     this.ceil.visible = this.view === "walk" && !this.ceil.userData.none;
     if (this.view === "photo") this.walls.forEach(g => g.visible = false); else this.walls.forEach(g => { if (g.userData.knee) g.visible = true; });
+    if (this.sky && this.sky.visible) this.sky.position.copy(this.cam.position);
     if (this._post) this._post.render(); else this.r.render(this.scene3, this.cam);
   }
 
