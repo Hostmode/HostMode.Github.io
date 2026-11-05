@@ -142,6 +142,25 @@ B.line_array = (it, g, h) => {
   const cab = h.rbox(0.36, 0.6, 0.35, 0.02, blk, 0, 0, 0); cab.position.set(0, H - 0.68, 0); cab.rotation.x = 0.1; g.add(cab);
   g.add(h.box(0.32, 0.54, 0.01, mt, 0, H - 0.65, 0.18));
 };
+// Line array flown from truss: two box-truss towers, a top beam, and a hang of cabinets curving down on each side (sizes are ESTIMATES, see estimated_sizes_p6).
+B.flown_line_array = (it, g, h) => {
+  const { W, D, H } = it, mt = h.material("metal", "#b9bcc2"), blk = h.material("paint", "#16161a", { size: 1 }), grille = h.flat("#0d0d10", { roughness: 0.6 }), TR = 0.15;
+  const run = (a, b) => { // a box truss between two points: four chords and a zig-zag on the two long faces
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, z]) => g.add(h.stick(V(a.x + x * TR, a.y, a.z + z * TR), V(b.x + x * TR, b.y, b.z + z * TR), 0.018, mt, 5)));
+    const len = a.distanceTo(b), n = Math.max(2, Math.round(len / 0.3));
+    for (let k = 0; k < n; k++) [-1, 1].forEach(z => { const t0 = k / n, t1 = (k + 1) / n, up = k % 2 ? 1 : -1;
+      const P = (t, y) => V(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t + y * TR, a.z + z * TR);
+      g.add(h.stick(P(t0, up), P(t1, -up), 0.008, mt, 4)); });
+  };
+  const half = W / 2 - 0.4;
+  [-1, 1].forEach(s => { run(V(s * half, 0.1, 0), V(s * half, H - 0.15, 0)); g.add(h.box(0.7, 0.05, 0.7, mt, s * half - 0.35, 0, -0.35)); });
+  run(V(-half, H - 0.15, 0), V(half, H - 0.15, 0));
+  [-1, 1].forEach(s => { const x = s * (half - 0.9), top = H - 0.2;
+    g.add(h.box(0.04, 0.04, 0.5, mt, x, top - 0.04, 0));
+    for (let k = 0; k < 8; k++) { // each cabinet leans a little more than the one above it
+      const c = h.rbox(0.55, 0.25, 0.45, 0.015, blk, 0, 0, 0); c.position.set(x, top - 0.3 - k * 0.27, 0.02 * k); c.rotation.x = 0.02 + k * 0.025; g.add(c);
+      const f = h.box(0.5, 0.2, 0.01, grille, 0, 0, 0); f.position.set(x, top - 0.28 - k * 0.27, 0.23 + 0.02 * k + k * 0.006); f.rotation.x = 0.02 + k * 0.025; g.add(f); } });
+};
 B.runway = (it, g, h) => {
   const { W, D, H } = it, deck = h.material("carpet_plain", it.color || "#ece8e2", { size: 2 }), skirt = h.material("fabric", "#18181c", { size: 1 }), mt = h.material("metal", "#b9bcc2");
   g.add(h.box(W - 0.04, H - 0.05, D - 0.04, skirt, 0, 0, 0)); g.add(h.box(W, 0.05, D, deck, 0, H - 0.05, 0));
