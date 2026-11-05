@@ -467,10 +467,17 @@ function buildTent(g, it, scene) {
   const W = it.w, D = it.d, H = it.h, C = S.CATALOG[it.kind], eave = C.eave * Math.min(1, H / C.h), pole = material("metal", "#d8d8dc"), cloth = material("fabric", it.color || "#ffffff", { side: T.DoubleSide, size: 2 });
   const step = it.kind === "canopy" ? 99 : 3.05, nx = Math.max(1, Math.round(W / step)), nz = Math.max(1, Math.round(D / step)), r = it.kind === "canopy" ? 0.025 : 0.04;
   for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) if (i === 0 || j === 0 || i === nx || j === nz) g.add(cyl(r, r, eave, pole, -W / 2 + i * W / nx, 0, -D / 2 + j * D / nz, 8));
+  // hardware: a square base plate with bolts at every foot, and a collar where each pole meets the roof frame
+  const plate = material("metal", "#9a9ea6"), bolt = material("metal", "#c9ccd2"), pw = it.kind === "canopy" ? 0.12 : 0.2;
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) if (i === 0 || j === 0 || i === nx || j === nz) {
+    const px = -W / 2 + i * W / nx, pz = -D / 2 + j * D / nz; g.add(box(pw, 0.012, pw, plate, px, 0, pz));
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => g.add(cyl(0.01, 0.01, 0.012, bolt, px + a * pw * 0.38, 0.012, pz + b * pw * 0.38, 6)));
+    g.add(cyl(r * 1.7, r * 1.7, 0.1, plate, px, eave - 0.12, pz, 10));
+  }
   const vh = it.kind === "canopy" ? 0.2 : 0.3;
   [[W, vh, 0.02, 0, -D / 2], [W, vh, 0.02, 0, D / 2], [0.02, vh, D, -W / 2, 0], [0.02, vh, D, W / 2, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cloth, x, eave - vh, z)));
   if (it.kind === "canopy") [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([a, b, c2, d2]) => g.add(stick(new T.Vector3(a * W / 2, eave - 0.05, b * D / 2), new T.Vector3((a + c2) * W / 4, eave - 0.45, (b + d2) * D / 4), 0.012, pole, 5)));
-  const out = !!(scene && scene.site), k = "tentroof|" + (it.color || "") + HI + out; if (!matCache.has(k)) matCache.set(k, new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: out ? 0.8 : 0.72, depthWrite: false, side: T.DoubleSide }));
+  const out = !!(scene && scene.site), k = "tentroof|" + (it.color || "") + HI + out; if (!matCache.has(k)) { const rm = new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: out ? 0.8 : 0.72, depthWrite: false, side: T.DoubleSide }); const fm = material("fabric", it.color || "#f7f5f0", { size: 2 }); if (fm.map) { rm.map = fm.map; if (HI && fm.normalMap) { rm.normalMap = fm.normalMap; rm.normalScale = new T.Vector2(0.6, 0.6); } } matCache.set(k, rm); }
   const roof = mesh(hipRoof(W, D, H - eave), matCache.get(k)); roof.position.y = eave; roof.castShadow = out; roof.receiveShadow = false; roof.userData.keep = roof.userData.thru = true; g.add(roof);
   const rr = Math.abs(D - W) / 2, top = D >= W ? [[0, -rr], [0, rr]] : [[-rr, 0], [rr, 0]];
   [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => { const t = (D >= W ? b : a) > 0 ? 1 : 0; g.add(stick(new T.Vector3(a * W / 2, eave, b * D / 2), new T.Vector3(top[t][0], H, top[t][1]), 0.025, pole, 6)); });
