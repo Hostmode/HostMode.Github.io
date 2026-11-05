@@ -1,0 +1,13 @@
+{
+ "id": "estimated_sizes_p6",
+ "topic": "Phase 6 pieces whose sizes are estimates (no page gave a size)",
+ "events": ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"],
+ "summary": "A second research engine searched for sizes of these pieces and found NONE on pages it opened: champagne tower, fire pit, confetti cannon, bubble machine (Chauvet Bubble King page opened, no size), easel sign, card box, stanchion, misting fan, trash station, rolling coat rack, golf cart, first aid tent, potted tree, hedge wall, topiary, poster easel, upright piano, baby grand, charging station and 8 x 8 ft photo backdrop frame. Each was built at an ESTIMATED size from general knowledge (for example a 10 x 10 ft tent is 3.05 m by definition; stanchion post 0.95 m; upright piano 1.5 x 0.6 x 1.2 m), not from a page. They need replacing with sourced sizes. The only source here shows that a host plans for these items; it gives no dimensions.",
+ "sources": [
+  {"url": "https://eventmanagement.georgetown.edu/useful-tools/event-planning-101/planner-checklist/", "title": "Planner Checklist (Georgetown Event Management Services)", "note": "Supports the NEED for easels, coat racks, stanchions, trash boxes, piano. No dimensions."},
+  {"url": "https://www.chauvetdj.com/products/bubble-king/", "title": "Bubble King (CHAUVET DJ)", "note": "Product page reported opened; no dimensions found in the text retrieved."}
+ ],
+ "confidence": "low",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}

@@ -43,3 +43,7 @@ Read the `3d-designer` skill first. This one is what we learned making it look r
 ## Files
 
 `3d/post.js` (AO module) · `3d/vendor/addons/` (r187 addons) · `3d/editor.js` (`makeSky`, `updateSky`, `presentation`, `MOODS`) · `3d/decor.js` (`surface()` textures).
+
+## Unsourced sizes
+
+If no page can be opened (the sandbox firewall may block everything but github.com and pypi.org), test with `web_fetch` first and tell Roy. Never present an estimate as sourced: label it in the finding and spec, and say it in the PR. Phase 6 shapes in `3d/decor_more.js` follow the same material and detail rules as above.

@@ -1,0 +1,16 @@
+{
+ "id": "decor_trends_p6",
+ "topic": "Indoor decor trends, birthday to corporate (2025 and 2026)",
+ "events": ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"],
+ "summary": "Trend sources and their dates (as reported): BizBash 2025-06-19 and TSNN 2025-07-18 (suspended floral installations, freeform towers, sculptural florals, floral-draped and leafy backdrops, reusable branded signage and banners); Agape Events 2025-07-18 (layered tablescapes, elevated place settings, candles at varied heights, floating frames, modern arches, minimalist balloon designs); Decoratus 2026-03-11 (custom fabricated statement backdrops, interactive decor, a move from stock balloon arches); Atlanta Balloon Designer, undated (organic balloon installations, suspended balloon clouds, photo backdrops, photobooths). No source gave standard sizes, so the library keeps these as sizable pieces (balloon garland, arch, wall, flower wall, backdrop, photo backdrop frame, easel, card box) and does not hard-code a trend size. Not opened by Claude (no web access).",
+ "sources": [
+  {"url": "https://www.bizbash.com/corporate-events/10-event-d-cor-trends-for-2025-bold-memorable-and-sustainable", "title": "10 Event Decor Trends for 2025: Bold, Memorable, and Sustainable (BizBash)", "date": "2025-06-19", "note": "Sculptural florals, suspended installations, sustainable signage."},
+  {"url": "https://www.tsnn.com/event-design/event-design-10-d-cor-trends-for-2025", "title": "Event Design: 10 Decor Trends for 2025 (TSNN)", "date": "2025-07-18", "note": "Floral-draped backdrops, immersive entryways, reusable banners."},
+  {"url": "https://www.agapeevents.net/post/2025-event-design-trends", "title": "What's Trending in 2025 Event Design (Agape Events)", "date": "2025-07-18", "note": "Layered tablescapes, candles, modern arches, minimalist balloons."},
+  {"url": "https://www.decoratus.us/blogs/decoratus-us-blogs/event-decor-trends-2026-guide", "title": "What Is Trending in 2026 Event Decor? Full Guide (Decoratus)", "date": "2026-03-11", "note": "Custom fabricated backdrops and interactive decor."},
+  {"url": "https://www.atlantaballoondesigner.com/event-decor-trends-2026/", "title": "Event Decor Trends 2026 That Own the Room (Atlanta Balloon Designer)", "note": "Organic balloon installations and photo moments. Publication date not stated."}
+ ],
+ "confidence": "medium",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}

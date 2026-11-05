@@ -1,0 +1,12 @@
+{
+ "id": "ticket_booth_p6",
+ "topic": "Ticket booth",
+ "events": ["corporate", "graduation", "holiday", "community"],
+ "summary": "Guardian Booth's FAQ names 4 x 4 ft, 4 x 6 ft and 6 x 6 ft booth footprints (1.22 x 1.22, 1.22 x 1.83, 1.83 x 1.83 m) and recommends 4 x 6 ft for one person. The library piece uses the 4 x 6 ft footprint. The 2.4 m height is an ESTIMATE: the page excerpt gave no height. Page reported opened by a second research engine, not by Claude.",
+ "sources": [
+  {"url": "https://guardianprefab.com/booth/faq/", "title": "Guardian Booth: Frequently Asked Questions", "note": "Reported: 4 x 4 and 4 x 6 ft can be moved by 5 to 6 people; for two people the recommended size is 6 x 6 ft. Height not stated."}
+ ],
+ "confidence": "medium",
+ "licence": "We describe the item and link the page; we never copy anyone's pictures or text. Every shape is drawn in code.",
+ "found": "2026-11-05"
+}

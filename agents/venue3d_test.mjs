@@ -233,6 +233,16 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(S.interpret(L, "add two restroom trailers at the back").ops.filter(o => o.op === "add_item" && o.kind === "restroom_trailer").length === 2, "outdoor: “restroom trailers” are found");
 }
 
+// Phase 6 pieces (Nov 5, 2026): every new word finds its piece, and the ramp is no steeper than 1:12.
+{
+  const base = S.sampleVenue();
+  const words = { "champagne tower": "champagne_tower", "coffee station": "coffee_station", "water dispenser": "water_station", "cornhole": "cornhole", "fire pit": "fire_pit", "confetti cannon": "confetti_cannon", "bubble machine": "bubble_machine", "easel sign": "easel_sign", "card box": "card_box", "stanchions": "stanchion", "misting fan": "misting_fan", "trash station": "trash_station", "coat rack": "coat_rack", "ada ramp": "ada_ramp", "golf cart": "golf_cart", "ticket booth": "ticket_booth", "first aid tent": "first_aid_tent", "potted tree": "tree", "hedge wall": "hedge_wall", "topiary": "topiary", "poster easel": "poster_easel", "upright piano": "upright_piano", "baby grand": "baby_grand", "classroom table": "classroom_desk", "charging station": "charging_station", "photo backdrop frame": "photo_backdrop_frame", "cable ramp": "cable_ramp", "registration desk": "registration_desk" };
+  const wrong = Object.entries(words).filter(([w, k]) => { const o = S.interpret(base, "add a " + w).ops.find(x => x.op === "add_item"); return !o || o.kind !== k; }).map(x => x[0]);
+  ok(!wrong.length, "phase 6: every new piece is found by its words" + (wrong.length ? " (missed: " + wrong.join(", ") + ")" : ""));
+  const R = S.CATALOG.ada_ramp, run = R.d - 1.52;
+  ok(Math.abs(run / R.h - 12) < 0.05 && R.w >= 0.915, "phase 6: the accessible ramp runs 12 units for each 1 of rise and is at least 36 in wide");
+}
+
 // Save file round trip.
 const back = S.validateFile(JSON.parse(JSON.stringify(s2)));
 ok(back.items.length === s2.items.length, "save file round trip");
