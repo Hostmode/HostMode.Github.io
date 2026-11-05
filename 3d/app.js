@@ -103,7 +103,7 @@ function stepThumbs() {
 // ---------- Photo: design over a photo of the real venue (Stage A) ----------
 // Choose a photo, drag four dots onto a rectangle on its floor, type that rectangle's near edge. The camera, the lens and the
 // depth are worked out (S.photoCamera); only the typed length is measured, so everything else is labeled as an estimate.
-let photoBusy = false;
+let photoBusy = false, renderBusy = false; // renderBusy: one photo render at a time
 function photoTab() {
   const P = ed.s.photo;
   if (!P) return `<div class="card"><b>Design over a photo of your venue</b>
@@ -358,7 +358,8 @@ async function useAerial(file) {
 
 // ---------- Views ----------
 function viewsTab() {
-  return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button><button class="btn l" data-x="pres">Presentation picture (slower, more realistic)</button></div>
+  return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button><button class="btn o" data-x="render">Render photo</button></div>
+   <p class="muted">Render photo makes a realistic still of this view — ambient occlusion, full shadows and detail. It takes a few seconds.</p>
    <h3>Camera shots</h3><div class="row">${[["wide", "Wide"], ["eye", "Eye level"], ["over", "Overview"], ["stage", "Stage"], ["detail", "Close-up"]].map(([k, n]) => `<button class="btn l" data-cam="${k}">${n}</button>`).join("")}</div>
    <h3>Time of day <span class="muted">(look only)</span></h3><div class="row">${[["day", "Day"], ["golden", "Golden hour"], ["overcast", "Overcast"], ["evening", "Evening"], ["night", "Night"]].map(([k, n]) => `<button class="btn ${(ed.mood || "day") === k ? "" : "l"}" data-mood="${k}" aria-pressed="${(ed.mood || "day") === k}">${n}</button>`).join("")}</div>
    <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${v.id}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
@@ -374,7 +375,7 @@ function fileTab() {
   return `<div class="card"><b>${esc(ed.s.name)}</b><div class="muted">${esc(cloud)}</div>
    <div class="row" style="margin-top:8px"><button class="btn g" data-x="save">Save a version</button><button class="btn l" data-x="new">New sample ballroom</button><button class="btn l" data-x="newSite">New outdoor site</button><button class="btn l" data-x="newLunch">Sample outdoor site</button><button class="btn l" data-x="newPromo">Promo ballroom</button><button class="btn l" data-x="newPromoSite">Promo outdoor site</button><button class="btn ${confirmDel === "reset" ? "r" : "l"}" data-x="reset">${confirmDel === "reset" ? "Tap again to delete it" : "Start over"}</button></div>
    ${confirmDel === "reset" ? `<p class="muted" role="alert">${DEMO ? "This deletes every design made in this demo on this device, with their earlier versions and photos," : "This deletes this design, its earlier versions and its photo,"} and opens a fresh ${ed.s.site ? "sample outdoor site" : "sample ballroom"}. It can't be undone.</p>` : ""}</div>
-   <h3>Share or back up</h3><div class="row"><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
+   <h3>Share or back up</h3><div class="row"><button class="btn o" data-x="render">Render photo</button><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
    <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${p.id}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
    <h3>Earlier versions</h3>${revs.map(r => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${new Date(r.t).toLocaleString()} <span class="muted">${r.items} objects</span></span><button class="btn l" data-rev="${r.t}">Go back to this</button></div>`).join("") || `<p class="muted">Tap “Save a version” to keep a copy you can go back to.</p>`}
@@ -486,7 +487,23 @@ body.addEventListener("click", async e => {
     case "quality": ed.quality = ed.quality === "high" ? "low" : "high"; localStorage.setItem("hm3d_quality", ed.quality); ed.applyQuality(); render(); break;
     case "saveView": { const v = ed.currentView(); const def = "View " + (ed.s.views.length + 1), name = window.HM3D_PREVIEW ? def : (prompt("Name this view", def) ?? null); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target, fov: v.fov }]); break; }
     case "png": { const url = ed.snapshot(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + ".png"); break; }
-    case "pres": { toast("Rendering… this takes a few seconds"); const url = await ed.presentation(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + "-presentation.png"); break; }
+    case "render": { // a realistic still of this view, as a photo file: shared from the phone when it can, otherwise downloaded
+      if (renderBusy) { toast("Already rendering a photo"); break; } renderBusy = true; toast("Rendering your photo… this takes a few seconds");
+      try {
+        const url = await ed.presentation(2560);
+        const img = new Image(); img.src = url; await img.decode();
+        const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext("2d").drawImage(img, 0, 0);
+        let blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.92));
+        if (!blob) blob = await (await fetch(url)).blob();
+        const file = new File([blob], safeName(ed.s) + "-photo.jpg", { type: blob.type || "image/jpeg" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: ed.s.name }); toast("Photo shared"); break; }
+          catch (e) { if (e && e.name === "AbortError") break; } // shared, then cancelled: don't also download it
+        }
+        dl(blob, safeName(ed.s) + "-photo.jpg"); toast("Photo saved");
+      } catch (e) { toast("Couldn't render the photo"); }
+      finally { renderBusy = false; }
+      break; }
     case "save": { const r = await ed.store.save(ed.s, true); toast(r.cloud ? "Saved to your account" : r.local ? "Saved on this device" : "Couldn't save"); refreshProjects(); break; }
     // Start over: the design (in the demo, every demo design on this device) is deleted for good, with its versions and photo,
     // and a fresh sample ballroom opens. Tap twice. Keeps the demo from filling the phone's storage.

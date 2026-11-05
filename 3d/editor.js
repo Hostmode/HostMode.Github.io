@@ -6,6 +6,15 @@ import { Store } from "./store.js";
 import { material, buildItem, box, setQuality, resetLights } from "./decor.js";
 
 const $ = (q, el = document) => el.querySelector(q);
+const ENV_BASE = 0.3; // how much the studio environment lights the room: gold, chrome and satin need it to read (0.12 left them brown)
+const BG_CACHE = new Map();
+function bgGradient(top, bottom) { // a soft vertical backdrop for indoor rooms, instead of one flat colour
+  const key = top + "|" + bottom; if (BG_CACHE.has(key)) return BG_CACHE.get(key);
+  const c = document.createElement("canvas"); c.width = 4; c.height = 256;
+  const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, top); gr.addColorStop(1, bottom); g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; BG_CACHE.set(key, t); return t;
+}
 const MOODS = { // time-of-day looks: exposure, reflections (env), sun and sky strength, sky/fog colour, indoor backdrop
   day: { zen: "#5d93d6", exp: 1, env: 1, sun: 1, sky: 1, sky2: "#bcd6ee", room: "#dfe3ec" },
   golden: { zen: "#7f9fc9", exp: 1.05, env: 0.9, sun: 0.8, sky: 0.7, sunColor: "#ffb361", sky2: "#f2c9a0", room: "#e8d6c4" },
@@ -81,7 +90,7 @@ export class Editor {
     this.applyQuality();
     this.scene3 = new T.Scene(); this.scene3.background = new T.Color("#dfe3ec");
     // Soft reflections from a simple studio room, so polished floors, satin and glass catch light.
-    const pm = new T.PMREMGenerator(this.r); this.scene3.environment = pm.fromScene(new T.RoomEnvironment(), 0.04).texture; this.scene3.environmentIntensity = 0.12;
+    const pm = new T.PMREMGenerator(this.r); this.scene3.environment = pm.fromScene(new T.RoomEnvironment(), 0.04).texture; this.scene3.environmentIntensity = ENV_BASE;
     this.persp = new T.PerspectiveCamera(50, 1, 0.05, 400);
     this.ortho = new T.OrthographicCamera(-10, 10, 10, -10, 0.05, 400);
     this.cam = this.persp;
@@ -230,12 +239,18 @@ export class Editor {
   fitOrtho() { const R = this.s ? this.s.room : { w: 20, d: 15, h: 4 }, el = this.r.domElement, a = el.clientWidth / Math.max(1, el.clientHeight), hh = this.s && this.s.site ? 8 : R.h; const span = (this.view === "top" ? Math.max(R.w / a, R.d) : Math.max((this.view === "side" ? R.d : R.w) / a, hh * 1.4)) * 0.6; Object.assign(this.ortho, { left: -span * a, right: span * a, top: span, bottom: -span }); this.ortho.updateProjectionMatrix(); }
   // Look only (not saved in the design): time of day. Changes exposure, sky, fog, reflections and how strong the sun and sky light are.
   setMood(name) { this.mood = MOODS[name] ? name : "day"; this.applyMood(); }
+  // The backdrop behind the room: outdoors the sky colour (the dome covers it), indoors a soft gradient from the mood's room colour.
+  bgFor(m) {
+    if (this.s && this.s.site) return new T.Color(m.sky2);
+    const top = new T.Color(m.room).lerp(new T.Color("#ffffff"), 0.22).getStyle(), bot = new T.Color(m.room).lerp(new T.Color("#000000"), 0.1).getStyle();
+    return bgGradient(top, bot);
+  }
   applyMood() {
     const m = MOODS[this.mood || "day"], out = !!(this.s && this.s.site);
-    this.r.toneMappingExposure = m.exp; this.scene3.environmentIntensity = 0.12 * m.env;
+    this.r.toneMappingExposure = m.exp; this.scene3.environmentIntensity = ENV_BASE * m.env;
     if (this.sunL) { this.sunL.intensity = this.sunL.userData.base * m.sun; this.sunL.color.set(m.sunColor || this.sunL.userData.color); }
     if (this.hemiL) { this.hemiL.intensity = this.hemiL.userData.base * m.sky; }
-    if (this.view !== "photo") this.scene3.background = new T.Color(out ? m.sky2 : m.room);
+    if (this.view !== "photo") this.scene3.background = this.bgFor(m);
     if (this.scene3.fog) this.scene3.fog.color.set(m.sky2);
     this.updateSky(m);
   }
@@ -256,18 +271,9 @@ export class Editor {
     else if (id === "over") { fov = 40; pos = [R.w / 2 + 0.01, big * 1.5, R.d / 2 + R.d * 0.35]; }
     else if (id === "stage") { fov = 38; const f = stage || { x: R.w / 2, z: R.d * 0.15 }; tgt.set(f.x, 1.2, f.z); pos = [f.x, 1.7, Math.min(R.d - 0.5, f.z + 8)]; }
     else { fov = 35; if (pick) { const b = new T.Box3().setFromObject(pick); b.getCenter(tgt); const r = Math.max(0.6, b.getSize(new T.Vector3()).length()); pos = [tgt.x + r * 0.9, tgt.y + r * 0.5, tgt.z + r * 1.1]; } else pos = [R.w / 2 + 1.6, 1.5, R.d / 2 + 2.2]; }
-    this.setView("orbit"); this.persp.fov = fov; this.persp.updateProjectionMatrix(); this.persp.position.set(...pos); this.orbit.target.copy(tgt); this.orbit.update(); this.clampCam();
+    this.setView("orbit"); this.persp.fov = fov; this.persp.updateProjectionMatrix(); this.persp.position.set(...pos); this.orbit.target.copy(tgt); this.orbit.update();
   }
-  frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); this.clampCam(); }
-  // The camera never goes beneath the floor: the lens stays a little above it, the look-at point on it or above.
-  // The top/front/side views use the orthographic camera, not this one, so they are not touched.
-  clampCam() {
-    if (!this.s) return;
-    const p = S.clampCamPos(this.s, [this.persp.position.x, this.persp.position.y, this.persp.position.z]);
-    this.persp.position.set(p[0], p[1], p[2]);
-    const t = S.clampCamTarget(this.s, [this.orbit.target.x, this.orbit.target.y, this.orbit.target.z]);
-    this.orbit.target.set(t[0], t[1], t[2]);
-  }
+  frame() { const R = this.s.room; this.persp.position.set(R.w / 2 + R.w * 0.15, Math.max(R.w, R.d) * 0.9, R.d + R.d * 0.55); this.orbit.target.set(R.w / 2, 0.5, R.d / 2); this.orbit.update(); }
   setView(v) {
     if (v === "photo" && !(this.s.photo && this.photoImg)) v = "orbit";
     const R = this.s.room, was = this.view; this.view = v; this.tc.enabled = v !== "walk";
@@ -309,7 +315,7 @@ export class Editor {
     const on = this.view === "photo" && this.s && this.s.photo && this.photoImg, P = on ? this.s.photo : null;
     if (on && !this.photoEl) { const im = document.createElement("img"); im.className = "v3-photo"; im.alt = ""; im.setAttribute("aria-hidden", "true"); im.style.position = "absolute"; im.style.pointerEvents = "none"; im.style.objectFit = "fill"; this.r.domElement.parentElement.insertBefore(im, this.r.domElement); this.photoEl = im; }
     if (this.photoEl) { this.photoEl.style.display = on ? "block" : "none"; if (on && this.photoEl.src !== this.photoImg.src) this.photoEl.src = this.photoImg.src; if (on) ["left", "top", "width", "height"].forEach(k => this.photoEl.style[k] = this.r.domElement.style[k]); } // same box as the canvas, even the first time
-    { const mm = MOODS[this.mood || "day"]; this.scene3.background = on ? null : new T.Color(this.s && this.s.site ? mm.sky2 : mm.room); } this.r.setClearColor(0x000000, on ? 0 : 1);
+    { const mm = MOODS[this.mood || "day"]; this.scene3.background = on ? null : this.bgFor(mm); } this.r.setClearColor(0x000000, on ? 0 : 1);
     this.r.domElement.parentElement.classList.toggle("photo", !!on); this.updateSky(MOODS[this.mood || "day"]);
     if (!this.floorMesh) return;
     [this.floorMesh, this.groundMesh].forEach(m => m.visible = !on); this.shadowCatch.visible = !!on;
@@ -318,8 +324,7 @@ export class Editor {
     if (!on) return;
     const c = S.photoCamera(P); this.photoFit = c; if (!c.ok) return;
     const m = new T.Matrix4().makeBasis(new T.Vector3(...c.x), new T.Vector3(...c.y), new T.Vector3(...c.z));
-    const cp = S.clampCamPos(this.s, [...c.pos]); this.persp.position.set(cp[0], cp[1], cp[2]); // a camera worked out under the floor means the dots are wrong; don't draw from under it
-    this.persp.quaternion.setFromRotationMatrix(m); this.persp.fov = c.fov; this.persp.updateProjectionMatrix();
+    this.persp.position.set(...c.pos); this.persp.quaternion.setFromRotationMatrix(m); this.persp.fov = c.fov; this.persp.updateProjectionMatrix();
     if (this.photoAlign) { // a 1 ft (or 1 m) grid over the marked floor: if the dots are right, it lies flat on the real floor
       const W = P.w || 1, D = c.d, step = this.units === "m" ? 1 : S.FT, ox = P.ox || 0, oz = P.oz || 0, pts = [];
       for (let a = 0; a <= W + 1e-6; a += step) pts.push(ox + a, 0.01, oz, ox + a, 0.01, oz + D); pts.push(ox + W, 0.01, oz, ox + W, 0.01, oz + D);
@@ -335,7 +340,7 @@ export class Editor {
   goView(id) {
     const v = this.s.views.find(x => x.id === id); if (!v) return;
     if (this.view === "walk") return this.walkTo(v.pos, v.target);
-    this.setView("orbit"); this.persp.fov = v.fov || 50; this.persp.updateProjectionMatrix(); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update(); this.clampCam();
+    this.setView("orbit"); this.persp.fov = v.fov || 50; this.persp.updateProjectionMatrix(); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update();
   }
   currentView() {
     if (this.view === "walk") { const p = this.walk.pos, f = this.walkDir(); return { pos: [p.x, p.y, p.z], target: [p.x + f.x * 3, p.y + f.y * 3, p.z + f.z * 3] }; }
@@ -352,9 +357,8 @@ export class Editor {
       if (k.l) this.walk.pos.addScaledVector(rt, -sp); if (k.r) this.walk.pos.addScaledVector(rt, sp);
       if (k.tl) this.walk.yaw += 1.6 * dt; if (k.tr) this.walk.yaw -= 1.6 * dt;
       const R = this.s.room; this.walk.pos.x = T.MathUtils.clamp(this.walk.pos.x, 0.3, R.w - 0.3); this.walk.pos.z = T.MathUtils.clamp(this.walk.pos.z, 0.3, R.d - 0.3);
-      this.walk.pos.y = Math.max(this.walk.pos.y, S.floorY(this.s) + S.CAM_FLOOR_CLEARANCE); // the eye never drops under the floor
       this.persp.position.copy(this.walk.pos); this.persp.lookAt(this.walk.pos.clone().add(this.walkDir()));
-    } else if (this.view === "orbit") { this.orbit.update(); this.clampCam(); } else if (this.view !== "photo") this.orbitO.update();
+    } else if (this.view === "orbit") this.orbit.update(); else if (this.view !== "photo") this.orbitO.update();
     // Dollhouse: in the 3D view, hide walls that stand between the camera and the room.
     const cp = this.cam.position;
     this.walls.forEach(g => { const { mid, out } = g.userData; g.visible = this.view === "walk" || this.view === "top" || cp.clone().sub(mid).dot(out) < 0.2 || (this.view !== "orbit" && false); if (this.view === "front" || this.view === "side") g.visible = cp.clone().sub(mid).dot(out) < 0; });
@@ -503,11 +507,16 @@ export class Editor {
   snapshot(w = 1600) { const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth); const old = [el.clientWidth, el.clientHeight]; this.r.setSize(w, h, false); this.persp.aspect = w / h; this.persp.updateProjectionMatrix(); this.selBox.visible = false; const th = this.tc.getHelper().visible; this.tc.getHelper().visible = false; this.tick(); let url = el.toDataURL("image/png");
     if (this.view === "photo" && this.photoImg) { const c = document.createElement("canvas"); c.width = el.width; c.height = el.height; const x = c.getContext("2d"); x.drawImage(this.photoImg, 0, 0, c.width, c.height); x.drawImage(el, 0, 0); url = c.toDataURL("image/jpeg", 0.92); } this.tc.getHelper().visible = th; this.r.setSize(old[0], old[1], false); this.resize(); this.select(this.sel); return url; }
   // Still picture with ambient occlusion; slow, so never used while editing. Falls back to the plain picture if it can't run.
+  // For the photo the quality is raised first (shadows, bumps and sheen on) and put back after, so a Fast-mode phone still gets a good picture.
   async presentation(w = 1920) {
     if (this.view === "photo") return this.snapshot(w);
-    const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth);
-    try { this._post = await (await import("./post.js")).makePost(this.r, this.scene3, this.cam, w, h); } catch (e) { console.warn("presentation render unavailable", e); this._post = null; return this.snapshot(w); }
-    try { return this.snapshot(w); } finally { this._post.dispose(); this._post = null; this.tick(); }
+    const el = this.r.domElement, h = Math.round(w * el.clientHeight / el.clientWidth), wasQuality = this.quality;
+    try {
+      if (wasQuality !== "high") { this.quality = "high"; this.applyQuality(); }
+      this._post = await (await import("./post.js")).makePost(this.r, this.scene3, this.cam, w, h);
+    } catch (e) { console.warn("presentation render unavailable", e); this._post = null; if (wasQuality !== "high") { this.quality = wasQuality; this.applyQuality(); } return this.snapshot(w); }
+    try { this.tick(); return this.snapshot(w); } // one warm-up frame, so the occlusion has settled before the picture is taken
+    finally { this._post.dispose(); this._post = null; if (wasQuality !== "high") { this.quality = wasQuality; this.applyQuality(); } this.tick(); }
   }
   exportGLB() {
     return new Promise((ok, no) => {

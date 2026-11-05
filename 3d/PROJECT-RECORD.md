@@ -208,3 +208,19 @@ Plan and audit: the "Outdoor Event Builder: Audit and Plan" doc (https://claude.
 - Not yet: the other four pilots, more outdoor pieces (stages, lighting towers, fencing runs, food trucks, bleachers), slopes and trees, tracing with curves, reading an aerial picture automatically.
 
 - Categories (Nov 5, 2026): the Add tab opens by category tile (`libCat` in 3d/app.js; groups are `CAT_ORDER` in scene.js). Inventory `GEAR_CATS` (js/17-inventory-venue.js) mirrors them; keep both in step when adding a category.
+
+## 8. Realism upgrade — live view and Render photo (Nov 5, 2026)
+
+Roy: the designer looked fine for a video game; he wants it to look like real life. Both halves built.
+
+**Live view** (3d/decor.js, 3d/editor.js):
+- Roughness maps: every procedural surface already had a height field for its bump map; the same relief now drives a roughness map, baked around the material's own roughness, so wood grain, carpet pile and fabric weave catch light unevenly instead of one flat shine. High quality only — Fast mode is unchanged, and no draw call was added.
+- Environment light: the studio environment went from 0.12 to 0.3 (`ENV_BASE` in editor.js; moods still multiply it). Gold, chrome and satin now reflect something instead of a dark room — the same trap the throne's gilded finish worked around.
+- Indoor backdrop: rooms no longer sit against one flat colour; the mood's room colour is now a soft vertical gradient (`bgFor()`), outdoors unchanged (the sky dome already does this).
+- Still all drawn in code: no third-party textures or models, so nothing new to license.
+
+**Render photo** (Views tab and Save & share, 3d/app.js; `ed.presentation()`, 3d/editor.js):
+- One button, "Render photo", makes a 2560 px still of the current camera view and design with the GTAO ambient-occlusion path from 3d/post.js. For the shot the quality is forced to high (shadows, bumps, sheen) and put back after, with one warm-up frame so the occlusion has settled; if post.js can't load it falls back to the plain picture. The result is a JPEG (0.92), shared from the phone's share sheet when the browser allows it, otherwise downloaded. The old "Presentation picture" button is gone; "Download a picture" stays for a quick plain snapshot.
+- Considered and not built: browser path tracing (three-gpu-pathtracer needs WebGPU, which most of Roy's users' phones don't have, and a full venue would take minutes a picture on a phone GPU); an AI image-to-image restyle (needs a paid service and a server-held key — nothing calls an AI model from the browser, and Roy hasn't approved a server); a Blender render in GitHub Actions from the .glb export (free, and the highest-quality stills of all — a later option if Roy wants it).
+
+**Measured:** all model checks pass; before/after pictures of both promo templates from a software-rendered headless browser. Phone speed and the look on a real phone are still open — the roughness maps and stronger environment light cost nothing in draw calls, but only Roy's phone proves it.

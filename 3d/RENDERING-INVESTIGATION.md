@@ -21,4 +21,5 @@ All addons must be copied from the r187 tag: mixing versions breaks shader chunk
 `office3d.html` imports the same bundle. As long as the bundle is not changed and the addons are loaded only by `venue3d.html`, nothing in the office changes. `agents/office3d_check.py` (run by `check_all.sh`) is the guard.
 
 ## Not yet tested
-No addon has been integrated, so none of the above costs are measured. Next step: add `3d/post.js` behind a button, test on the phone sizes, then decide.
+- Path tracing (three-gpu-pathtracer) was considered for the Render photo button and not built: it needs WebGPU, which most phones don't have, and a full venue would take minutes a picture on a phone GPU. An AI image-to-image restyle was also considered and not built: it needs a paid service and a server-held key. The render stays the GTAO raster path in `3d/post.js`, now behind the "Render photo" button (Views tab and Save & share), which forces high quality for the shot and shares or downloads a JPEG.
+- No addon has been integrated beyond EffectComposer/GTAO/OutputPass, so none of the above costs are measured. Next step: test on the phone sizes, then decide.
