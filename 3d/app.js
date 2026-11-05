@@ -357,7 +357,7 @@ async function useAerial(file) {
 
 // ---------- Views ----------
 function viewsTab() {
-  return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button></div>
+  return `<div class="row"><button class="btn" data-x="saveView">Save this view</button><button class="btn l" data-x="png">Download a picture</button><button class="btn l" data-x="pres">Presentation picture (slower, more realistic)</button></div>
    <h3>Camera shots</h3><div class="row">${[["wide", "Wide"], ["eye", "Eye level"], ["over", "Overview"], ["stage", "Stage"], ["detail", "Close-up"]].map(([k, n]) => `<button class="btn l" data-cam="${k}">${n}</button>`).join("")}</div>
    <h3>Time of day <span class="muted">(look only)</span></h3><div class="row">${[["day", "Day"], ["golden", "Golden hour"], ["overcast", "Overcast"], ["evening", "Evening"], ["night", "Night"]].map(([k, n]) => `<button class="btn ${(ed.mood || "day") === k ? "" : "l"}" data-mood="${k}" aria-pressed="${(ed.mood || "day") === k}">${n}</button>`).join("")}</div>
    <h3>Saved views</h3>${ed.s.views.map(v => `<button class="lib" style="width:100%;margin-bottom:6px" data-go="${v.id}">${esc(v.name)}</button>`).join("") || `<p class="muted">None yet.</p>`}
@@ -483,6 +483,7 @@ body.addEventListener("click", async e => {
     case "quality": ed.quality = ed.quality === "high" ? "low" : "high"; localStorage.setItem("hm3d_quality", ed.quality); ed.applyQuality(); render(); break;
     case "saveView": { const v = ed.currentView(); const def = "View " + (ed.s.views.length + 1), name = window.HM3D_PREVIEW ? def : (prompt("Name this view", def) ?? null); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target, fov: v.fov }]); break; }
     case "png": { const url = ed.snapshot(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + ".png"); break; }
+    case "pres": { toast("Rendering… this takes a few seconds"); const url = await ed.presentation(1920); const b = await (await fetch(url)).blob(); dl(b, safeName(ed.s) + "-presentation.png"); break; }
     case "save": { const r = await ed.store.save(ed.s, true); toast(r.cloud ? "Saved to your account" : r.local ? "Saved on this device" : "Couldn't save"); refreshProjects(); break; }
     // Start over: the design (in the demo, every demo design on this device) is deleted for good, with its versions and photo,
     // and a fresh sample ballroom opens. Tap twice. Keeps the demo from filling the phone's storage.

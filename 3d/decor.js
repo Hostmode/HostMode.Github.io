@@ -104,8 +104,20 @@ function surface(name) {
   } else if (["grass", "dirt", "sand", "mulch", "gravel", "asphalt"].includes(name)) { // outdoor ground: speckled or mottled, tinted by its color
     const [base, oct, seed, amt, bp, sp] = { grass: [64, 3, 31, 70, 4, 4], dirt: [8, 5, 37, 50, 3, 3], sand: [16, 4, 41, 30, 1.5, 3], mulch: [32, 4, 43, 80, 5, 1.5], gravel: [128, 2, 47, 90, 4, 1], asphalt: [128, 2, 53, 36, 1.2, 2.5] }[name];
     const n = fbm(N, base, oct, seed), big = fbm(N, 2, 3, seed + 1), h = new Float32Array(N * N);
-    for (let i = 0; i < N * N; i++) h[i] = n[i] * 0.72 + big[i] * 0.28;
+    for (let i = 0; i < N * N; i++) h[i] = name === "grass" ? n[i] * 0.55 + big[i] * 0.45 : n[i] * 0.72 + big[i] * 0.28;
     col = fromField(N, h, v => { const b = 255 - amt + v * amt; return [b, b, b]; }); hgt = fromField(N, n, v => [v * 255, v * 255, v * 255]); span = sp; bump = bp;
+    if (name === "grass") { // individual blades, drawn wrapped at the edges so the texture still tiles
+      const r = rng(61), g = col.getContext("2d"), hg = hgt.getContext("2d"); g.lineCap = hg.lineCap = "round";
+      for (let k = 0; k < N * N / 90; k++) {
+        const x = r() * N, y = r() * N, len = 5 + r() * 9, a = -Math.PI / 2 + (r() - 0.5) * 1.5, lit = r() > 0.5, b = lit ? 255 : 150 + r() * 60 | 0;
+        for (const ox of [0, -N, N]) for (const oy of [0, -N, N]) {
+          if ((ox && x + len < N && x - len > 0) || (oy && y + len < N && y - len > 0)) continue;
+          const px = x + ox, py = y + oy, qx = px + Math.cos(a) * len, qy = py + Math.sin(a) * len;
+          g.strokeStyle = `rgba(${b},${b},${b},.55)`; g.lineWidth = 1.3; g.beginPath(); g.moveTo(px, py); g.lineTo(qx, qy); g.stroke();
+          hg.strokeStyle = lit ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.5)"; hg.lineWidth = 1.3; hg.beginPath(); hg.moveTo(px, py); hg.lineTo(qx, qy); hg.stroke();
+        }
+      }
+    }
   } else if (name === "pavers") { // running-bond pavers, 30 by 15 cm, with sunken joints
     const [c, g] = cv(N), [hc, hg] = cv(N), r = rng(29), bw = 128, bh = 64; g.fillStyle = "#8c8c8c"; g.fillRect(0, 0, N, N); hg.fillStyle = "#000"; hg.fillRect(0, 0, N, N);
     for (let y = 0, row = 0; y < N; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < N; x += bw) { const t = 196 + r() * 59 | 0; g.fillStyle = `rgb(${t},${t},${t})`; g.fillRect(x + 3, y + 3, bw - 6, bh - 6); hg.fillStyle = "#d8d8d8"; hg.fillRect(x + 4, y + 4, bw - 8, bh - 8); }
