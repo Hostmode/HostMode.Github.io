@@ -276,8 +276,8 @@ function buildTable(g, it, scene) {
   if (it.kind === "table_serpentine") return buildSerpentine(g, it, d, linenC, top, legs);
   const showLegs = d.linen === "none" || d.linen === "lap";
   if (showLegs) { // the table itself shows: top and legs
-    if (round) { g.add(cyl(R, R, 0.035, top, 0, H - 0.035, 0, 48)); g.add(cyl(0.04, 0.04, H - 0.04, legs, 0, 0, 0, 12)); g.add(cyl(R * 0.35, R * 0.4, 0.03, legs, 0, 0, 0, 24)); }
-    else { g.add(box(W, 0.04, D, top, 0, H - 0.04, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(0.06, H - 0.04, 0.06, it.kind === "table_farm" ? top : legs, a * (W / 2 - 0.08), 0, b * (D / 2 - 0.08)))); }
+    if (round) { g.add(cyl(R, R, 0.035, top, 0, H - 0.035, 0, 48)); g.add(cyl(R - 0.01, R, 0.008, legs, 0, H - 0.043, 0, 48)); g.add(cyl(0.04, 0.04, H - 0.04, legs, 0, 0, 0, 12)); g.add(cyl(R * 0.35, R * 0.4, 0.03, legs, 0, 0, 0, 24)); }
+    else { g.add(rbox(W, 0.04, D, 0.012, top, 0, H - 0.04, 0)); g.add(box(W - 0.2, 0.06, 0.03, legs, 0, H - 0.1, D / 2 - 0.08)); g.add(box(W - 0.2, 0.06, 0.03, legs, 0, H - 0.1, -D / 2 + 0.08)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(rbox(0.06, H - 0.04, 0.06, 0.012, it.kind === "table_farm" ? top : legs, a * (W / 2 - 0.08), 0, b * (D / 2 - 0.08)))); }
   }
   if (d.linen !== "none") {
     const hem = d.linen === "lap" ? Math.max(0.05, H - 0.38) : 0.004;
@@ -457,11 +457,34 @@ const glow = c => flat(c, { emissive: hex(c), emissiveIntensity: 2.5 });
 
 // Frame tents and pop-up canopies, any size: legs about every 10 ft round the edge (a canopy has four, with braces), a valance,
 // and a hip roof you can see through (a pyramid when square). Outdoors the roof casts real shade.
+// The roof is stretched fabric: each of its six panels is cut into small triangles and pulled down a little in the middle (the sag
+// between frame and ridge), pinned at every edge. Seams run eave to ridge, 1.2 m apart (the width of one cloth panel).
 function hipRoof(W, D, rise) {
   const r = Math.abs(D - W) / 2, alongZ = D >= W, A = [-W / 2, 0, -D / 2], B = [W / 2, 0, -D / 2], C = [W / 2, 0, D / 2], E = [-W / 2, 0, D / 2];
   const P = alongZ ? [0, rise, -r] : [-r, rise, 0], Q = alongZ ? [0, rise, r] : [r, rise, 0], tri = [];
   if (alongZ) tri.push(A, B, P, C, E, Q, B, C, Q, B, Q, P, E, A, P, E, P, Q); else tri.push(E, A, P, B, C, Q, A, B, Q, A, Q, P, C, E, P, C, P, Q);
-  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(tri.flat(), 3)); g.setAttribute("uv", new T.Float32BufferAttribute(tri.flatMap(v => [v[0] / 2, v[2] / 2]), 2)); g.computeVertexNormals(); return g;
+  const n = 8, sag = Math.min(0.14, 0.012 * Math.max(W, D)), pos = [], uv = [], lerp3 = (a, b, c, u, v) => [a[0] + (b[0] - a[0]) * u + (c[0] - a[0]) * v, a[1] + (b[1] - a[1]) * u + (c[1] - a[1]) * v, a[2] + (b[2] - a[2]) * u + (c[2] - a[2]) * v];
+  for (let t = 0; t < tri.length; t += 3) {
+    const a = tri[t], b = tri[t + 1], c = tri[t + 2], nx = Math.abs((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])), nz = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])), useZ = nx > nz;
+    const vert = (i, j) => { const u = i / n, v = j / n, q = lerp3(a, b, c, u, v), w0 = 1 - u - v, bub = 27 * w0 * u * v; q[1] -= sag * Math.min(1, bub) * (rise > 0.05 ? 1 : 0); pos.push(...q); uv.push((useZ ? q[2] : q[0]) / 1.2, (q[1] + (useZ ? q[0] : q[2])) / 1.2); };
+    for (let i = 0; i < n; i++) for (let j = 0; j < n - i; j++) {
+      vert(i, j); vert(i + 1, j); vert(i, j + 1);
+      if (j < n - i - 1) { vert(i + 1, j); vert(i + 1, j + 1); vert(i, j + 1); }
+    }
+  }
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g;
+}
+// One tile of roof cloth: the weave with a seam down its left edge (a darker fold with a row of stitches either side).
+let ROOF_TEX = null;
+function roofTexture() {
+  if (ROOF_TEX) return ROOF_TEX;
+  const N = 512, c = document.createElement("canvas"); c.width = c.height = N; const x = c.getContext("2d"), wv = material("fabric", "#ffffff", { size: 1 }).map;
+  x.fillStyle = "#f4f4f4"; x.fillRect(0, 0, N, N);
+  if (wv && wv.image) { x.globalAlpha = 0.6; for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) x.drawImage(wv.image, a * N / 2, b * N / 2, N / 2, N / 2); x.globalAlpha = 1; }
+  const g = x.createLinearGradient(0, 0, 14, 0); g.addColorStop(0, "rgba(60,55,50,0.38)"); g.addColorStop(1, "rgba(60,55,50,0)"); x.fillStyle = g; x.fillRect(0, 0, 14, N);
+  x.fillStyle = "rgba(70,65,60,0.55)"; x.fillRect(0, 0, 2, N); x.fillStyle = "rgba(90,85,80,0.5)";
+  for (let y = 0; y < N; y += 12) { x.fillRect(7, y, 2, 6); x.fillRect(N - 9, y, 2, 6); }
+  ROOF_TEX = new T.CanvasTexture(c); ROOF_TEX.colorSpace = T.SRGBColorSpace; ROOF_TEX.wrapS = ROOF_TEX.wrapT = T.RepeatWrapping; ROOF_TEX.anisotropy = 8; return ROOF_TEX;
 }
 function buildTent(g, it, scene) {
   const W = it.w, D = it.d, H = it.h, C = S.CATALOG[it.kind], eave = C.eave * Math.min(1, H / C.h), pole = material("metal", "#d8d8dc"), cloth = material("fabric", it.color || "#ffffff", { side: T.DoubleSide, size: 2 });
@@ -473,11 +496,17 @@ function buildTent(g, it, scene) {
     const px = -W / 2 + i * W / nx, pz = -D / 2 + j * D / nz; g.add(box(pw, 0.012, pw, plate, px, 0, pz));
     [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => g.add(cyl(0.01, 0.01, 0.012, bolt, px + a * pw * 0.38, 0.012, pz + b * pw * 0.38, 6)));
     g.add(cyl(r * 1.7, r * 1.7, 0.1, plate, px, eave - 0.12, pz, 10));
+    g.add(cyl(r * 1.35, r * 1.35, 0.16, plate, px, 0.012, pz, 10)); // the sleeve where the pole drops into its foot
+    g.add(cyl(r * 0.6, r * 1.2, 0.05, bolt, px, eave, pz, 10)); // cap on the pole top
+    const sh = contactShadow(pw * 3.2, pw * 3.2, true); sh.position.set(px, 0.003, pz); sh.userData.thru = true; g.add(sh);
   }
-  const vh = it.kind === "canopy" ? 0.2 : 0.3;
-  [[W, vh, 0.02, 0, -D / 2], [W, vh, 0.02, 0, D / 2], [0.02, vh, D, -W / 2, 0], [0.02, vh, D, W / 2, 0]].forEach(([w, h, d, x, z]) => g.add(box(w, h, d, cloth, x, eave - vh, z)));
+  // eave beams: the frame the roof is pinned to, running pole to pole just inside the valance
+  const bm = material("metal", "#cfd2d8");
+  [[W, 0, -D / 2 + 0.04, 0], [W, 0, D / 2 - 0.04, 0], [D, 0, 0, 1]].forEach(([len, , , rot], k) => { if (k === 2) { [-1, 1].forEach(sx => { const o = box(0.05, 0.07, D - 0.08, bm, sx * (W / 2 - 0.04), eave - 0.09, 0); g.add(o); }); } else { const o = box(W - 0.08, 0.07, 0.05, bm, 0, eave - 0.09, k === 0 ? -D / 2 + 0.04 : D / 2 - 0.04); g.add(o); } });
+  const vh = it.kind === "canopy" ? 0.2 : 0.3, hemM = material("fabric", "#e4e0d8", { size: 0.5 });
+  [[W, vh, 0.02, 0, -D / 2], [W, vh, 0.02, 0, D / 2], [0.02, vh, D, -W / 2, 0], [0.02, vh, D, W / 2, 0]].forEach(([w, h, d, x, z]) => { g.add(box(w, h, d, cloth, x, eave - vh, z)); g.add(box(w + (d > w ? 0 : 0.014), 0.03, d + (w > d ? 0 : 0.014) + 0.012, hemM, x, eave - vh, z)); });
   if (it.kind === "canopy") [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([a, b, c2, d2]) => g.add(stick(new T.Vector3(a * W / 2, eave - 0.05, b * D / 2), new T.Vector3((a + c2) * W / 4, eave - 0.45, (b + d2) * D / 4), 0.012, pole, 5)));
-  const out = !!(scene && scene.site), k = "tentroof|" + (it.color || "") + HI + out; if (!matCache.has(k)) { const rm = new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: out ? 0.8 : 0.72, depthWrite: false, side: T.DoubleSide }); const fm = material("fabric", it.color || "#f7f5f0", { size: 2 }); if (fm.map) { rm.map = fm.map; if (HI && fm.normalMap) { rm.normalMap = fm.normalMap; rm.normalScale = new T.Vector2(0.6, 0.6); } } matCache.set(k, rm); }
+  const out = !!(scene && scene.site), k = "tentroof|" + (it.color || "") + HI + out; if (!matCache.has(k)) { const rm = new T.MeshStandardMaterial({ color: hex(it.color || "#f7f5f0"), roughness: 0.9, transparent: true, opacity: out ? 0.8 : 0.72, depthWrite: false, side: T.DoubleSide }); rm.map = roofTexture(); rm.roughness = 0.82; matCache.set(k, rm); }
   const roof = mesh(hipRoof(W, D, H - eave), matCache.get(k)); roof.position.y = eave; roof.castShadow = out; roof.receiveShadow = false; roof.userData.keep = roof.userData.thru = true; g.add(roof);
   const rr = Math.abs(D - W) / 2, top = D >= W ? [[0, -rr], [0, rr]] : [[-rr, 0], [rr, 0]];
   [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => { const t = (D >= W ? b : a) > 0 ? 1 : 0; g.add(stick(new T.Vector3(a * W / 2, eave, b * D / 2), new T.Vector3(top[t][0], H, top[t][1]), 0.025, pole, 6)); });
