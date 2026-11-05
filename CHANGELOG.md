@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-05 · Roy (with Claude) · New piece: Front-of-house engineer station for concerts (skirted table, console with screen and faders, laptop, rack case, stool; Audio & video, indoor and outdoor); "front of house engineer station" or "foh station" finds it; "sound desk" still finds the DJ table. Size 2.4 × 1.4 × 1.2 m is an ESTIMATE.
 - 2026-11-05 · Roy (with Claude) · New piece: compact line array on truss (6 × 0.8 × 4 m, six cabinets a side) for ordinary ceilings; "compact line array" or "small line array" finds it. Size is an ESTIMATE.
 - 2026-11-05 · Roy (with Claude) · New piece: Line array on truss for concerts (two box-truss towers, a top beam, eight cabinets hung each side; Audio & video, indoor and outdoor); the words "line array" now find it, "speaker stand" still finds the tripod speaker. Size 7 × 0.9 × 5 m is an ESTIMATE (no page was opened), listed in estimated_sizes_p6.
 - 2026-11-05 · Roy (with Claude) · Categories first: the 3D Add tab shows 15 category tiles and opens one at a time (search still spans all); Inventory uses the same groups (plus Linens, Tableware, Signs, Other), shows category tiles with counts, and maps old category names (Chairs, Lighting, Draping, Decor) to the new ones.
