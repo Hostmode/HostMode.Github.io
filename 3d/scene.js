@@ -361,6 +361,23 @@ export function inRoom(scene, it) {
 
 export function wallLen(w) { return Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]); }
 
+// The floor is the one level everything stands on and no camera goes beneath: y = 0, indoors and outdoors.
+// The room floor (indoors) and the site ground (outdoors) are both drawn at y = 0; painted ground areas and the
+// aerial picture sit just above it (0.003–0.012) and the surround ground 0.01 below, all measured from here.
+export const FLOOR_Y = 0;
+export function floorY(s) { return FLOOR_Y; } // s is reserved: a design with raised ground would answer from the design
+// How close the camera lens may come to the floor. The eye in walk mode sits at 1.65 m, so this only ever bites
+// when a drag, a pan or a saved view would put the lens at or under the floor.
+export const CAM_FLOOR_CLEARANCE = 0.1;
+// Keep a camera position above the floor: [x, y, z] in, [x, y, z] out. Pure, so the model checks can run it.
+export function clampCamPos(s, pos, clearance = CAM_FLOOR_CLEARANCE) {
+  const p = pos.slice(); p[1] = Math.max(p[1], floorY(s) + clearance); return p;
+}
+// The look-at point may sit on the floor (looking down at it) but never under it, or the orbit would drag the camera under too.
+export function clampCamTarget(s, target) {
+  const t = target.slice(); t[1] = Math.max(t[1], floorY(s)); return t;
+}
+
 // Named places in the room, for "front", "left", "center"... Front = the stage wall (z = 0) unless a stage says otherwise.
 // Outdoors these are inside the property line (its outline's box) and further in from the edge.
 export function bounds(scene) {

@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-05 · Roy (with Claude) · 3D designer: the floor is now defined in one place (y = 0, S.floorY in scene.js) and the camera can't go beneath it — clamped in orbit, walk, presets and the photo view; top/front/side views untouched. New floor checks in agents/venue3d_test.mjs.
 - 2026-11-05 · Roy (with Claude) · Two promotional 3D venue templates in Save & share: "Grand wedding ballroom (promo)" (174 pieces, 96 seats, 12 tables) and "Garden estate (promo)" (194 pieces, 104 seats, 13 tables, golden-hour sun June 13, 2026, 6:30 pm, Charlotte).
 - 2026-11-05 · Roy (with Claude) · New piece: Front-of-house engineer station for concerts (skirted table, console with screen and faders, laptop, rack case, stool; Audio & video, indoor and outdoor); "front of house engineer station" or "foh station" finds it; "sound desk" still finds the DJ table. Size 2.4 × 1.4 × 1.2 m is an ESTIMATE.
 - 2026-11-05 · Roy (with Claude) · New piece: compact line array on truss (6 × 0.8 × 4 m, six cabinets a side) for ordinary ceilings; "compact line array" or "small line array" finds it. Size is an ESTIMATE.
