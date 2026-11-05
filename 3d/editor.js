@@ -280,7 +280,7 @@ export class Editor {
     const on = this.view === "photo" && this.s && this.s.photo && this.photoImg, P = on ? this.s.photo : null;
     if (on && !this.photoEl) { const im = document.createElement("img"); im.className = "v3-photo"; im.alt = ""; im.setAttribute("aria-hidden", "true"); im.style.position = "absolute"; im.style.pointerEvents = "none"; im.style.objectFit = "fill"; this.r.domElement.parentElement.insertBefore(im, this.r.domElement); this.photoEl = im; }
     if (this.photoEl) { this.photoEl.style.display = on ? "block" : "none"; if (on && this.photoEl.src !== this.photoImg.src) this.photoEl.src = this.photoImg.src; if (on) ["left", "top", "width", "height"].forEach(k => this.photoEl.style[k] = this.r.domElement.style[k]); } // same box as the canvas, even the first time
-    this.scene3.background = on ? null : new T.Color(this.s && this.s.site ? SKY : "#dfe3ec"); this.r.setClearColor(0x000000, on ? 0 : 1);
+    { const mm = MOODS[this.mood || "day"]; this.scene3.background = on ? null : new T.Color(this.s && this.s.site ? mm.sky2 : mm.room); } this.r.setClearColor(0x000000, on ? 0 : 1);
     this.r.domElement.parentElement.classList.toggle("photo", !!on);
     if (!this.floorMesh) return;
     [this.floorMesh, this.groundMesh].forEach(m => m.visible = !on); this.shadowCatch.visible = !!on;
@@ -305,11 +305,11 @@ export class Editor {
   goView(id) {
     const v = this.s.views.find(x => x.id === id); if (!v) return;
     if (this.view === "walk") return this.walkTo(v.pos, v.target);
-    this.setView("orbit"); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update();
+    this.setView("orbit"); this.persp.fov = v.fov || 50; this.persp.updateProjectionMatrix(); this.persp.position.set(...v.pos); this.orbit.target.set(...v.target); this.orbit.update();
   }
   currentView() {
     if (this.view === "walk") { const p = this.walk.pos, f = this.walkDir(); return { pos: [p.x, p.y, p.z], target: [p.x + f.x * 3, p.y + f.y * 3, p.z + f.z * 3] }; }
-    const p = this.persp.position, t = this.orbit.target; return { pos: [p.x, p.y, p.z], target: [t.x, t.y, t.z] };
+    const p = this.persp.position, t = this.orbit.target; return { pos: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.persp.fov };
   }
   walkDir() { const { yaw, pitch } = this.walk; return new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)); }
 

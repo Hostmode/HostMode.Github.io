@@ -465,7 +465,9 @@ function hipRoof(W, D, rise) {
   if (alongZ) tri.push(A, B, P, C, E, Q, B, C, Q, B, Q, P, E, A, P, E, P, Q); else tri.push(E, A, P, B, C, Q, A, B, Q, A, Q, P, C, E, P, C, P, Q);
   const n = 8, sag = Math.min(0.14, 0.012 * Math.max(W, D)), pos = [], uv = [], lerp3 = (a, b, c, u, v) => [a[0] + (b[0] - a[0]) * u + (c[0] - a[0]) * v, a[1] + (b[1] - a[1]) * u + (c[1] - a[1]) * v, a[2] + (b[2] - a[2]) * u + (c[2] - a[2]) * v];
   for (let t = 0; t < tri.length; t += 3) {
-    const a = tri[t], b = tri[t + 1], c = tri[t + 2], nx = Math.abs((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])), nz = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])), useZ = nx > nz;
+    const a = tri[t], b = tri[t + 1], c = tri[t + 2];
+    if (Math.hypot((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) < 1e-6) continue; // a square roof has two zero-area faces: sagging them would hang cloth below the hips
+    const nx = Math.abs((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])), nz = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])), useZ = nx > nz;
     const vert = (i, j) => { const u = i / n, v = j / n, q = lerp3(a, b, c, u, v), w0 = 1 - u - v, bub = 27 * w0 * u * v; q[1] -= sag * Math.min(1, bub) * (rise > 0.05 ? 1 : 0); pos.push(...q); uv.push((useZ ? q[2] : q[0]) / 1.2, (q[1] + (useZ ? q[0] : q[2])) / 1.2); };
     for (let i = 0; i < n; i++) for (let j = 0; j < n - i; j++) {
       vert(i, j); vert(i + 1, j); vert(i, j + 1);
@@ -520,7 +522,7 @@ const palOf = (it, def) => (it.palette && it.palette.length ? it.palette : def);
 function mergeParts(g) {
   g.updateMatrixWorld(true);
   const by = new Map();
-  g.traverse(o => { if (o.isMesh && !o.isInstancedMesh && !o.userData.keep && o.geometry && o.geometry.attributes.position) { const k = o.material.uuid + "|" + o.castShadow + "|" + o.receiveShadow + "|" + (o.renderOrder || 0); if (!by.has(k)) by.set(k, []); by.get(k).push(o); } });
+  g.traverse(o => { if (o.isMesh && !o.isInstancedMesh && !o.userData.keep && o.geometry && o.geometry.attributes.position) { const k = o.material.uuid + "|" + o.castShadow + "|" + o.receiveShadow + "|" + (o.renderOrder || 0) + "|" + !!o.userData.thru; if (!by.has(k)) by.set(k, []); by.get(k).push(o); } });
   by.forEach(list => {
     if (list.length < 2) return;
     const names = ["position", "normal", "uv"].filter(n => list.every(m => m.geometry.attributes[n])), arrays = names.map(() => []);
@@ -531,7 +533,7 @@ function mergeParts(g) {
     });
     const geo = new T.BufferGeometry(); names.forEach((n, i) => geo.setAttribute(n, new T.Float32BufferAttribute(arrays[i], n === "uv" ? 2 : 3)));
     if (!names.includes("normal")) geo.computeVertexNormals();
-    geo.computeBoundingSphere(); const one = new T.Mesh(geo, list[0].material); one.castShadow = list[0].castShadow; one.receiveShadow = list[0].receiveShadow; one.renderOrder = list[0].renderOrder || 0; g.add(one);
+    geo.computeBoundingSphere(); const one = new T.Mesh(geo, list[0].material); one.castShadow = list[0].castShadow; one.receiveShadow = list[0].receiveShadow; one.renderOrder = list[0].renderOrder || 0; if (list[0].userData.thru) one.userData.thru = true; g.add(one);
   });
 }
 let SHADOW_TEX = null;
