@@ -34,10 +34,10 @@ triangles. Since Phase 3 the parts of a piece that share a material are joined, 
 about 5; the sample room is 57 pieces, about 90,000 triangles and 168 separately drawn parts. Tiny repeated things (buttons,
 sparks, candies) use the low-detail `DOT` sphere, or they blow the budget.
 
-## Adding a piece (Phase 4 did 28 this way)
+## Adding a piece (Phase 4 did 28, Phase 6 did 26)
 
 1. A finding in `research/` with at least one real page, and a spec in `specs/` pointing at it.
-2. Its entry in `CATALOG` (`3d/scene.js`) with a real size in meters and the right flags, and its shape in `buildItem` (`3d/decor.js`, or `3d/decor_more.js` for new pieces). Sizes must come from a page you actually opened; say so in the finding if you only saw a search excerpt.
+2. Its entry in `CATALOG` (`3d/scene.js`) with a real size in meters and the right flags, and its shape in `buildItem` (`3d/decor.js`, or `3d/decor_more.js` for new pieces). Sizes must come from a page someone actually opened; if none could be, label the size an ESTIMATE in `research/estimated_sizes_p6.json` and say so; say so in the finding if you only saw a search excerpt.
 3. Its line in `META` (`assets.js`): description, tags, event types, styles. Search reads all of these.
 4. Its words near the top of `KIND_WORDS` (`scene.js`), so "add a …" in the Ask box finds it.
 5. `bash agents/check_all.sh`, then look at it: the asset check proves it builds and fits its budget, not that it looks right.

@@ -137,6 +137,33 @@ const META = {
   patio_heater: ["Propane mushroom heater for cool evenings outside. Keep it clear of tent walls: check with the venue and the fire marshal.", ["patio heater", "heater", "propane", "outdoor", "warmth"], ["wedding", "birthday", "anniversary", "corporate", "gala", "holiday", "community"], ["classic", "modern", "glam"]],
   handwash_station: ["Portable two-basin hand wash sink with soap and towels.", ["hand wash", "sink", "sanitation", "portable", "outdoor", "indoor"], ["wedding", "birthday", "graduation", "corporate", "holiday", "community"], ["modern", "minimal"]],
   cable_ramp: ["Cable protector ramp so guests and carts can cross cords safely.", ["cable ramp", "cable protector", "cord cover", "power", "accessible", "outdoor", "indoor"], ["wedding", "birthday", "graduation", "corporate", "holiday", "community"], ["modern", "minimal"]],
+  // Phase 6 (Nov 5, 2026). indoor/outdoor tags say where each piece is normally used.
+  champagne_tower:  ["Stacked champagne coupe tower on a draped table.", ["champagne", "tower", "toast", "glassware", "indoor"], SOCIAL, ["classic", "glam", "romantic"]],
+  coffee_station:   ["Self-serve coffee station with two urns, cups and a draped table.", ["coffee", "urn", "beverage", "catering", "indoor"], ALL, ["classic", "modern", "minimal"]],
+  water_station:    ["Freestanding bottleless water dispenser with hot and cold taps.", ["water", "dispenser", "cooler", "hydration", "indoor"], ALL, ["modern", "minimal"]],
+  cornhole:         ["Cornhole board with a 6-inch hole, 48 by 24 inches.", ["cornhole", "lawn game", "bean bag", "game", "outdoor", "indoor"], PARTY.concat(["wedding"]), ["rustic", "modern"]],
+  fire_pit:         ["Round steel fire pit with logs, for outdoor evenings.", ["fire pit", "fire", "heat", "lounge", "outdoor"], ["wedding", "birthday", "anniversary", "holiday", "community"], ["rustic", "boho"]],
+  confetti_cannon:  ["Confetti cannon on a small stand for a grand moment.", ["confetti", "cannon", "effect", "celebration", "indoor"], SOCIAL, ["glam", "modern"]],
+  bubble_machine:   ["Bubble machine for entrances and dance floors.", ["bubbles", "bubble machine", "effect", "kids", "indoor", "outdoor"], ["wedding", "birthday", "shower", "graduation", "holiday", "community"], ["boho", "modern"]],
+  easel_sign:       ["Wooden easel with a welcome or seating sign board.", ["easel", "sign", "welcome", "signage", "indoor", "outdoor"], ALL, ["rustic", "classic", "boho"]],
+  card_box:         ["Wooden card box with a slot, for gifts and wishes.", ["card box", "gift", "cards", "wishing well", "indoor"], ["wedding", "shower", "birthday", "anniversary", "graduation"], ["classic", "rustic", "romantic"]],
+  stanchion:        ["Pair of stanchion posts with a velvet rope for queues and VIP lines.", ["stanchion", "rope", "queue", "vip", "crowd control", "indoor", "outdoor"], ["gala", "corporate", "wedding", "community"], ["classic", "glam", "modern"]],
+  misting_fan:      ["Pedestal misting fan that cools guests on hot days.", ["misting fan", "cooling", "fan", "heat", "comfort", "outdoor"], ["wedding", "birthday", "graduation", "holiday", "community", "corporate"], ["modern", "minimal"]],
+  trash_station:    ["Three-bin trash, recycling and compost station.", ["trash", "recycling", "waste", "bins", "sanitation", "indoor", "outdoor"], ALL, ["modern", "minimal"]],
+  coat_rack:        ["Rolling garment rack with coats for coat check.", ["coat rack", "coat check", "garment rack", "cloakroom", "indoor"], ALL, ["classic", "modern", "minimal"]],
+  ada_ramp:         ["Accessible ramp at a 1:12 slope, 36 inches wide, with handrails and a landing.", ["ramp", "ada", "accessible", "wheelchair", "access", "indoor", "outdoor"], ALL, ["modern", "minimal"]],
+  golf_cart:        ["Four-seat golf cart for guest shuttles and site crews.", ["golf cart", "shuttle", "transport", "accessible", "outdoor"], ["wedding", "corporate", "graduation", "holiday", "community"], ["modern", "classic"]],
+  ticket_booth:     ["Small ticket booth with a window and awning.", ["ticket booth", "box office", "entry", "tickets", "outdoor", "indoor"], ["corporate", "community", "holiday", "graduation"], ["modern", "classic"]],
+  first_aid_tent:   ["10 by 10 ft first aid tent with a table and kit.", ["first aid", "medical", "safety", "tent", "outdoor"], ["corporate", "community", "holiday", "graduation", "wedding"], ["modern", "minimal"]],
+  tree:             ["Potted tree for entrances, ceremonies and photo corners.", ["tree", "potted", "greenery", "plant", "indoor", "outdoor"], ALL, ["boho", "rustic", "romantic", "classic"]],
+  hedge_wall:       ["Boxwood hedge wall panel for backdrops and privacy.", ["hedge", "boxwood", "wall", "greenery", "backdrop", "indoor", "outdoor"], SOCIAL, ["classic", "romantic", "glam"]],
+  topiary:          ["Pair of potted topiaries, a ball and a cone.", ["topiary", "greenery", "entrance", "pair", "indoor", "outdoor"], SOCIAL, ["classic", "romantic", "glam"]],
+  poster_easel:     ["Tripod poster easel with a 24 by 36 inch board.", ["poster easel", "easel", "display", "seating chart", "signage", "indoor"], ALL, ["classic", "rustic", "minimal"]],
+  upright_piano:    ["Upright piano with bench, for music and sing-alongs.", ["piano", "upright", "music", "keyboard", "performance", "indoor"], ["wedding", "anniversary", "gala", "holiday", "community", "corporate"], ["classic", "romantic"]],
+  baby_grand:       ["Baby grand piano with bench, for galas and ceremonies.", ["piano", "baby grand", "grand piano", "music", "performance", "indoor"], ["wedding", "anniversary", "gala", "holiday", "community"], ["classic", "glam", "romantic"]],
+  classroom_desk:   ["6-foot seminar table, 18 inches deep, for classrooms and workshops.", ["classroom", "seminar table", "desk", "workshop", "training", "indoor"], ["corporate", "community", "graduation"], ["modern", "minimal"]],
+  charging_station: ["Phone charging tower with lockable bays.", ["charging station", "phone charger", "power", "usb", "indoor"], ["corporate", "gala", "wedding", "community"], ["modern", "minimal"]],
+  photo_backdrop_frame: ["8 by 8 ft backdrop frame with a fabric panel for photos.", ["photo backdrop", "backdrop frame", "photo op", "step and repeat", "indoor"], ALL, ["modern", "glam", "minimal"]],
   building:         ["A building already on the site, sized to match the real one.", ["building", "site", "outdoor", "existing"], ["wedding", "shower", "birthday", "anniversary", "corporate", "gala", "graduation", "holiday", "community"], ["classic", "modern"]]
 };
 
@@ -165,7 +192,7 @@ export const metaIds = () => Object.keys(META);
 // Everyday words for an event, so "baby shower" or "quinceañera" finds the right pieces.
 const SAY = { baby: "shower", gender: "shower", reveal: "shower", bridal: "wedding", reception: "wedding", ceremony: "wedding", quince: "birthday", quinceanera: "birthday", party: "birthday",
   office: "corporate", conference: "corporate", company: "corporate", grad: "graduation", christmas: "holiday", church: "community", school: "community",
-  luncheon: "corporate", picnic: "community", fair: "community", festival: "community", concert: "community", rodeo: "community", outside: "outdoor", lawn: "outdoor", backyard: "outdoor", power: "generator", toilet: "restroom", porta: "restroom", fence: "barricade" };
+  luncheon: "corporate", picnic: "community", fair: "community", festival: "community", concert: "community", rodeo: "community", outside: "outdoor", lawn: "outdoor", backyard: "outdoor", power: "generator", toilet: "restroom", porta: "restroom", fence: "barricade", cooler: "water", urn: "coffee", rope: "stanchion", ada: "ramp", wheelchair: "ramp", medical: "first", kiosk: "charging" };
 export function searchAssets(q = "", f = {}) {
   const words = String(q).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean).map(w => SAY[w] || SAY[w.replace(/s$/, "")] || w);
   return ASSETS.filter(a => (!f.event || a.events.includes(f.event)) && (!f.style || a.styles.includes(f.style)) && (!f.category || a.category === f.category)
