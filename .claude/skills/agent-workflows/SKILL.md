@@ -18,7 +18,7 @@ How the agents fit together, the GitHub traps already hit, and how to add a new 
 | builder-queue | a builder pull request closing, the `queue` label, auto-merge, the tap-everything filer, Run workflow | starts the next `queue` issue, one at a time (`next` goes first, `needs Roy` is skipped, nothing during the Dec 31 to Jan 3 freeze) |
 | nightly-agents | every night | test customer, technical agent, then the tap-everything check (agents/crawl.py) and its filer (agents/file_crawl_issues.py) |
 | tutorials | 4 times a day (about 9:43 AM, 12:43 PM, 3:43 PM, 6:43 PM), Run workflow | agents/tutorials/run.py: writes steps for the next tutorial if needed, records the live demo with a voice, uploads to the draft release tutorial-library, saves the queue to the tutorials-data branch |
-| eddie-brain | a change to workers/eddie-brain or its workflow on main, Run workflow | installs Eddie's brain on Cloudflare (Workers AI, free), asks /hello, posts PASSED or FAILED as a comment on the commit |
+| eddie-brain | a change to workers/eddie-brain or its workflow on main, Run workflow | installs Eddie's brain on Cloudflare (Workers AI, free; /ask for the portal's Eddie, /hello for this test), asks /hello, posts PASSED or FAILED as a comment on the commit |
 | weekly-report | Monday mornings | one issue @mentioning Roy with the week (.github/scripts/weekly_report.py) |
 | load-issues | a change to .github/issues/*.json or its script | turns lists into issues once each, and makes sure the labels exist |
 
@@ -50,6 +50,10 @@ Marks that connect them: `<!-- auto-fix -->` (reviewer → builder, once per pul
 12. **Two pull requests that both add a line at the top of CHANGELOG.md conflict.** Merge them in order; to fix one, merge main into
    it and keep both lines, newest first.
 
+13. **A merge isn't live until GitHub Pages publishes it.** On Nov 6 the "deploy" step timed out twice ("Timeout reached, aborting")
+   after Eddie's merge, so the site kept the old version while main had the new one. After a merge, check the commit's check-runs
+   (`gh api repos/Hostmode/HostMode.Github.io/commits/SHA/check-runs`, name `deploy`); if it failed, the next push publishes
+   everything, or Roy can re-run it (Actions → pages build and deployment → Re-run).
 ## Adding or changing an agent
 
 - [ ] It reads CLAUDE.md and the Skills that fit (put it in its prompt).

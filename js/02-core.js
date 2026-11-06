@@ -334,6 +334,7 @@ function render(force){
  document.querySelectorAll("[data-timer]").forEach(el=>el.textContent=fmtLeft(+el.dataset.timer));
  drawQRs();try{cgUpdate()}catch(e){console.warn(e)}try{duoUpdate();partyUpdate()}catch(e){console.warn(e)}
  try{updateMoment();updateReveal()}catch(e){console.warn(e)}
+ try{eddieSync()}catch(e){}/* Eddie, the planner portal's assistant (js/18b-eddie.js): his own layer outside #app */
  if((VIEW==="moderator"&&L.modOK&&D.content!==undefined&&L.loaded)||(VIEW==="host"&&L.hostOK&&L.loaded))runCleanup();
  if(VIEW==="moderator"&&L.modOK&&L.loaded&&!L.tourAuto&&!store.get("tourDone",false)&&!(D.meta&&D.meta.practice)){L.tourAuto=true;L.mtab="live";setTimeout(()=>{L.tourI=0;render(true);tourStep()},1200)}
 }

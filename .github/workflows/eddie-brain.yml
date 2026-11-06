@@ -105,6 +105,19 @@ jobs:
             echo "Eddie did not answer: $(head -c 800 "$RUNNER_TEMP/eddie/hello.json" 2>/dev/null)" >> "$log"; exit 1
           fi
 
+      - name: Ask Eddie a real question (reported, not judged; the AI's wording varies)
+        env:
+          SUB: ${{ steps.sub.outputs.sub }}
+        run: |
+          log="$RUNNER_TEMP/eddie/report.txt"
+          jq -n '{text:"Add 20 gold chairs to the pull list for the Lopez wedding on Saturday", today:(now|strftime("%Y-%m-%d")), help:["Send an invoice","Add a new client","Reserve items for an event"]}' > "$RUNNER_TEMP/eddie/ask.json"
+          code=$(curl -sS -o "$RUNNER_TEMP/eddie/ask-out.json" -w '%{http_code}' -X POST -H "origin: https://hostmode.github.io" -H "content-type: application/json" \
+            --data @"$RUNNER_TEMP/eddie/ask.json" "https://eddie-brain.$SUB.workers.dev/ask" || true)
+          echo "Ask test (HTTP ${code:-000}): $(jq -c '{ok,job,for,items,date,model,say,error}' "$RUNNER_TEMP/eddie/ask-out.json" 2>/dev/null | head -c 600)" >> "$log"
+          code2=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "origin: https://example.com" -H "content-type: application/json" --data '{"text":"hi"}' "https://eddie-brain.$SUB.workers.dev/ask" || true)
+          echo "Other websites refused: $([ "$code2" = 403 ] && echo yes || echo "NO (HTTP $code2)")" >> "$log"
+          [ "$code2" = 403 ]
+
       - name: Report on the commit
         if: always()
         env:
