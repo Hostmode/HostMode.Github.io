@@ -453,7 +453,7 @@ Host Mode (one space, both words capitalized)
 - Paper #fffaf3 (backgrounds)
 
 ## Logo
-The app icon is img/icon.svg in the code. The new "two doors" crest logo is still being chosen; use the app icon until then.
+The logo is the arch mark (img/icon.svg in the code): a doorway with a warm sun inside — navy #0c2147, ivory arch, orange sun, gold threshold. The wordmark is "Host Mode" in Cormorant Garamond, with "Mode" in gold.
 
 ## Screenshots for flyers and posts
 img/shot-plan.jpg, img/shot-guest.jpg, img/shot-host.jpg, img/shot-tv.jpg, img/shot-moment.jpg

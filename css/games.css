@@ -28,6 +28,14 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 .brand h1{font-family:var(--f-script);font-weight:400;font-size:2.5rem;line-height:1;margin:0;
   background:linear-gradient(90deg,var(--rose),var(--flame) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
 .brand p{margin:2px 0 0;font-family:var(--f-caps);letter-spacing:.14em;text-transform:uppercase;font-size:.72rem;color:var(--leaf)}
+/* ---- Host Mode lockup (brand headers only): arch mark + Cormorant wordmark.
+   Event titles keep .brand h1 above (their themed script font + gold titleMark).
+   The wordmark is Host Mode's own, so it stays Cormorant even where --f-brand
+   is a planner's font (see the hmbrand rule below). ---- */
+.brand.hm h1.hmword{display:flex;align-items:center;gap:10px;padding:0;margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:clamp(2rem,9.5vw,2.6rem);letter-spacing:-.01em;line-height:1;background:none;-webkit-text-fill-color:currentColor;color:#0c2147}
+.brand.hm h1.hmword span{color:#c9a24a}
+.brand.hm .hmlogo{width:40px;height:40px;flex:none;border-radius:10px;box-shadow:0 4px 12px -4px rgba(12,33,71,.35)}
+.brand.hm p{padding-left:50px}
 .seg{display:inline-flex;background:var(--ground-2);border:1px solid var(--line);border-radius:999px;padding:3px}
 .seg button{border:0;background:none;padding:7px 14px;border-radius:999px;font-weight:600;font-size:.85rem;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--rose);color:#fff}
@@ -917,6 +925,7 @@ html.hmbrand:not(.hc) body{background:radial-gradient(560px 300px at 50% -80px,r
 html.hmbrand:not(.hc) #ribbons{display:none}
 html.hmbrand:not(.hc) header.top{background:linear-gradient(180deg,rgba(255,253,248,.94),rgba(253,246,233,.78))}
 html.hmbrand:not(.hc) .brand h1{font-family:var(--f-brand);font-weight:600;letter-spacing:-.01em}
+html.hmbrand:not(.hc) .brand.hm h1.hmword{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600}/* the Host Mode wordmark stays Cormorant, never the planner's brand font */
 html.hmbrand:not(.hc) .brand p{font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.8rem;letter-spacing:.24em;font-weight:800;color:#9c7c2e}
 
 /* ---- type: display font (var(--f-brand), Cormorant Garamond unless the
