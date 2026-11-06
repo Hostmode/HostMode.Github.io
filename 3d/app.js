@@ -2,6 +2,7 @@
 import { Editor, S, esc } from "./editor.js";
 import { searchAssets, assetById } from "./library/assets.js";
 import { EVENTS, STYLES } from "./library/contracts.js";
+import { versionsHtml, cleanName } from "./share.js";
 
 // Same Firebase project as games.html (js/02-core.js). Signing in there signs you in here (same website).
 const FIREBASE_CONFIG = { apiKey: "AIzaSyAMWgxbGsq4yiQrsuLYJ1pEb5Qc-8o4zg0", authDomain: "spark-drinks-2d185.firebaseapp.com", databaseURL: "https://spark-drinks-2d185-default-rtdb.firebaseio.com", projectId: "spark-drinks-2d185", appId: "1:497288236361:web:468bd29601daa92e621e98" };
@@ -367,7 +368,7 @@ function viewsTab() {
 }
 
 // ---------- Save & share ----------
-let projects = [];
+let projects = [], vEdit = null, vDraft = "";
 const DEMO = new URLSearchParams(location.search).get("demo") === "1";
 function fileTab() {
   const st = ed.store.status, revs = ed.store.revisions(ed.s.id);
@@ -378,7 +379,7 @@ function fileTab() {
    <h3>Share or back up</h3><div class="row"><button class="btn o" data-x="render">Render photo</button><button class="btn l" data-x="json">Download venue file</button><button class="btn l" data-x="glb">Download 3D model (.glb)</button>
    <label class="btn l" style="display:inline-block">Open a venue file<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
    <h3>Your venues</h3>${projects.map(p => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(p.name)} <span class="muted">${new Date(p.updated).toLocaleString()}</span></span>${p.id === ed.s.id ? `<span class="src confirmed">open</span>` : `<button class="btn l" data-openp="${p.id}">Open</button>`}</div>`).join("") || `<p class="muted">None saved yet.</p>`}
-   <h3>Earlier versions</h3>${revs.map(r => `<div class="row" style="margin-bottom:6px"><span style="flex:1">${new Date(r.t).toLocaleString()} <span class="muted">${r.items} objects</span></span><button class="btn l" data-rev="${r.t}">Go back to this</button></div>`).join("") || `<p class="muted">Tap “Save a version” to keep a copy you can go back to.</p>`}
+   ${versionsHtml(revs, vEdit, esc, vDraft)}
    <p class="muted">Graphics: ${ed.gpu.webgl2 ? "WebGL 2" : "WebGL 1"}${ed.gpu.webgpu ? " (this device also has WebGPU)" : ""}. Preview build: not part of Host Mode yet.</p>`;
 }
 
@@ -436,6 +437,13 @@ body.addEventListener("click", async e => {
   if (d.units) { ed.units = d.units; localStorage.setItem("hm3d_units", d.units); return render(); }
   if (d.go) return ed.goView(d.go);
   if (d.openp) { const s = await ed.store.open(d.openp); if (s) { ed.load(s); toast("Opened " + s.name); } return; }
+  if (d.vname) { vEdit = d.vname; const r = d.vname === "cur" ? null : ed.store.revisions(ed.s.id).find(x => String(x.t) === d.vname); vDraft = r ? r.name : ""; render(); const i = $("#vName"); if (i) i.focus(); return; }
+  if (d.vcancel) { vEdit = null; render(); return; }
+  if (d.vsave) { const nm = cleanName(($("#vName") || {}).value); if (!nm) { toast("Type a name first"); return; }
+    if (d.vsave === "cur") { await ed.store.save(ed.s, true, nm); toast("Saved as “" + nm + "”"); }
+    else { await ed.store.nameRevision(ed.s.id, +d.vsave, nm); toast("Named “" + nm + "”"); }
+    vEdit = null; render(); return; }
+  if (d.vunname) { await ed.store.nameRevision(ed.s.id, +d.vunname, ""); toast("Name removed"); render(); return; }
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }

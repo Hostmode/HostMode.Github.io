@@ -5,6 +5,7 @@
 //   read planners/{uid}, under the existing database rules, so no rule change is needed.
 // The browser copy is a cache. The database copy is the real one once cloud saving is on.
 import { validateFile } from "./scene.js";
+import { cleanName, trimRevs } from "./share.js";
 
 const K = "hm3d_", MAX_REV = 20;
 const ls = {
@@ -52,11 +53,12 @@ export class Store {
   // Saved a second after the last change, so dragging doesn't write dozens of copies.
   autosave(s) { clearTimeout(this.timer); this.timer = setTimeout(() => this.save(s, false), 900); }
 
-  async save(s, revision = true) {
+  async save(s, revision = true, name = "") {
+    name = cleanName(name);
     s.updated = Date.now();
     const okLocal = ls.set("p_" + s.id, s);
     const idx = ls.get("index", {}); idx[s.id] = { id: s.id, name: s.name, updated: s.updated, items: s.items.length }; ls.set("index", idx);
-    if (revision) { const revs = ls.get("r_" + s.id, []); revs.unshift({ t: s.updated, s }); ls.set("r_" + s.id, revs.slice(0, MAX_REV)); }
+    if (revision) { const revs = ls.get("r_" + s.id, []); revs.unshift(name ? { t: s.updated, s, name } : { t: s.updated, s }); ls.set("r_" + s.id, trimRevs(revs, MAX_REV)); }
     let okCloud = null;
     if (this.status === "cloud") {
       try {
@@ -65,7 +67,7 @@ export class Store {
         const up = {};
         up[base + "/venue3d/" + s.id] = { name: s.name, updated: s.updated, json: JSON.stringify(s) };
         up[base + "/venue3dIndex/" + s.id] = { id: s.id, name: s.name, updated: s.updated, items: s.items.length };
-        if (revision) up[base + "/venue3dRev/" + s.id + "/" + s.updated] = JSON.stringify(s);
+        if (revision) { up[base + "/venue3dRev/" + s.id + "/" + s.updated] = JSON.stringify(s); if (name) up[base + "/venue3dRevName/" + s.id + "/" + s.updated] = name; }
         await this.db.ref().update(up); okCloud = true;
       } catch (e) { okCloud = false; }
     }
@@ -95,12 +97,20 @@ export class Store {
   }
   async removePhoto(ref) { PHOTOS.delete(ref); try { await idbDo("readwrite", st => st.delete(ref)); } catch (e) {} if (this.status === "cloud") { try { await this.db.ref("planners/" + this.uid + "/venue3dPhoto/" + ref).remove(); } catch (e) {} } }
   async clearPhotos() { PHOTOS.clear(); try { await idbDo("readwrite", st => st.clear()); } catch (e) {} } // the demo's Start over: no photo left on the device
-  revisions(id) { return ls.get("r_" + id, []).map(r => ({ t: r.t, items: r.s.items.length })); }
+  revisions(id) { return ls.get("r_" + id, []).map(r => ({ t: r.t, items: r.s.items.length, name: r.name || "" })); }
+  // Give an earlier version a name (or "" to remove it). Removing a name puts it back under the 20-version limit.
+  async nameRevision(id, t, name) {
+    name = cleanName(name); const revs = ls.get("r_" + id, []), r = revs.find(x => x.t === t); if (!r) return false;
+    if (name) r.name = name; else delete r.name;
+    ls.set("r_" + id, trimRevs(revs, MAX_REV));
+    if (this.status === "cloud") { try { await this.db.ref("planners/" + this.uid + "/venue3dRevName/" + id + "/" + t).set(name || null); } catch (e) {} }
+    return true;
+  }
   revision(id, t) { const r = ls.get("r_" + id, []).find(x => x.t === t); return r ? validateFile(JSON.parse(JSON.stringify(r.s))) : null; }
   async remove(id) {
     const cur = ls.get("p_" + id, null); if (cur && cur.photo && cur.photo.ref) await this.removePhoto(cur.photo.ref); // a removed design takes its photo with it
     if (cur && cur.site && cur.site.aerial && cur.site.aerial.ref) await this.removePhoto(cur.site.aerial.ref); // and an outdoor site its aerial picture
     ls.del("p_" + id); ls.del("r_" + id); const idx = ls.get("index", {}); delete idx[id]; ls.set("index", idx);
-    if (this.status === "cloud") { const b = "planners/" + this.uid; const up = {}; up[b + "/venue3d/" + id] = null; up[b + "/venue3dIndex/" + id] = null; up[b + "/venue3dRev/" + id] = null; await this.db.ref().update(up); }
+    if (this.status === "cloud") { const b = "planners/" + this.uid; const up = {}; up[b + "/venue3d/" + id] = null; up[b + "/venue3dIndex/" + id] = null; up[b + "/venue3dRev/" + id] = null; up[b + "/venue3dRevName/" + id] = null; await this.db.ref().update(up); }
   }
 }

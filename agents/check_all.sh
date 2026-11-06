@@ -14,6 +14,8 @@ sleep 2
 python3 agents/venue3d_asset_check.py || exit 1
 python3 agents/venue3d_photo_check.py || exit 1
 python3 agents/venue3d_site_check.py || exit 1
+python3 agents/venue3d_versions_check.py || exit 1
+python3 agents/venue3d_versions_check.py --selftest >/dev/null && { echo "Versions check self-test: planted mistakes were NOT caught"; exit 1; }
 python3 agents/office3d_check.py || exit 1
 python3 agents/eddie_check.py || exit 1
 python3 agents/tester.py --scripted-only
