@@ -3,7 +3,7 @@
 Uses the planner demo with a pretend brain (the real one is on Cloudflare; this check needs no network):
 the first-visit hello, asking for each job (pull list, calendar date, client, lead, how-to), the Yes card, No, Undo,
 "Show me" pointing at a tab, the backup understanding when the brain can't be reached, and that he stays out of the
-host dashboard and the 3D designer. Planted problems: the brain answering a job that doesn't exist, an item that isn't
+host dashboard, and docks out of the way on the 3D designer tab. Planted problems: the brain answering a job that doesn't exist, an item that isn't
 in the inventory, and a sentence nobody could act on must never change anything.
 Run from the repo root with the site served on port 8765. Pass a folder to keep the screenshots.
 """
@@ -118,11 +118,11 @@ def main():
         pg.screenshot(path=os.path.join(out, "eddie-5-backup.png"))
         pg.click("#eddie [data-ed=close]")
 
-        # 7. where he isn't: the 3D designer tab and the host dashboard
+        # 7. the 3D designer tab (docked out of the way; agents/venue3d_eddie_check.py checks it in full) and the host dashboard
         S("L.plTab='d3';render(true)"); pg.wait_for_timeout(300)
-        ok(not pg.is_visible("#eddie .edfab"), "Eddie steps aside in the 3D designer")
+        ok(pg.is_visible("#eddie.edd3 .edfab"), "on the 3D designer tab Eddie docks out of the designer's way")
         S("L.plTab='home';render(true)"); pg.wait_for_timeout(300)
-        ok(pg.is_visible("#eddie .edfab"), "and comes back on Home")
+        ok(pg.is_visible("#eddie .edfab") and not pg.is_visible("#eddie.edd3"), "and floats at the bottom right again on Home")
         pg.goto(BASE + "/games.html?pdemo=1&host=1#planner"); pg.wait_for_function("typeof D==='object' && D.plMe", timeout=30000); pg.wait_for_timeout(800)
         ok(not pg.is_visible("#eddie .edfab"), "not in the host dashboard")
         ok(not errs, "no page errors" + ("" if not errs else ": " + "; ".join(errs[:3])))

@@ -335,7 +335,7 @@ const FLOATS={},FLOAT_HOOKS=[];
 const floatPause=(f,on)=>{try{f.contentWindow.HM3D_PAUSED=on}catch(e){}};
 function floatPlace(){const seen=new Set();
  document.querySelectorAll(".hmfloat[data-key]").forEach(slot=>{const k=slot.dataset.key;seen.add(k);let f=FLOATS[k];
-  if(!f){f=FLOATS[k]=document.createElement("iframe");f.className="pl3dfloat";f.title=slot.dataset.title||"";f.allow="fullscreen";f.src=slot.dataset.src;document.body.appendChild(f)}
+  if(!f){f=FLOATS[k]=document.createElement("iframe");f.className="pl3dfloat";f.title=slot.dataset.title||"";f.allow="fullscreen; microphone";f.src=slot.dataset.src;document.body.appendChild(f)}
   if(f.style.display==="none")floatPause(f,false);const r=slot.getBoundingClientRect();Object.assign(f.style,{display:"block",left:(r.left+scrollX)+"px",top:(r.top+scrollY)+"px",width:r.width+"px",height:r.height+"px"})});
  Object.keys(FLOATS).forEach(k=>{const f=FLOATS[k];if(!seen.has(k)&&f.style.display!=="none"){f.style.display="none";floatPause(f,true)}});
  FLOAT_HOOKS.forEach(h=>{try{h()}catch(e){}})}

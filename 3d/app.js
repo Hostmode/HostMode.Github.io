@@ -60,12 +60,41 @@ $("#banner").addEventListener("click", e => {
   if (id === "bnDrop") { ed.drop(); hideBanner(); lastLog = [{ t: "Nothing was changed." }]; render(); }
   if (id === "bnDel") { const ops = confirmDel.map(o => o.op === "delete_object" ? Object.assign({}, o, { confirm: true }) : o); confirmDel = null; hideBanner(); previewSteps(ops); }
   if (id === "bnNo") { confirmDel = null; hideBanner(); }
+  if (id === "bnPlaceNo") endPlace();
 });
 
 // ---------- Add ----------
 // The library: search words, an event and a style narrow it down (searchAssets in 3d/library/assets.js). With nothing typed
 // or picked it's every piece by category. Each piece gets a small picture, drawn a few at a time while this tab is open.
 let libQ = "", libEv = "", libSt = "", libCat = ""; // libCat: the category opened from the tiles
+// Ask Eddie (the Add tab's box) and where new pieces land. Eddie first tries to set up what was said (S.interpret, shown as a
+// preview to keep or undo); if there's nothing to set up, the words search the library instead.
+let eddieSays = "", eddieListening = false, eddieRec = null, placing = null, landMode = "look";
+try { if (localStorage.getItem("hm3d_land") === "tap") landMode = "tap"; } catch (e) {}
+function eddieGo(text) {
+  text = String(text || "").trim().slice(0, 300);
+  if (!text) { eddieSays = "Tell me what you'd like, like “a round table for eight with gold chairs”."; return render(); }
+  const { ops, notes } = S.interpret(ed.s, text);
+  if (ops.length) { eddieSays = "Here it is in the room. Tap Keep it to keep it, or Undo this."; lastLog = notes.map(n => ({ t: n, c: /didn't|couldn't|won't/.test(n) ? "warn" : "" })); render(); previewSteps(ops); return; }
+  libQ = text.slice(0, 60); const n = searchAssets(libQ, { event: libEv, style: libSt }).filter(a => S.CATALOG[a.id]).length;
+  eddieSays = n ? `I can't set that up by myself yet, but ${n === 1 ? "this piece matches" : "these pieces match"}. Tap one to add it.` : (notes.find(x => /won't|couldn't/.test(x)) || "I couldn't find that. Try fewer words, like “round table” or “gold chairs”.");
+  render();
+}
+function eddieMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  if (eddieListening) { try { eddieRec && eddieRec.stop(); } catch (e) {} eddieListening = false; return render(); }
+  try { const r = new SR(); eddieRec = r; r.lang = navigator.language || "en-US"; r.interimResults = true; eddieListening = true; render();
+    r.onresult = ev => { const res = ev.results[ev.results.length - 1], t = res[0].transcript, i = $("#libQ"); if (i) i.value = t; if (res.isFinal) { eddieListening = false; eddieGo(t); } };
+    r.onerror = ev => { eddieListening = false; eddieSays = ev && ev.error === "not-allowed" ? "I need permission to use the microphone. You can also type." : eddieSays; render(); };
+    r.onend = () => { if (eddieListening) { eddieListening = false; render(); } }; r.start(); } catch (e) { eddieListening = false; render(); }
+}
+function addAt(kind, at) { const id = S.uid("i_"), r = ed.run([{ op: "add_item", kind, id, x: at[0], z: at[1] }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[kind].label.toLowerCase()); } return r; }
+function endPlace() { if (!placing) return; placing = null; ed.groundTap = null; hideBanner(); }
+function startPlace(kind) {
+  endPlace(); placing = kind; ed.select(null);
+  ed.groundTap = pt => { const k = placing; endPlace(); if (k) addAt(k, pt); };
+  showBanner(`<b>Tap the floor where the ${esc(S.CATALOG[kind].label.toLowerCase())} should go.</b><div class="row"><button class="btn l" id="bnPlaceNo">Cancel</button></div>`);
+}
 const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
 function libCard(k) { const c = S.CATALOG[k], u = THUMBS.get(k), a = assetById(k);
   return `<button class="lib" data-add="${k}" title="${esc(a && a.description || "")}"><img class="th" data-k="${k}" alt="" ${u ? `src="${u}"` : ""}>${esc(c.label)}<small>${fmt(c.w)} × ${fmt(c.d)}</small></button>`; }
@@ -79,13 +108,16 @@ function libList() {
   return `<p class="muted" role="status">${hits.length ? hits.length + (hits.length === 1 ? " piece" : " pieces") : "Nothing matches. Try fewer words, or clear the filters."}</p><div class="grid">${hits.map(a => libCard(a.id)).join("")}</div>`;
 }
 function addTab() {
-  return `<input id="libQ" type="search" class="search" placeholder="Search: arch, gold, rustic, throne…" aria-label="Search the library" value="${esc(libQ)}">
+  const mic = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  return `<div class="eddiebar"><img src="img/eddie/eddie-wave.webp" alt="" class="eddieface"><div class="eddiein"><input id="libQ" type="search" class="search" placeholder="Ask Eddie: a round table for eight with gold chairs" aria-label="Ask Eddie, or search the library" value="${esc(libQ)}" enterkeyhint="go">${mic ? `<button class="btn l" data-x="eddieMic" aria-label="${eddieListening ? "Stop listening" : "Talk to Eddie"}" aria-pressed="${eddieListening}">${eddieListening ? "■" : "🎤"}</button>` : ""}<button class="btn o" data-x="eddieGo">Go</button></div></div>
+  <p class="muted eddiesays" role="status">${esc(eddieSays || "Type to search the library, or tell Eddie what to set up and tap Go.")}</p>
+  <div class="row" style="margin:4px 0 2px;align-items:center"><span class="muted">New pieces land</span><button class="chip${landMode === "look" ? " on" : ""}" data-x="landLook" aria-pressed="${landMode === "look"}">Where I'm looking</button><button class="chip${landMode === "tap" ? " on" : ""}" data-x="landTap" aria-pressed="${landMode === "tap"}">Where I tap</button></div>
   <div class="row" style="margin:8px 0 2px"><label class="f">Event<select id="libEv"><option value="">Any event</option>${EVENTS.map(e => `<option value="${e}" ${libEv === e ? "selected" : ""}>${cap(e)}</option>`).join("")}</select></label>
   <label class="f">Style<select id="libSt"><option value="">Any style</option>${STYLES.map(e => `<option value="${e}" ${libSt === e ? "selected" : ""}>${cap(e)}</option>`).join("")}</select></label>
   <button class="btn l" data-x="libClear" style="align-self:flex-end" ${libQ || libEv || libSt ? "" : "hidden"}>Clear</button></div>
   <p class="muted">Tablecloths, runners, chair covers and sashes are on each table and chair: tap one in the room, then style it under Selected.</p>
   <div id="libList">${libList()}</div>
-  <p class="muted">New things land in the middle of the room. Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
+  <p class="muted">${landMode === "tap" ? "Tap a piece, then tap the floor where it should go." : "New pieces land in the middle of what you're looking at."} Drag the arrows to move them. Centerpieces and candles go on a table: select the table first, or tap one after you add them.</p>`;
 }
 // Typing only redraws the results, never the search box, so the keyboard stays up on a phone.
 function refreshLib() { const el = $("#libList"); if (el) { el.innerHTML = libList(); wantThumbs(); } const c = $("[data-x=libClear]"); if (c) c.hidden = !(libQ || libEv || libSt); }
@@ -409,7 +441,7 @@ ed.on(info => {
   render();
 });
 
-document.querySelector(".tabs").addEventListener("click", e => { const t = e.target.dataset.tab; if (t) { tab = t; if (t === "file") refreshProjects(); render(); } });
+document.querySelector(".tabs").addEventListener("click", e => { const t = e.target.dataset.tab; if (t) { if (t !== "add") endPlace(); tab = t; if (t === "file") refreshProjects(); render(); } });
 body.addEventListener("click", e => { const b = e.target.closest("[data-cam],[data-mood]"); if (!b) return; if (b.dataset.cam) ed.camPreset(b.dataset.cam); else { ed.setMood(b.dataset.mood); render(); } });
 document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => ed.setView(b.dataset.view));
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => ed.setMode(b.dataset.mode));
@@ -427,7 +459,7 @@ body.addEventListener("click", async e => {
     if (sel && S.CATALOG[sel.kind].dress === "table") { const id = S.uid("i_"), r = ed.run([{ op: "add_item", kind: d.add, on: sel.id, id }]); if (r.ok) { ed.select(id); toast("Put on the selected table"); } return; }
     ed.select(null); ed.placeTop = d.add; tab = "sel"; render(); toast("Tap a table to put it on"); return;
   }
-  if (d.add) { const id = S.uid("i_"); const r = ed.run([{ op: "add_item", kind: d.add, id, x: ed.s.room.w / 2, z: ed.s.room.d / 2 }]); if (r.ok) { ed.select(id); toast("Added " + S.CATALOG[d.add].label.toLowerCase()); } return; }
+  if (d.add) { if (landMode === "tap") return startPlace(d.add); addAt(d.add, ed.landingSpot()); return; }
   if (d.col && it) return ed.run([{ op: "change_material", id: it.id, color: d.col }]);
   if (d.drc && it) return ed.run([{ op: "dress_object", id: it.id, [d.drc]: d.v }]);
   if (d.pal && it) return ed.run([{ op: "dress_object", id: it.id, palette: d.pal }]);
@@ -439,7 +471,10 @@ body.addEventListener("click", async e => {
   if (d.rev) { const s = ed.store.revision(ed.s.id, +d.rev); if (s) { ed.hist.push(ed.s); ed.fut = []; ed.s = s; ed.build(); ed.store.autosave(s); toast("Went back to that version (Undo brings it back)"); render(); } return; }
   if (d.x === "topAll" && ed.placeTop) { const kind = ed.placeTop; ed.placeTop = null; const r = ed.run([{ op: "decorate_tables", kind, tables: "all" }]); if (r.ok) toast(r.log[0] || "Put on every table"); render(); return; }
   if (d.x === "topCancel") { ed.placeTop = null; render(); return; }
-  if (d.x === "libClear") { libQ = libEv = libSt = ""; render(); return; }
+  if (d.x === "libClear") { libQ = libEv = libSt = ""; eddieSays = ""; render(); return; }
+  if (d.x === "eddieGo") { const i = $("#libQ"); return eddieGo(i ? i.value : libQ); }
+  if (d.x === "eddieMic") return eddieMic();
+  if (d.x === "landLook" || d.x === "landTap") { landMode = d.x === "landTap" ? "tap" : "look"; if (landMode === "look") endPlace(); try { localStorage.setItem("hm3d_land", landMode); } catch (er) {} render(); return; }
   if (d.x === "libCat") { libCat = d.c; render(); return; }
   if (d.x === "libBack") { libCat = ""; render(); return; }
   if (d.x === "phIn") { ed.setView("photo"); return; }
@@ -528,6 +563,7 @@ body.addEventListener("click", async e => {
     case "glb": try { dl(await ed.exportGLB(), safeName(ed.s) + ".glb"); } catch (er) { toast("Couldn't make the 3D model file"); } break;
   }
 });
+body.addEventListener("keydown", e => { if (e.target.id === "libQ" && e.key === "Enter") { e.preventDefault(); eddieGo(e.target.value); } });
 body.addEventListener("input", e => { if (e.target.id === "libQ") { libQ = e.target.value.slice(0, 60); refreshLib(); }
   if (e.target.id === "sunTime") { const m = +e.target.value, t = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"), el = $("#sunT"); if (el) el.textContent = S.clock(t); } });
 body.addEventListener("change", async e => {
@@ -583,3 +619,6 @@ ed.store.onStatus = () => render();
 
 // For tests and Host Mode's own agents: the same checked steps a person uses. Nothing here runs arbitrary code.
 window.hm3d = { scene: () => S.clone(ed.s), interpret: t => S.interpret(ed.s, t), preview: ops => ed.previewOps(ops), keep: () => ed.keep(), drop: () => ed.drop(), run: ops => ed.run(ops), undo: () => ed.undo(), redo: () => ed.redo(), save: () => ed.store.save(ed.s, true), open: id => ed.store.open(id).then(s => s && ed.load(s)), select: id => ed.select(id), setView: v => ed.setView(v), snapshot: w => ed.snapshot(w), exportGLB: () => ed.exportGLB(), editor: ed };
+// Eddie in the planner portal sends what a planner asked while on the 3D designer tab: true when it set something up
+// (a preview with Keep it / Undo this), false when there was nothing to set up here.
+window.hm3d.ask = text => { const t = String(text || "").slice(0, 300), r = S.interpret(ed.s, t); if (!r.ops.length) return false; tab = "add"; eddieSays = "Here it is in the room. Tap Keep it to keep it, or Undo this."; lastLog = r.notes.map(n => ({ t: n })); render(); previewSteps(r.ops); return true; };

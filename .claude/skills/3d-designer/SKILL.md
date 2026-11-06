@@ -26,6 +26,7 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
   - `over`: tents and fog; never counts as bumping into things.
   - `oneSide`: head and sweetheart tables, seated on one side.
   - `structure`: columns.
+- **Eddie (Nov 6, 2026):** the Add tab's box is "Ask Eddie" (`eddieGo` in app.js: `S.interpret` as a preview, else a library search). New pieces land at `ed.landingSpot()` (the floor in the middle of the view) or, with "Where I tap", at the next `groundTap` (`startPlace`/`endPlace`; leaving the Add tab cancels it). The portal's Eddie calls `window.hm3d.ask(text)` on the designer tab. Check: `agents/venue3d_eddie_check.py`.
 - **Openings** are doors, windows, or `opening` (an open doorway with no door). Walls under 1.5 m are knee walls, and the dollhouse view never hides them.
 
 ## Adding a piece (Phase 4 added 28 this way)

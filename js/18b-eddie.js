@@ -14,7 +14,16 @@ const EDDIE_URL="https://eddie-brain.hostmode.workers.dev/ask";
 const ED={open:false,say:"",prop:null,busy:false,undo:null,done:null,log:[],listening:false,rec:null,point:null};
 const edImg=k=>"img/eddie/eddie-"+k+".webp";
 const edToday=()=>ymdOf(new Date());
-const edOn=()=>VIEW==="planner"&&L.plOK&&L.authReady&&L.loaded!==false&&!!PSP&&!(D.plMe&&D.plMe.kind==="host")&&!L.viewOnly&&L.plTab!=="d3";
+const edOn=()=>VIEW==="planner"&&L.plOK&&L.authReady&&L.loaded!==false&&!!PSP&&!(D.plMe&&D.plMe.kind==="host")&&!L.viewOnly;
+/* On the 3D designer tab Eddie docks beside "Open full screen", out of the designer's way, and what's asked there goes to the designer first. */
+const edD3=()=>L.plTab==="d3";
+const ed3dWin=()=>{try{const f=document.querySelector("iframe.pl3dfloat");return f&&!f.hidden&&f.contentWindow&&f.contentWindow.hm3d?f.contentWindow:null}catch(e){return null}};
+function eddieDock(r){r.classList.toggle("edd3",edD3()&&!ED.open);if(!edD3()||ED.open){r.style.top=r.style.left="";return}
+ /* the portal page keeps settling after a redraw (the designer window, pictures), so re-check the spot while docked */
+ if(!ED.dockT)ED.dockT=setInterval(()=>{const x=document.getElementById("eddie");if(!x||!edOn()||!edD3()||ED.open){clearInterval(ED.dockT);ED.dockT=0;return}eddieDock(x)},400);
+ const slot=document.querySelector("#app .hmfloat"),card=slot&&slot.closest(".card");if(!card){r.style.top=r.style.left="";return}
+ const btn=[...card.querySelectorAll("a,button")].find(b=>/full screen/i.test(b.textContent)),c=card.getBoundingClientRect(),W=40,H=64,top=btn?btn.getBoundingClientRect().bottom-H:c.top+10;
+ const L2=Math.round(c.right+scrollX-W-14)+"px",T2=Math.round(top+scrollY)+"px";if(r.style.left!==L2)r.style.left=L2;if(r.style.top!==T2)r.style.top=T2}
 
 /* ---- matching words to the planner's own records ---- */
 const edNorm=s=>String(s||"").toLowerCase().replace(/['’]s\b/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
@@ -125,23 +134,26 @@ function eddieCard(p){if(!p||p.job==="none")return "";
 /* ---- the layer ---- */
 function eddieRoot(){let r=document.getElementById("eddie");if(r)return r;r=document.createElement("div");r.id="eddie";document.body.appendChild(r);
  r.addEventListener("click",eddieClick);r.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="ed_in"){e.preventDefault();eddieSend()}if(e.key==="Escape")eddieClose()});return r}
-function eddieDraw(){const r=eddieRoot();if(!edOn()){r.hidden=true;return}r.hidden=false;
+function eddieDraw(){const r=eddieRoot();if(!edOn()){r.hidden=true;return}r.hidden=false;eddieDock(r);
  const speech=!!(window.SpeechRecognition||window.webkitSpeechRecognition),pose=ED.pose||"wave";
- if(!ED.open){r.innerHTML=`<button class="edfab" data-ed="open" aria-label="Ask Eddie, your assistant"><img src="${edImg("wave")}" alt="" width="54" height="101"></button>${ED.say?`<div class="edbub edtip" role="status">${esc(ED.say)}<span class="row"><button class="btn xs primary" data-ed="open">Try it</button><button class="btn xs" data-ed="hush">Got it</button></span></div>`:""}`;return}
+ if(!ED.open){r.innerHTML=`<button class="edfab" data-ed="open" aria-label="Ask Eddie, your assistant"><img src="${edImg("wave")}" alt="" width="54" height="101"></button>${ED.say&&!edD3()?`<div class="edbub edtip" role="status">${esc(ED.say)}<span class="row"><button class="btn xs primary" data-ed="open">Try it</button><button class="btn xs" data-ed="hush">Got it</button></span></div>`:""}`;return}
  r.innerHTML=`<section class="edpanel" role="dialog" aria-label="Eddie, your assistant"><div class="edhead"><img src="${edImg(pose)}" alt="Eddie" class="edface"><div class="edbub" aria-live="polite">${ED.busy?'<span class="eddots" aria-label="Eddie is thinking"><i></i><i></i><i></i></span>':esc(ED.say||"Hi! What can I do for you?")}</div><button class="btn xs edx" data-ed="close" aria-label="Close Eddie">✕</button></div>
  ${ED.busy?"":eddieCard(ED.prop)}
  ${!ED.busy&&ED.undo?`<div class="row"><button class="btn sm" data-ed="undo">Undo</button>${ED.done?`<button class="btn sm" data-ed="go" data-k="${ED.done}">Open it</button>`:""}</div>`:""}
- ${!ED.busy&&!ED.prop&&!ED.undo?`<div class="row small edchips">${["Add 20 gold chairs to the pull list for the Lopez wedding","Put a walkthrough with Ana on Thursday at 3","Add a new lead, Maria Lopez","How do I send an invoice?"].map(c=>`<button class="btn xs" data-ed="chip">${esc(c)}</button>`).join("")}</div>`:""}
+ ${!ED.busy&&!ED.prop&&!ED.undo?`<div class="row small edchips">${(edD3()?["Arrange ten round tables with eight chairs at each table","Add a dance floor in the center","Put tall centerpieces on every table","Add 20 gold chairs to the pull list for the Lopez wedding"]:["Add 20 gold chairs to the pull list for the Lopez wedding","Put a walkthrough with Ana on Thursday at 3","Add a new lead, Maria Lopez","How do I send an invoice?"]).map(c=>`<button class="btn xs" data-ed="chip">${esc(c)}</button>`).join("")}</div>`:""}
  <div class="row edask"><input id="ed_in" type="text" maxlength="300" placeholder="${ED.listening?"Listening…":"Tell Eddie what you need"}" aria-label="Tell Eddie what you need" autocomplete="off">${speech?`<button class="btn sm ${ED.listening?"primary":""}" data-ed="mic" aria-label="${ED.listening?"Stop listening":"Talk to Eddie"}" aria-pressed="${ED.listening}">🎤</button>`:""}<button class="btn sm primary" data-ed="send">Send</button></div>
  <div class="small muted edfoot">Eddie always asks before he changes anything. <button class="linkbtn" data-ed="report">Report a problem</button></div></section>`;
  if(!ED.prop&&!ED.busy){const i=document.getElementById("ed_in");if(i&&document.activeElement!==i&&ED.focus){i.focus();ED.focus=false}}}
 function eddieSay(t,pose){ED.say=t;ED.busy=false;ED.pose=pose||(ED.prop&&ED.prop.job==="help"?"point":"wave");eddieDraw()}
 function eddieSync(){try{if(!edOn()){const r=document.getElementById("eddie");if(r)r.hidden=true;eddieUnpoint();return}
- const r=document.getElementById("eddie");if(!r||r.hidden||!r.innerHTML)eddieDraw();
+ const r=document.getElementById("eddie");if(!r||r.hidden||!r.innerHTML||r.classList.contains("edd3")!==(edD3()&&!ED.open))eddieDraw();else eddieDock(r);
  const k="eddieHi_"+PLID();if(!ED.greeted&&!store.get(k,false)){ED.greeted=true;store.set(k,true);ED.say="Hi, I'm Eddie, your super assistant! Tap me and tell me what you need, like “add 20 gold chairs to the pull list for the Lopez wedding”.";eddieDraw()}}catch(e){}}
 function eddieClose(){ED.open=false;ED.say="";ED.prop=null;ED.undo=null;ED.done=null;eddieStopMic();eddieDraw()}
 async function eddieSend(text){const i=document.getElementById("ed_in"),t=String(text!=null?text:i?i.value:"").trim();if(!t||ED.busy)return;
- ED.prop=null;ED.undo=null;ED.done=null;ED.busy=true;ED.pose="wave";eddieDraw();
+ ED.prop=null;ED.undo=null;ED.done=null;
+ /* on the 3D designer tab, room requests go to the designer, which shows a preview to keep or undo */
+ const w=edD3()&&ed3dWin();if(w){let shown=false;try{shown=w.hm3d.ask(t)}catch(e){}if(shown){ED.open=false;ED.say="";eddieStopMic();eddieDraw();toast("Eddie set it up in the room. Tap Keep it to keep it.");return}}
+ ED.busy=true;ED.pose="wave";eddieDraw();
  const a=await eddieAsk(t),p=eddiePropose(a);ED.log.push({t,job:p.job,src:a.src});ED.prop=p.job==="none"?null:p;eddieSay(p.say,p.job==="help"?"point":"wave");
  if(p.job==="none"&&p.tab)ED.done=p.tab}
 function eddieClick(e){const b=e.target.closest("[data-ed]");if(!b)return;const k=b.dataset.ed;

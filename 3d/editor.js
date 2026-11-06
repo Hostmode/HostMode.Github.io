@@ -346,6 +346,24 @@ export class Editor {
     if (this.view === "walk") { const p = this.walk.pos, f = this.walkDir(); return { pos: [p.x, p.y, p.z], target: [p.x + f.x * 3, p.y + f.y * 3, p.z + f.z * 3] }; }
     const p = this.persp.position, t = this.orbit.target; return { pos: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.persp.fov };
   }
+  // Where a new piece from the Add tab lands: the floor spot in the middle of the view (3D), the middle of the Top view,
+  // a couple of meters ahead when walking, kept inside the room. (The Add tab's "Where I tap" uses groundTap instead.)
+  landingSpot() {
+    const R = this.s.room, m = 0.6, cl = (v, a, b) => Math.min(Math.max(a, b), Math.max(a, Math.min(b, v)));
+    let x = R.w / 2, z = R.d / 2;
+    try {
+      if (this.view === "top") { x = this.orbitO.target.x; z = this.orbitO.target.z; }
+      else if (this.view === "front") x = this.orbitO.target.x;
+      else if (this.view === "side") z = this.orbitO.target.z;
+      else if (this.view === "walk") { const f = this.walkDir(); f.y = 0; if (f.lengthSq() > 1e-6) f.normalize(); x = this.walk.pos.x + f.x * 2.5; z = this.walk.pos.z + f.z * 2.5; }
+      else {
+        this.ray.setFromCamera(new T.Vector2(0, 0), this.persp);
+        const hit = this.ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), new T.Vector3());
+        if (hit && hit.distanceTo(this.persp.position) < 4 * Math.max(R.w, R.d)) { x = hit.x; z = hit.z; } else { x = this.orbit.target.x; z = this.orbit.target.z; }
+      }
+    } catch (e) {}
+    return [+cl(x, m, R.w - m).toFixed(2), +cl(z, m, R.d - m).toFixed(2)];
+  }
   walkDir() { const { yaw, pitch } = this.walk; return new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)); }
 
   tick() {
