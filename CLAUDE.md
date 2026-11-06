@@ -131,6 +131,7 @@ Lessons for one kind of job live in its Skill: agent-workflows (GitHub and the a
 - A check that finds nothing proves nothing: give every automatic checker a self-test with planted problems, and report one bug once.
 - When one issue replaces another, close the old one before starting the new one: a builder job starts from main as it is at that moment.
 - Planners, hosts and the owner share one sign-in: when a page reads who's signed in, check what kind of account it is (profile.kind, partygames/owner) before acting on it.
+- Before pushing more work to a pull request's branch, check the pull request first (`gh api repos/Hostmode/HostMode.Github.io/pulls/N`): if it's already merged, put the new work on main (Roy's changes) or a new branch instead, and say so; if it has conflicts, merge main in and fix them. Roy merges as soon as checks pass, so a late push to a merged branch never goes live.
 - When a lesson only matters for one kind of job, add it to that job's Skill instead of here.
 
 ## On hold until the current build is tested
