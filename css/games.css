@@ -912,16 +912,17 @@ header.top:has(.demoslot){flex-wrap:wrap!important}
    (deep #9c7c2e); navy #0c2147. */
 
 /* ---- page background, header brand ---- */
-html.hmbrand:not(.hc){--chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%23c9a24a' stroke-width='2' fill='none'/></svg>")}
+html.hmbrand:not(.hc){--f-brand:"Cormorant Garamond",Georgia,serif;--chev:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%23c9a24a' stroke-width='2' fill='none'/></svg>")}
 html.hmbrand:not(.hc) body{background:radial-gradient(560px 300px at 50% -80px,rgba(201,162,74,.10),transparent 70%),linear-gradient(180deg,#fffdf8 0%,#fdf6e9 100%);background-attachment:fixed}
 html.hmbrand:not(.hc) #ribbons{display:none}
 html.hmbrand:not(.hc) header.top{background:linear-gradient(180deg,rgba(255,253,248,.94),rgba(253,246,233,.78))}
-html.hmbrand:not(.hc) .brand h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:-.01em}
+html.hmbrand:not(.hc) .brand h1{font-family:var(--f-brand);font-weight:600;letter-spacing:-.01em}
 html.hmbrand:not(.hc) .brand p{font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.8rem;letter-spacing:.24em;font-weight:800;color:#9c7c2e}
 
-/* ---- type: Cormorant Garamond display, gold eyebrows ---- */
-html.hmbrand:not(.hc) h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:1.6rem;letter-spacing:0;color:#0c2147}
-html.hmbrand:not(.hc) h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:1.2rem;letter-spacing:0;color:#0c2147}
+/* ---- type: display font (var(--f-brand), Cormorant Garamond unless the
+   planner picked another display font in Branding), gold eyebrows ---- */
+html.hmbrand:not(.hc) h2{font-family:var(--f-brand);font-weight:600;font-size:1.6rem;letter-spacing:0;color:#0c2147}
+html.hmbrand:not(.hc) h3{font-family:var(--f-brand);font-weight:600;font-size:1.2rem;letter-spacing:0;color:#0c2147}
 html.hmbrand:not(.hc) .eyebrow{color:#9c7c2e}
 .pl .card h2.m0{font-size:30px}
 
