@@ -143,36 +143,44 @@ Object.assign(ACT,{
 });
 
 /* ================= STEP 5: planner branding + teammate day-of mode =================
-   partygames/brand = {name, color, logo}      (logo = small PNG data URL; shown on client and teammate portals)
+   partygames/brand = {name, color, logo, font}      (logo = small PNG data URL; shown on client and teammate portals; font = display font, one of DISPLAY_FONTS)
    partygames/dayOf = true | false             (planner's switch: teammates see the stripped "do now" view)
    partygames/mates/{id}/help = {t, msg, ok}   (teammate tapped "Need help") */
 D.brand=null;D.dayOf=false;
-const brandOn=(v=VIEW)=>(v==="client"||v==="mate"||v==="fb"||v==="show")&&D.brand&&(D.brand.name||D.brand.logo||D.brand.color);
+const brandOn=(v=VIEW)=>(v==="client"||v==="mate"||v==="fb"||v==="show")&&D.brand&&(D.brand.name||D.brand.logo||D.brand.color||D.brand.font);
+const brandFont=f=>DISPLAY_FONTS.includes(f)?f:"";
+/* the planner's display font, applied to the brand screens' headings through
+   --f-brand (css/games.css, default Cormorant Garamond). The dynamic font
+   link must also keep Montserrat, which --f-caps still points at. */
+function brandFontApply(f){loadFonts({title:f,head:"Montserrat",body:"Figtree"});document.documentElement.style.setProperty("--f-brand",`"${f}",Georgia,serif`)}
 const brandHex=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c.toLowerCase():"";
 function brandLum(h){const n=parseInt(h.slice(1),16),f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(n>>16)+.7152*f(n>>8&255)+.0722*f(n&255)}
 function brandMix(h,to,p){const a=parseInt(h.slice(1),16),b=parseInt(to.slice(1),16),m=(x,y)=>Math.round(x+(y-x)*p);return "#"+[m(a>>16,b>>16),m(a>>8&255,b>>8&255),m(a&255,b&255)].map(v=>v.toString(16).padStart(2,"0")).join("")}
 /* a colour too light for white button text gets darkened until it reads */
 function brandSafe(h){h=brandHex(h);if(!h)return "";let i=0;while(brandLum(h)>.18&&i++<12)h=brandMix(h,"#000000",.12);return h}
 const _applyThemeBr2=applyTheme;
-applyTheme=function(){_applyThemeBr2();if(!brandOn())return;const c=brandSafe(D.brand.color);if(!c)return;
- setThemeVars(Object.assign({},BRAND.colors,{bar:brandMix(c,"#000000",.25),hd:c,btn1:c,btn2:brandMix(c,"#ffffff",.25),violet:c}),BRAND.fonts,true)};
+applyTheme=function(){_applyThemeBr2();if(!brandOn()){document.documentElement.style.removeProperty("--f-brand");return}
+ const c=brandSafe(D.brand.color),f=brandFont(D.brand.font);
+ if(c)setThemeVars(Object.assign({},BRAND.colors,{bar:brandMix(c,"#000000",.25),hd:c,btn1:c,btn2:brandMix(c,"#ffffff",.25),violet:c}),BRAND.fonts,true);
+ if(f)brandFontApply(f);else document.documentElement.style.removeProperty("--f-brand")};
 const _headerView5=headerView;
 headerView=function(){const h=_headerView5();if(!brandOn())return h;const b=D.brand,name=esc(b.name||"");
  return h.replace("<h1>Host Mode</h1>",`<h1 class="brandrow">${b.logo?`<img class="brandlogo" src="${esc(b.logo)}" alt="">`:""}${name||(b.logo?"":"Host Mode")}</h1>`).replace(/<p>(Your event portal|Your tasks)<\/p>/,'<p>$1 · powered by Host Mode</p>')};
 function brandLogo(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=()=>rej();fr.onload=()=>{const img=new Image();img.onerror=()=>rej();img.onload=()=>{const k=Math.min(1,240/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/png"))};img.src=fr.result};fr.readAsDataURL(file)})}
-const BR_KEYS=["name","color","tag","email","phone","web","city","ig","fb","book"];
-function hBrandCard(){const b=D.brand||{},v=(k,d)=>dv("br_"+k,b[k]||d||""),c=brandHex(v("color","#0f2c5c"))||"#0f2c5c",lg=L.brLogo!==undefined?L.brLogo:b.logo||"";
+const BR_KEYS=["name","color","font","tag","email","phone","web","city","ig","fb","book"];
+function hBrandCard(){const b=D.brand||{},v=(k,d)=>dv("br_"+k,b[k]||d||""),c=brandHex(v("color","#0f2c5c"))||"#0f2c5c",fnt=brandFont(v("font","")),lg=L.brLogo!==undefined?L.brLogo:b.logo||"";
  const fld=(k,l,ph,tp,mx)=>`<label class="stack tight"><span class="small">${l}</span><input type="${tp||"text"}" data-draft="br_${k}" maxlength="${mx||80}" value="${esc(v(k))}" placeholder="${esc(ph)}"></label>`;
  const pv={name:v("name"),tag:v("tag"),city:v("city"),phone:v("phone"),email:v("email"),web:v("web"),ig:v("ig").replace(/^@/,""),fb:v("fb")},links=brLinks(pv);
  return `<section class="card stack"><h2>Your branding</h2><p class="small muted m0">This is how your business shows up to clients: on their portal, your teammates' pages and every invoice. “Powered by Host Mode” stays in small print.</p>
  <h3 class="m0">Look</h3><div class="grid2 g8">${fld("name","Business name","Bright Day Events","text",40)}${fld("tag","Tagline","Charlotte weddings and celebrations","text",80)}</div>
  <div class="row"><label class="stack tight"><span class="small">Main color</span><input type="color" data-draft="br_color" value="${esc(c)}" style="width:64px;padding:2px"></label>
  <label class="btn upl">${lg?"Change logo":"Add logo"}<input type="file" accept="image/*" data-act="brLogo"></label>${lg?`<img class="brandlogo" src="${esc(lg)}" alt="Your logo"><button class="btn xs" data-act="brLogoX">Remove logo</button>`:""}</div>
+ <label class="stack tight"><span class="small">Display font</span><select data-draft="br_font"><option value="">Default (Cormorant Garamond)</option>${DISPLAY_FONTS.map(f=>`<option value="${f}" ${fnt===f?"selected":""} style="font-family:'${f}'">${f}</option>`).join("")}</select><span class="small muted">Headings on client portals, teammate pages and invoices use this font. Body text stays Figtree.</span></label>
  <h3 class="m0">Contact details</h3><p class="small muted m0">Clients see these on their portal and on your invoices. Leave out anything you don't want to share.</p>
  <div class="grid2 g8">${fld("email","Email","hello@brightday.com","email",120)}${fld("phone","Phone","704-555-0100","tel",30)}${fld("web","Website","brightdayevents.com","text",120)}${fld("city","City","Charlotte, NC","text",60)}${fld("ig","Instagram","@brightdayevents","text",40)}${fld("fb","Facebook page","brightdayevents","text",120)}</div>
  <h3 class="m0">Booking link</h3><p class="small muted m0">Paste your Calendly or Google Calendar booking link. Clients see a "Book a meeting" button on their portal and your Showcase page.</p><div class="grid2 g8">${fld("book","Booking link","calendly.com/brightday/consult","text",200)}</div>
  <h3 class="m0">Preview</h3><div style="border-radius:14px;overflow:hidden;border:1px solid var(--line)"><div style="background:${c};height:10px"></div><div class="stack tight" style="padding:14px 16px;background:#fff;color:#1d2433">
-  <div class="row">${lg?`<img class="brandlogo" src="${esc(lg)}" alt="">`:""}<div class="mw0"><b style="color:${c};font-size:18px">${esc(pv.name||"Your business name")}</b>${pv.tag?`<div class="small" style="color:#5a6072">${esc(pv.tag)}</div>`:""}${pv.city?`<div class="small" style="color:#5a6072">${esc(pv.city)}</div>`:""}</div></div>
+  <div class="row">${lg?`<img class="brandlogo" src="${esc(lg)}" alt="">`:""}<div class="mw0"><b style="color:${c};font-size:18px;font-family:'${fnt||"Cormorant Garamond"}',Georgia,serif">${esc(pv.name||"Your business name")}</b>${pv.tag?`<div class="small" style="color:#5a6072">${esc(pv.tag)}</div>`:""}${pv.city?`<div class="small" style="color:#5a6072">${esc(pv.city)}</div>`:""}</div></div>
   ${links.length?`<div class="small" style="color:#33415c">${links.map(([,l])=>esc(l)).join(" · ")}</div>`:`<div class="small" style="color:#8a90a0">Your contact details will show here.</div>`}</div></div>
  <span class="small muted">The preview updates when you save.</span>
  <div class="row"><button class="btn primary" data-act="brSave">Save branding</button>${b.name||b.logo||b.color?`<button class="btn" data-act="brClear">Back to Host Mode look</button>`:""}</div></section>`}
@@ -205,7 +213,7 @@ Object.assign(ACT,{
   if(logo.length>120000)return toast("That logo is too big. Try a simpler picture.");
   const email=g("email",120);if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toast("That email doesn't look right");
   const ig=g("ig",40).replace(/^https?:\/\/(www\.)?instagram\.com\//i,"").replace(/^@/,"").replace(/\/.*$/,"");
-  await RT(PSP+"brand").set({name,color,logo,tag:g("tag",80),email,phone:g("phone",30),web:g("web",120),city:g("city",60),ig,fb:g("fb",120),book:g("book",200)});L.brLogo=undefined;BR_KEYS.forEach(k=>delete L.drafts["br_"+k]);toast("Branding saved");render(true)},
+  await RT(PSP+"brand").set({name,color,font:brandFont(dv("br_font",b.font||"")),logo,tag:g("tag",80),email,phone:g("phone",30),web:g("web",120),city:g("city",60),ig,fb:g("fb",120),book:g("book",200)});L.brLogo=undefined;BR_KEYS.forEach(k=>delete L.drafts["br_"+k]);toast("Branding saved");render(true)},
  brClear:async()=>{await RT(PSP+"brand").remove();L.brLogo=undefined;BR_KEYS.forEach(k=>delete L.drafts["br_"+k]);toast("Back to the Host Mode look");render(true)},
  dayOfToggle:async()=>{const on=!D.dayOf;await RT(PSP+"dayOf").set(on);toast(on?"Day-of mode is on":"Day-of mode is off")},
  mateDone:async el=>{const id=mateKey(),k=el.dataset.k;await RT(PSP+`mateTasks/${id}/${k}`).update({done:true,doneAt:Date.now(),by:"mate"});buzz(30)},

@@ -644,13 +644,13 @@ const invLinked=(id,k)=>clPays(id).filter(p=>p.inv===k);
 const invIsPaid=(id,x)=>x.status==="paid"||(()=>{const l=invLinked(id,x.k);return l.length>0&&l.every(p=>p.paid)})();
 const invStatus=(id,x)=>invIsPaid(id,x)?"Paid":x.due&&x.due<mateToday()?"Overdue":"Sent";
 const invClient=id=>(D.clients||{})[id]||D.cliMe||{};
-const invFrom=()=>{const b=D.brand||{},me=D.plMe||{};return {name:b.name||me.biz||me.name||"Your planner",logo:b.logo||"",color:b.color||"#0c2147",tag:b.tag||"",city:b.city||"",contact:[b.phone||me.phone,b.email||me.email,b.web].filter(Boolean)}};
+const invFrom=()=>{const b=D.brand||{},me=D.plMe||{};return {name:b.name||me.biz||me.name||"Your planner",logo:b.logo||"",color:b.color||"#0c2147",font:typeof brandFont==="function"?brandFont(b.font||""):"",tag:b.tag||"",city:b.city||"",contact:[b.phone||me.phone,b.email||me.email,b.web].filter(Boolean)}};
 function invMailto(id,x){const c=invClient(id),f=invFrom();
  const body=[`Hi ${c.name||"there"},`,"",`Here's invoice ${x.no} for ${clMoney(x.total)}${x.due?", due "+clFmtDate(x.due):""}.`,"",...(x.lines||[]).map(l=>`${l.d}: ${clMoney(l.amt)}`),"",x.pay?"How to pay: "+x.pay:"",x.note||"","",`You can see it any time in your portal: ${clLink(id)}`,"",`Thank you,`,f.name].filter((l,i,a)=>l||a[i-1]).join("\n");
  return `mailto:${encodeURIComponent(c.email||"")}?subject=${encodeURIComponent(`Invoice ${x.no} from ${f.name}`)}&body=${encodeURIComponent(body)}`}
 function invHTML(id,x){const c=invClient(id),f=invFrom(),st=invStatus(id,x);
- return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(x.no)} · ${esc(f.name)}</title>
-<style>body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1d2433;background:#f4f1ea}.pg{max-width:760px;margin:24px auto;background:#fff;padding:40px 44px;border-radius:14px;box-shadow:0 10px 40px -20px rgba(0,0,0,.3)}
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(x.no)} · ${esc(f.name)}</title>${f.font?`<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${f.font.replace(/ /g,"+")}:wght@400;600;700&display=swap">`:""}
+<style>body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1d2433;background:#f4f1ea}.pg{max-width:760px;margin:24px auto;background:#fff;padding:40px 44px;border-radius:14px;box-shadow:0 10px 40px -20px rgba(0,0,0,.3)}${f.font?`h1,.biz{font-family:'${f.font}',Georgia,serif}`:""}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:4px solid ${esc(f.color)};padding-bottom:18px}.top img{max-height:64px;max-width:200px}.biz{font-weight:800;font-size:20px}
 h1{margin:0;font-size:30px;letter-spacing:-.02em;color:${esc(f.color)};text-align:right}.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}.meta div span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7385}
 table{width:100%;border-collapse:collapse;margin:8px 0 4px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7385;border-bottom:1px solid #ddd;padding:8px 0}td{padding:10px 0;border-bottom:1px solid #eee}td.a,th.a{text-align:right}
