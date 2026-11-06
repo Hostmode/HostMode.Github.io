@@ -174,6 +174,7 @@ Object.assign(ACT,{
 /* ---- Help desk tab (planner portal and host console): type a question, get short answers with quick links ---- */
 const HELP={
  pl:[
+  ["Ask Eddie to do things for you","Tap Eddie, the little monster at the bottom right, then type or talk. He can add things to a pull list, put a date on a client's calendar, add a client or a lead, and show you where things are. He always shows you what he'll do and waits for Yes, and you can undo it right after.","","eddie assistant helper voice talk speak ask monster robot ai do it for me"],
   ["Add a new client","Clients tab → add the client's name and details. Each client gets their own private portal.","clients","new client add customer couple person create"],
   ["Share a client's portal link","Open the client in Clients and copy their portal link. They need no account or app to open it.","clients","client link portal share send url access"],
   ["Send an invoice","Open the client in Clients, then the Money tab. Add a package or line items and send the invoice.","clients","invoice bill billing charge send money"],
