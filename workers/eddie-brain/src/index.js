@@ -36,7 +36,7 @@ const WD = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "S
 export function dayTable(today) {
   const t = new Date(today + "T12:00:00Z"), out = [];
   for (let i = 0; i < 28; i++) { const d = new Date(t); d.setUTCDate(t.getUTCDate() + i);
-    out.push(`${i === 0 ? "today" : i === 1 ? "tomorrow" : WD[d.getUTCDay()]} ${d.toISOString().slice(0, 10)}${i >= 7 ? " (" + WD[d.getUTCDay()] + " week after)" : ""}`); }
+    out.push(`${i === 0 ? "today, " : i === 1 ? "tomorrow, " : i >= 7 ? "next week's " : ""}${WD[d.getUTCDay()]} ${d.toISOString().slice(0, 10)}`); }
   return out.join("\n");
 }
 
@@ -57,8 +57,16 @@ Rules:
 - Dates: use the calendar below and write YYYY-MM-DD. "Thursday" means the next Thursday from today. Leave date empty if they didn't say one.
 - Times: "3" or "3pm" in the afternoon context means 15:00; "9am" means 09:00.
 - Only use words the planner said. Never invent names, emails, phone numbers or items.
+- "for" is who or what it's for, exactly as they said it ("the Lopez wedding", "Ana", "Rosa's 30th"). Never leave it empty if they named someone.
+- A weekday ("on Saturday") means the FIRST date with that weekday in the calendar below, even if it's tomorrow.
 - "say" is one short, cheerful sentence about what you're about to do (or your answer), under 20 words. Don't say it's done: the planner still has to tap Yes.
 - Fill fields you don't need with "" or 0, and items with [].
+
+Examples (today is a Friday):
+"add 20 gold chairs to the pull list for the Lopez wedding" → {"job":"pull","for":"the Lopez wedding","items":[{"what":"gold chairs","qty":20}],"say":"Adding 20 gold chairs to the Lopez wedding pull list!"}
+"put a tasting with Ana on Tuesday at 2" → {"job":"date","for":"Ana","title":"Tasting","date":"<Tuesday's date>","time":"14:00","say":"Putting Ana's tasting on the calendar!"}
+"new lead Maria Lopez, maria@mail.com, wedding for 120" → {"job":"lead","name":"Maria Lopez","email":"maria@mail.com","kind":"Wedding","guests":120,"say":"Adding Maria Lopez to your leads!"}
+"how do I get paid by a client" → {"job":"help","help":<number of the title about invoices or payments>,"say":"Here's how to get paid."}
 
 Calendar:
 ${dayTable(today)}

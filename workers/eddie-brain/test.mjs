@@ -18,7 +18,7 @@ ok(c.time === "03:05" && c.date === "2026-11-12" && c.email === "" && c.help ===
 ok(clean({ job: "delete everything", date: "next week", time: "25:00" }, 5).job === "none", "an unknown job becomes none");
 ok(clean({ job: "date", date: "next week", time: "25:00" }, 5).date === "" && clean({ time: "25:00" }, 5).time === "", "bad dates and times are dropped");
 ok(clean(null, 1).job === "none" && clean({ job: "help", help: 3 }, 5).help === 3, "empty answers and help numbers");
-ok(dayTable("2026-11-06").split("\n")[0] === "today 2026-11-06" && dayTable("2026-11-06").includes("Thursday 2026-11-12"), "the calendar names the next Thursday");
+ok(dayTable("2026-11-06").split("\n")[0] === "today, Friday 2026-11-06" && dayTable("2026-11-06").includes("tomorrow, Saturday 2026-11-07") && dayTable("2026-11-06").includes("next week's Saturday 2026-11-14"), "the calendar names tomorrow's weekday and next week's days");
 ok(prompt("hi", "2026-11-06", ["Add a new client"])[0].content.includes("1. Add a new client"), "Help desk titles are numbered in the prompt");
 
 // the pages
