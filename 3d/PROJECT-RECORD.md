@@ -224,3 +224,13 @@ Roy: the designer looked fine for a video game; he wants it to look like real li
 - Considered and not built: browser path tracing (three-gpu-pathtracer needs WebGPU, which most of Roy's users' phones don't have, and a full venue would take minutes a picture on a phone GPU); an AI image-to-image restyle (needs a paid service and a server-held key — nothing calls an AI model from the browser, and Roy hasn't approved a server); a Blender render in GitHub Actions from the .glb export (free, and the highest-quality stills of all — a later option if Roy wants it).
 
 **Measured:** all model checks pass; before/after pictures of both promo templates from a software-rendered headless browser. Phone speed and the look on a real phone are still open — the roughness maps and stronger environment light cost nothing in draw calls, but only Roy's phone proves it.
+
+## 9. Placement tools (Nov 6, 2026, agent 1)
+
+New file `3d/placement.js`; Selected tab only.
+- **Snap and line up:** while dragging a piece or a set it catches on the walls (flush or a 1 ft gap), other pieces (edges and centers) and a half-foot grid, with thin guide lines until you let go. The Snap switch turns it all off and is remembered on the device. Snapping uses the room rectangle and the pieces; inner walls aren't snap targets yet. Turning and resizing don't snap.
+- **Fill a table:** a − / + stepper starting at the table's usual seats; chairs go evenly round the table, facing it, in the chair style already in the design. Rectangular tables get chairs round their whole outline (the old Add chairs put them on a circle). Head and sweetheart tables seat one side. Works on a selected set or picked tables ("Fill every table"). Too many chairs are refused with how many fit.
+- **Copy in a pattern:** rows and columns, or a ring of copies around the piece, with a preview and Keep it. Refused, with how many fit, if copies leave the room or land on other pieces.
+- **Undo:** each tool is one undo step. Ctrl/Cmd+Shift+Z (redo) never worked, because Shift makes the key a capital Z; fixed, and Ctrl/Cmd+Y added.
+- **Checks:** model checks in `agents/venue3d_test.mjs`; `agents/venue3d_placement_check.py` (phone size, in `check_all.sh`) with planted mistakes: a pattern that runs out of the room, chairs facing away, a snap that leaves a gap.
+- **Measured:** the sandbox draws in software, so the feel of dragging with snap on a real phone still needs Roy.

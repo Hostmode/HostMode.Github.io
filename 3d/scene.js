@@ -496,7 +496,7 @@ function checkColor(c) { if (c == null) return null; const v = COLORS[String(c).
 function checkPalette(p) { if (typeof p === "string") { if (!PALETTES[p]) throw new Error("unknown color set " + p); return PALETTES[p].slice(); } if (!Array.isArray(p) || !p.length || p.length > 6) throw new Error("a color set needs 1 to 6 colors"); return p.map(checkColor); }
 function moveGroup(s, it, dx, dz) { s.items.forEach(o => { if (o.group === it.id) { o.x = r2(o.x + dx); o.z = r2(o.z + dz); } }); }
 
-const RUN = {
+export const RUN = {
   // ---- Outdoor sites: the ground, the property line, the sun, an aerial picture (see "Outdoor sites" below) ----
   set_site(s, o) {
     const fresh = !s.site, R = s.room;

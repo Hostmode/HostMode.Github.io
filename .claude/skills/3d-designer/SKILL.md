@@ -63,8 +63,9 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
   - `agents/venue3d_photo_check.py`: the photo feature and Start over.
   - `agents/venue3d_site_check.py`: outdoor sites, tracing, the aerial picture and shade.
   - `agents/office3d_check.py`: the agent office.
+  - `agents/venue3d_placement_check.py`: snapping, filling a table, copy in a pattern (phone size).
 
-  All five are in `check_all.sh`, and each has a self-test with planted mistakes.
+  All six are in `check_all.sh`, and each has a self-test with planted mistakes.
 - **Look at it.** Photograph each new piece alone, close up as well as from a distance. Use `agents/venue3d_shots.py` for before and after pictures. Look at anything turned or placed from straight above too.
 - **In tests, wait for a result, not a fixed time.** Rebuilding a room takes seconds with the test browser's software graphics; a correct Start over looked like a failure because the test checked too early.
 - **Measured speed isn't phone speed.** The sandbox draws in software, so say so and ask Roy to try it on his phone.
@@ -86,6 +87,14 @@ Status, decisions and limits live in `3d/PROJECT-RECORD.md`; the library's forma
 - **The Agents tab owns the data** (`js/18-support-staff.js`). It sends `{hmOffice:"state", cast, sel, night, prs, tickets, budget}`, and a tap here sends back `{hmOffice:"pick", k}`.
 - **Studio crew news** comes from real GitHub pull requests (`AG_CREW`), never made up.
 - **Who walks:** working nightly helpers walk their routes. Finished crew carry their work down the corridor to Roy's door and back.
+
+## Placement tools (Nov 6, 2026, 3d/placement.js)
+
+- **Snap:** the editor calls `ed.snapHook` while an arrow is dragged; `snapMove` nudges the arrow's point to a wall (flush or a 30 cm gap), another piece's edge or center, or the grid (half a foot / 15 cm), and draws guide lines. The Snap switch in the Selected tab is remembered in `localStorage.hm3d_snap`; off means free movement (the arrows' own half-foot snap is switched off by `install`). Attached pieces (`it.group`) are counted when snapping to walls.
+- **Steps added from placement.js:** `fill_tables` (`id`/`ids`/`set`/`tables:"all"`, `count`) and `pattern_copy` (`mode: grid` with `rows`, `cols`, `gap`; or `circle` with `count`, `radius`). They are put into `S.OPS` and `S.RUN` (exported for this) when the file loads, so any page or test using them must import placement.js.
+- **Chairs:** round, serpentine and one-sided tables use `chairsAround`; other tables get `outlineSeats`, evenly round the outline, each facing the nearest edge. The old `chairsAround` puts rectangular tables' chairs on a circle, so don't use it for them. Capacity is the length round the table divided by the chair's width.
+- **Pattern copy** refuses the whole step if any copy would leave the room or land on a piece (tents, fog and things on tables don't count) and says how many fit.
+- **Undo:** Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y. (Shift+Z types a capital Z; the old check missed it, so redo never worked from the keyboard.)
 
 ## Phase 6 note
 26 more pieces (see 3d/PROJECT-RECORD.md) live in `3d/decor_more.js`. Sizes marked ESTIMATE in `3d/library/research/estimated_sizes_p6.json` still need a real page. The ADA ramp must stay 1:12 (a test enforces it).

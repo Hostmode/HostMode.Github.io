@@ -1,5 +1,6 @@
 // Checks for the 3D venue scene model (3d/scene.js). Free, no browser: node agents/venue3d_test.mjs
 import * as S from "../3d/scene.js";
+import * as P from "../3d/placement.js";
 let fail = 0;
 const ok = (c, msg) => { if (!c) { fail++; console.log("FAIL:", msg); } else console.log("ok  ", msg); };
 
@@ -270,6 +271,70 @@ ok(S.CAT_ORDER.every(c => Object.values(S.CATALOG).some(x => x.cat === c)) && Ob
   ok(!wrong.length, "phase 6: every new piece is found by its words" + (wrong.length ? " (missed: " + wrong.join(", ") + ")" : ""));
   const R = S.CATALOG.ada_ramp, run = R.d - 1.52;
   ok(Math.abs(run / R.h - 12) < 0.05 && R.w >= 0.915, "phase 6: the accessible ramp runs 12 units for each 1 of rise and is at least 36 in wide");
+}
+
+// Placement tools (Nov 6, 2026): chairs round a table, copy in a pattern, snapping.
+{
+  const base = S.sampleVenue(), tab = base.items.find(i => i.id === "t1");
+  // Seen from straight above, every chair's front (-sin rot, cos rot) must point at the table's nearest edge, and the chairs must be evenly spaced.
+  const faces = (s, t) => s.items.filter(i => i.group === t.id && i.kind.startsWith("chair")).every(c => {
+    const a = c.rot * Math.PI / 180, fx = -Math.sin(a), fz = Math.cos(a), ta = (t.rot || 0) * Math.PI / 180, cs = Math.cos(ta), sn = Math.sin(ta);
+    const lx = (c.x - t.x) * cs + (c.z - t.z) * sn, lz = -(c.x - t.x) * sn + (c.z - t.z) * cs, round = /round|cocktail/.test(t.kind); // the chair in the table's own frame
+    const qx = round ? 0 : Math.max(-t.w / 2, Math.min(t.w / 2, lx)), qz = round ? 0 : Math.max(-t.d / 2, Math.min(t.d / 2, lz)); // the nearest spot on the table
+    const vx = (qx - lx) * cs - (qz - lz) * sn, vz = (qx - lx) * sn + (qz - lz) * cs; // chair to that spot, in the room
+    return fx * vx + fz * vz > 0.97 * Math.hypot(vx, vz);
+  });
+  const gaps = (s, t) => { const cs = s.items.filter(i => i.group === t.id && i.kind.startsWith("chair")), g = cs.map((c, k) => Math.hypot(c.x - cs[(k + 1) % cs.length].x, c.z - cs[(k + 1) % cs.length].z)); return Math.max(...g) - Math.min(...g); };
+  const fill = (s, id, n) => S.apply(s, [{ op: "fill_tables", id, count: n }]);
+  const r10 = fill(base, "t1", 10);
+  ok(r10.ok && r10.scene.items.filter(i => i.group === "t1" && i.kind.startsWith("chair")).length === 10, "fill: a round table takes 10 chairs: " + (r10.errors || []).join("; "));
+  ok(r10.ok && faces(r10.scene, tab) && gaps(r10.scene, tab) < 0.01, "fill: round table, chairs face the table and are evenly spaced (checked from above)");
+  const rect = S.apply(base, [{ op: "add_item", kind: "table_banquet", x: 2, z: 2, id: "bq" }, { op: "fill_tables", id: "bq", count: 8 }]);
+  ok(rect.ok && faces(rect.scene, rect.scene.items.find(i => i.id === "bq")) && rect.scene.items.filter(i => i.group === "bq").length === 8, "fill: a banquet table's chairs sit round its edge facing it: " + (rect.errors || []).join("; "));
+  const turned = S.apply(base, [{ op: "add_item", kind: "table_banquet", x: 4, z: 4, rot: 30, id: "bq" }, { op: "fill_tables", id: "bq", count: 8 }]);
+  ok(turned.ok && faces(turned.scene, turned.scene.items.find(i => i.id === "bq")), "fill: a turned table's chairs still face it");
+  const head = S.apply(base, [{ op: "add_item", kind: "table_head", x: 6, z: 3, id: "hd" }, { op: "fill_tables", id: "hd", count: 12 }]);
+  ok(head.ok && head.scene.items.filter(i => i.group === "hd").every(c => c.z < 3), "fill: a head table seats one side only: " + (head.errors || []).join("; "));
+  ok(!fill(base, "t1", 40).ok && /fit/.test(fill(base, "t1", 20).errors.join()), "fill: too many chairs are refused, saying how many fit (" + fill(base, "t1", 20).errors.join() + ")");
+  const all = S.apply(base, [{ op: "fill_tables", tables: "all", count: 6 }]);
+  ok(all.ok && base.items.filter(i => i.kind.startsWith("table")).every(t => all.scene.items.filter(i => i.group === t.id && i.kind.startsWith("chair")).length === 6), "fill: every table in the design gets the same count");
+  ok(base.items.filter(i => i.group === "t1").length === 8, "fill: the original design was not changed");
+  // planted mistake: chairs turned the wrong way must be caught by the same facing check
+  const wrong = S.clone(r10.scene); wrong.items.filter(i => i.group === "t1" && i.kind.startsWith("chair")).forEach(c => c.rot = (c.rot + 180) % 360);
+  ok(!faces(wrong, tab), "fill (self-test): chairs planted facing away fail the facing check");
+
+  // Pattern copy
+  const room = S.apply(base, [{ op: "add_item", kind: "table_round", x: 2, z: 2, id: "pt" }, { op: "fill_tables", id: "pt", count: 8 }]).scene;
+  const g = S.apply(room, [{ op: "pattern_copy", id: "pt", mode: "grid", rows: 1, cols: 2, gap: 0.6 }]);
+  ok(g.ok && g.scene.items.filter(i => i.kind === "table_round").length === room.items.filter(i => i.kind === "table_round").length + 1 && S.checkScene(g.scene).length === 0, "pattern: a row of 2 copies lands clear of everything: " + (g.errors || []).join("; ") + JSON.stringify(S.checkScene(g.scene)));
+  ok(g.ok && g.scene.items.filter(i => i.group && g.scene.items.some(t => t.id === i.group && t.x > 3 && t.kind === "table_round")).length >= 8, "pattern: the copy brings its chairs along");
+  const out = S.apply(room, [{ op: "pattern_copy", id: "pt", mode: "grid", rows: 1, cols: 12, gap: 0.6 }]);
+  ok(!out.ok && /only \d+ of 11 copies would fit/.test(out.errors[0]) && /leave the room|overlap/.test(out.errors[0]), "pattern (self-test): a row that runs out of the room is refused, saying how many fit: " + out.errors);
+  ok(room.items.length === S.apply(room, [{ op: "pattern_copy", id: "pt", mode: "grid", rows: 1, cols: 12, gap: 0.6 }]).scene.items.length, "pattern: a refused pattern changes nothing");
+  const onto = S.apply(room, [{ op: "pattern_copy", id: "pt", mode: "grid", rows: 1, cols: 2, gap: 0 }, { op: "pattern_copy", id: "pt", mode: "circle", count: 4, radius: 1 }]);
+  ok(!onto.ok && /overlap/.test(onto.errors.join()), "pattern (self-test): copies that land on other pieces are refused: " + onto.errors);
+  const empty = S.sampleVenue(); empty.items = [];
+  const circ = S.apply(empty, [{ op: "add_item", kind: "table_round", x: 9, z: 7, id: "c" }, { op: "pattern_copy", id: "c", mode: "circle", count: 6, radius: 4 }]);
+  ok(circ.ok && circ.scene.items.length === 7 && circ.scene.items.slice(1).every(i => Math.abs(Math.hypot(i.x - 9, i.z - 7) - 4) < 0.02), "pattern: around a circle makes the copies at the distance asked: " + (circ.errors || []).join("; "));
+  ok(!S.apply(empty, [{ op: "add_item", kind: "table_round", x: 3, z: 3, id: "c" }, { op: "pattern_copy", id: "c", mode: "circle", count: 6, radius: 8 }]).ok, "pattern (self-test): a circle that runs out of the room is refused");
+  const grouped = S.apply(room, [{ op: "group_objects", ids: ["pt"] }]).scene;
+  const sp = S.apply(grouped, [{ op: "pattern_copy", set: Object.keys(grouped.sets)[0], mode: "grid", rows: 1, cols: 2, gap: 0.6 }]);
+  ok(sp.ok && Object.keys(sp.scene.sets).length === Object.keys(grouped.sets).length + 1, "pattern: copying a set makes a new set for the copy");
+  ok(!S.apply(room, [{ op: "pattern_copy", id: "pt", mode: "grid", rows: 1, cols: 1 }]).ok, "pattern: one row of one column has nothing to copy");
+
+  // Snap: flush against a wall, lined up with another piece, onto the grid; a snap that leaves a gap must be caught
+  const sn = S.sampleVenue(), W = sn.room.w, it = S.mkItem("table_rect", 0, 0), mv = (x, z) => { const f = S.footprint(Object.assign({}, it, { x, z })); return { body: f, all: f, ignore: new Set() }; };
+  const gapOf = (box, d, key) => Math.abs((key === "x0" ? box.x0 + d : box.x1 + d) - (key === "x0" ? 0 : W));
+  const a = P.snapMove(sn, mv(1.0, 6.123)), box = mv(1.0, 6.123).body;
+  ok(a.guides.some(x => x.kind === "wall") && gapOf(box, a.dx, "x0") < 1e-9, "snap: a piece dragged near the left wall lands flush with it (gap " + gapOf(box, a.dx, "x0").toFixed(3) + " m)");
+  ok(P.snapMove({ room: sn.room, items: [] }, mv(W - 1.1, 6)).guides.some(x => x.kind === "wall"), "snap: the right wall catches too");
+  const other = sn.items.find(i => i.kind === "table_round"), f0 = S.footprint(other), b = mv(other.x + 0.07, f0.z1 + 1.4).body;
+  const al = P.snapMove(sn, { body: b, all: b, ignore: new Set() });
+  ok(al.guides.some(x => x.kind === "piece" && x.axis === "x") && Math.abs((b.x0 + b.x1) / 2 + al.dx - other.x) < 1e-9, "snap: a piece lines its center up with another piece, with a guide line");
+  const far = mv(W / 2 + 0.037, 6.037).body, fr = P.snapMove({ room: sn.room, items: [] }, { body: far, all: far, ignore: new Set() });
+  ok(fr.guides.length === 0 && Math.abs((((far.x0 + far.x1) / 2 + fr.dx) / (S.FT / 2)) % 1) < 1e-9, "snap: in open floor it falls onto the half-foot grid, with no guide lines");
+  ok(P.snapMove(sn, mv(W / 2, 6), { grid: 0 }).dx === 0 && P.snapMove({ room: sn.room, items: [] }, mv(3.3, 5.1), { grid: 0 }).dx === 0, "snap: with the grid off and nothing near, the piece isn't nudged");
+  ok(gapOf(box, a.dx + 0.05, "x0") > 0.04, "snap (self-test): a snap that leaves a gap fails the flush check");
 }
 
 // Save file round trip.

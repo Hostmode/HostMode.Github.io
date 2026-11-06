@@ -2,6 +2,7 @@
 import { Editor, S, esc } from "./editor.js";
 import { searchAssets, assetById } from "./library/assets.js";
 import { EVENTS, STYLES } from "./library/contracts.js";
+import * as P from "./placement.js";
 
 // Same Firebase project as games.html (js/02-core.js). Signing in there signs you in here (same website).
 const FIREBASE_CONFIG = { apiKey: "AIzaSyAMWgxbGsq4yiQrsuLYJ1pEb5Qc-8o4zg0", authDomain: "spark-drinks-2d185.firebaseapp.com", databaseURL: "https://spark-drinks-2d185-default-rtdb.firebaseio.com", projectId: "spark-drinks-2d185", appId: "1:497288236361:web:468bd29601daa92e621e98" };
@@ -177,7 +178,7 @@ function grpCard() {
    ${ed.picking ? `<button class="btn o" data-x="pickDone">Done picking</button>` : g.set ? "" : `<button class="btn l" data-x="pickMore">Pick more</button>`}
    ${!g.set && n >= 2 ? `<button class="btn g" data-x="grpMake">Group as a set</button>` : ""}
    ${ed.picking ? "" : `<button class="btn l" data-x="grpTurn">Turn 45°</button><button class="btn l" data-x="grpDup">Copy</button>${g.set ? `<button class="btn l" data-x="grpUn">Ungroup</button>` : ""}
-   <button class="btn r" data-x="grpDel">${confirmDel === "grp" ? "Tap again to remove all " + n : "Remove"}</button>`}</div></div>`;
+   <button class="btn r" data-x="grpDel">${confirmDel === "grp" ? "Tap again to remove all " + n : "Remove"}</button>`}</div>${ed.picking ? "" : P.groupCard(ed)}</div>`;
 }
 function placeCard() {
   const c = S.CATALOG[ed.placeTop];
@@ -204,8 +205,8 @@ function selTab() {
    <label class="f">Turn (°)<input type="number" step="15" data-rot value="${Math.round(it.rot)}"></label></div>
   ${c.palette || c.dress || NO_MAT.has(it.kind) ? "" : `<h3>Material</h3>`}<select id="matSel" ${c.palette || c.dress || NO_MAT.has(it.kind) ? "hidden" : ""}>${Object.entries(S.MATERIALS).map(([k, m]) => `<option value="${k}" ${k === it.mat ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
   ${c.palette || c.dress === "table" ? "" : `<h3>${c.dress === "chair" ? "Chair frame color" : "Color"}</h3>`}<div class="row" ${c.palette || c.dress === "table" ? "hidden" : ""}>${SW.map(n => `<button class="sw" title="${n}" aria-label="${n}" data-col="${n}" style="background:${S.COLORS[n]}"></button>`).join("")}<input type="color" id="colPick" value="${it.color || S.MATERIALS[it.mat].color}" aria-label="Any color"></div>
-  <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button><button class="btn l" data-x="pickStart">Pick several</button>${it.kind.startsWith("table") ? `<button class="btn l" data-x="chairs">${kids ? "Reset" : "Add"} chairs</button>` : ""}
-   <button class="btn r" data-x="del">${confirmDel === it.id ? "Tap again to remove" : "Remove"}</button></div></div>`;
+  <div class="row" style="margin-top:12px"><button class="btn l" data-x="dup">Copy</button><button class="btn l" data-x="pickStart">Pick several</button>
+   <button class="btn r" data-x="del">${confirmDel === it.id ? "Tap again to remove" : "Remove"}</button></div>${P.pieceCard(ed, it)}</div>`;
 }
 
 // ---------- Decorating (linens, chair dressing, color sets) ----------
@@ -413,6 +414,7 @@ document.querySelector(".tabs").addEventListener("click", e => { const t = e.tar
 body.addEventListener("click", e => { const b = e.target.closest("[data-cam],[data-mood]"); if (!b) return; if (b.dataset.cam) ed.camPreset(b.dataset.cam); else { ed.setMood(b.dataset.mood); render(); } });
 document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => ed.setView(b.dataset.view));
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => ed.setMode(b.dataset.mode));
+P.install(ed, { body, render: () => render(), toast: m => toast(m), preview: ops => previewSteps(ops) });
 $("#undo").onclick = () => ed.undo(); $("#redo").onclick = () => ed.redo();
 $("#name").addEventListener("change", e => { ed.s.name = e.target.value.trim().slice(0, 60) || "Untitled venue"; ed.store.autosave(ed.s); });
 document.querySelectorAll("#pad button").forEach(b => { const k = b.dataset.k, on = v => e => { e.preventDefault(); ed.walk.keys[k] = v; }; b.addEventListener("pointerdown", on(true)); ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, on(false))); });
@@ -482,7 +484,6 @@ body.addEventListener("click", async e => {
   switch (d.x) {
     case "dressAll": if (it) { const C = S.CATALOG[it.kind], dd = S.dressOf(it), o = { op: "dress_object", kind: C.dress === "table" ? "tables" : "chairs" }; Object.keys(S.DRESS[C.dress]).forEach(k => { if (dd[k] == null && k !== "linenColor" && !S.DRESS[C.dress][k].none) return; o[k] = k === "linenColor" ? (dd.linenColor || it.color || "white") : dd[k] == null ? "none" : dd[k]; }); const r = ed.run([o]); if (r.ok) toast(r.log[0]); } break;
     case "dup": if (it) { ed.run([{ op: "duplicate_object", id: it.id }]); } break;
-    case "chairs": if (it) { const n = S.CATALOG[it.kind].seats || 6; const kids = ed.s.items.filter(i => i.group === it.id).map(i => i.id); ed.run([...kids.map(id => ({ op: "delete_object", id, confirm: true })), ...S.chairsAround(it, n).map(c => ({ op: "add_item", kind: "chair", x: c.x, z: c.z, rot: c.rot, group: it.id }))]); } break;
     case "del": if (it) { if (confirmDel !== it.id) { confirmDel = it.id; render(); } else { confirmDel = null; ed.run([{ op: "delete_object", id: it.id, confirm: true }]); ed.select(null); } } break;
     case "quality": ed.quality = ed.quality === "high" ? "low" : "high"; localStorage.setItem("hm3d_quality", ed.quality); ed.applyQuality(); render(); break;
     case "saveView": { const v = ed.currentView(); const def = "View " + (ed.s.views.length + 1), name = window.HM3D_PREVIEW ? def : (prompt("Name this view", def) ?? null); if (name) ed.run([{ op: "save_view", name, pos: v.pos, target: v.target, fov: v.fov }]); break; }

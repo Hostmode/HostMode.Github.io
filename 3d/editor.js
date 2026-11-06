@@ -383,7 +383,8 @@ export class Editor {
     window.addEventListener("keydown", e => {
       if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (this.view === "walk" && map[e.code]) { this.walk.keys[map[e.code]] = true; e.preventDefault(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); }
+      const zy = (e.ctrlKey || e.metaKey) && /^[zy]$/i.test(e.key); // Shift+Z types a capital Z, so redo needs the lowercase check
+      if (zy) { e.preventDefault(); e.key.toLowerCase() === "y" || e.shiftKey ? this.redo() : this.undo(); }
       if (e.key === "Escape") this.select(null);
       if (e.key === "g") this.setMode("translate"); if (e.key === "r") this.setMode("rotate"); if (e.key === "s" && !e.ctrlKey) this.setMode("scale");
     });
@@ -454,6 +455,7 @@ export class Editor {
   itemOf(id) { return this.s.items.find(i => i.id === id) || this.s.lights.find(l => l.id === id); }
   dragLive() {
     const o = this.tc.object; if (!o) return;
+    if (this.snapHook) this.snapHook(o); // placement.js: snap and guide lines
     if (o === this.pivot && this.grpBase) {
       // move and turn every piece with the stand-in, the same way move_set and rotate_set will
       const b = this.grpBase, dx = o.position.x - b.x, dz = o.position.z - b.z, phi = o.rotation.y, da = -phi;
@@ -463,6 +465,7 @@ export class Editor {
     this.selBox.box.setFromObject(o);
   }
   commitDrag() {
+    if (this.snapDone) this.snapDone();
     const o = this.tc.object; if (!o) return;
     if (o === this.pivot && this.grp) {
       const b = this.grpBase, t = this.grpTarget(), ops = [], dx = o.position.x - b.x, dz = o.position.z - b.z, by = -T.MathUtils.radToDeg(o.rotation.y);
