@@ -9,7 +9,7 @@ your own brief, before writing any code.
 | Lead session (the one that wrote this) | (this page) | main | Eddie in the 3D designer, "Ask Eddie" in the Add tab, new pieces land where you look or where you tap |
 | Agent 1, placement | [agent-1-placement.md](agent-1-placement.md) | `claude/3d-placement` | snap and line up, fill a table, copy in a pattern, undo/redo check |
 | Agent 2, planning | [agent-2-planning.md](agent-2-planning.md) | `claude/3d-planning` | measure tool, head count and spacing check, seating chart, send to pull list |
-| Agent 3, sharing | [agent-3-sharing.md](agent-3-sharing.md) | `claude/3d-sharing` | view-only share link with comments, comment alerts, print or PDF, saved layouts, named versions |
+| Agent 3, sharing: **Roy's GitHub builder agent**, one issue at a time | [agent-3-sharing.md](agent-3-sharing.md) | the builder's own `claude/issue-…` branches | #64 named versions (started Nov 6), then #65 saved layouts and #66 print or PDF (queued). #67, the view-only share link with comments and comment alerts, needs database rule changes, so it waits for Roy (high risk, not a Phase 1 builder job) |
 
 ## Already in the designer (don't rebuild)
 

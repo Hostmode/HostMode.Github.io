@@ -1,6 +1,6 @@
 # Agent 3: sharing, saved layouts and versions
 
-Branch `claude/3d-sharing`. Read [README.md](README.md) first. Your code goes in a new file, **3d/share.js**
+**Given to Roy's GitHub builder agent as issues #64 (named versions), #65 (saved layouts) and #66 (print or PDF), one at a time. #67 (sections 1 and 2: the share link, comments and alerts) waits for Roy because it changes the database rules.** Read [README.md](README.md) first. Your code goes in a new file, **3d/share.js**
 (imported by 3d/app.js), plus a view-only page if you need one. Your panel is **Save & share**. The portal side (the
 tab badge and Home alert) goes in js/17-inventory-venue.js next to the 3D designer tab's code (`pl3dTab`). Don't change
 the Add, Selected or Plan tabs.
