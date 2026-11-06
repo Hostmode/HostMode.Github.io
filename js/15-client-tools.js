@@ -165,7 +165,8 @@ applyTheme=function(){_applyThemeBr2();if(!brandOn()){document.documentElement.s
  if(f)brandFontApply(f);else document.documentElement.style.removeProperty("--f-brand")};
 const _headerView5=headerView;
 headerView=function(){const h=_headerView5();if(!brandOn())return h;const b=D.brand,name=esc(b.name||"");
- return h.replace("<h1>Host Mode</h1>",`<h1 class="brandrow">${b.logo?`<img class="brandlogo" src="${esc(b.logo)}" alt="">`:""}${name||(b.logo?"":"Host Mode")}</h1>`).replace(/<p>(Your event portal|Your tasks)<\/p>/,'<p>$1 · powered by Host Mode</p>')};
+ /* the Host Mode lockup h1 (arch + wordmark) is swapped for the planner's brand; the plain form is the fallback if the header ever renders one */
+ return h.replace(/<h1 class="hmword">[\s\S]*?<\/h1>|<h1>Host Mode<\/h1>/,`<h1 class="brandrow">${b.logo?`<img class="brandlogo" src="${esc(b.logo)}" alt="">`:""}${name||(b.logo?"":"Host Mode")}</h1>`).replace(/<p>(Your event portal|Your tasks)<\/p>/,'<p>$1 · powered by Host Mode</p>')};
 function brandLogo(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=()=>rej();fr.onload=()=>{const img=new Image();img.onerror=()=>rej();img.onload=()=>{const k=Math.min(1,240/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/png"))};img.src=fr.result};fr.readAsDataURL(file)})}
 const BR_KEYS=["name","color","font","tag","email","phone","web","city","ig","fb","book"];
 function hBrandCard(){const b=D.brand||{},v=(k,d)=>dv("br_"+k,b[k]||d||""),c=brandHex(v("color","#0f2c5c"))||"#0f2c5c",fnt=brandFont(v("font","")),lg=L.brLogo!==undefined?L.brLogo:b.logo||"";
