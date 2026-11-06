@@ -100,3 +100,9 @@ as one GitHub issue (never twice), labeled by risk, at most 5 a night, and start
 - `syntax_check.js`: checks every js/ file and the joined code for broken code · `check_all.sh`: every check a change must pass
 - `compare_screens.py`: records 14 key screens before and after a change
 - Skills they read: `.claude/skills/test-as-customer` and `.claude/skills/answer-support-ticket`
+
+## Eddie's brain
+
+`eddie-brain.yml` installs `workers/eddie-brain` on Roy's free Cloudflare account (Workers AI) whenever that folder changes on main,
+asks its /hello page to answer, and posts PASSED or FAILED as a comment on the commit (run logs are private). Secrets:
+CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Pause: Actions → Eddie brain → Disable workflow.

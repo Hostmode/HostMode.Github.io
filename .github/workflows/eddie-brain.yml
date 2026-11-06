@@ -1,0 +1,118 @@
+# Eddie's brain: installs workers/eddie-brain on Cloudflare (Workers AI, free plan) and asks it to say hello.
+# Pause: Actions → Eddie brain → "..." → Disable workflow.
+# Secrets: CLOUDFLARE_API_TOKEN (the "Edit Cloudflare Workers" token) and CLOUDFLARE_ACCOUNT_ID.
+# The result is posted as a comment on the commit that started the run, so it can be read without the private run log.
+name: Eddie brain
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/eddie-brain/**"
+      - ".github/workflows/eddie-brain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write # the commit comment with the result
+
+concurrency:
+  group: eddie-brain
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the keys
+        id: keys
+        run: |
+          set -u
+          mkdir -p "$RUNNER_TEMP/eddie"
+          log="$RUNNER_TEMP/eddie/report.txt"
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "One of the secrets is missing (CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID)." >> "$log"; exit 1
+          fi
+          # Account-owned tokens verify under the account; user tokens under /user.
+          a=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/tokens/verify" || true)
+          u=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/user/tokens/verify" || true)
+          if jq -e '.success == true and .result.status == "active"' <<<"$a" >/dev/null 2>&1 || jq -e '.success == true and .result.status == "active"' <<<"$u" >/dev/null 2>&1; then
+            echo "Keys: the token is active." >> "$log"
+          else
+            echo "Keys: Cloudflare did not accept the token. Account check: $(jq -c '.errors' <<<"$a" 2>/dev/null) User check: $(jq -c '.errors' <<<"$u" 2>/dev/null)" >> "$log"; exit 1
+          fi
+
+      - name: Make sure the account has a workers.dev address
+        id: sub
+        run: |
+          set -u
+          log="$RUNNER_TEMP/eddie/report.txt"
+          api() { curl -sS -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" "$@"; }
+          base="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain"
+          r=$(api "$base" || true)
+          sub=$(jq -r '.result.subdomain // empty' <<<"$r" 2>/dev/null || true)
+          if [ -z "$sub" ]; then
+            for name in hostmode hostmode-app hostmode-eddie "hostmode-$RANDOM"; do
+              r=$(api -X PUT --data "{\"subdomain\":\"$name\"}" "$base" || true)
+              if jq -e '.success == true' <<<"$r" >/dev/null 2>&1; then sub="$name"; break; fi
+              echo "Address $name not taken: $(jq -c '.errors' <<<"$r" 2>/dev/null)" >> "$log"
+            done
+          fi
+          if [ -z "$sub" ]; then echo "Could not set up a workers.dev address." >> "$log"; exit 1; fi
+          echo "Address: $sub.workers.dev" >> "$log"
+          echo "sub=$sub" >> "$GITHUB_OUTPUT"
+
+      - name: Install Eddie's brain
+        working-directory: workers/eddie-brain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/eddie/report.txt"
+          if npx --yes wrangler@4 deploy 2>&1 | tee "$RUNNER_TEMP/eddie/deploy.txt"; then
+            echo "Install: done." >> "$log"
+          else
+            echo "Install failed. Last lines:" >> "$log"; tail -n 15 "$RUNNER_TEMP/eddie/deploy.txt" >> "$log"; exit 1
+          fi
+
+      - name: Ask Eddie to say hello
+        env:
+          SUB: ${{ steps.sub.outputs.sub }}
+        run: |
+          log="$RUNNER_TEMP/eddie/report.txt"
+          url="https://eddie-brain.$SUB.workers.dev/hello"
+          # A brand-new address can take a minute to start answering.
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            code=$(curl -sS -o "$RUNNER_TEMP/eddie/hello.json" -w '%{http_code}' "$url" || true); code=${code:-000}
+            [ "$code" = 200 ] && break
+            sleep 10
+          done
+          echo "Hello page: $url (HTTP $code)" >> "$log"
+          if jq -e '.ok == true and (.reply | length) > 0' "$RUNNER_TEMP/eddie/hello.json" >/dev/null 2>&1; then
+            echo "Model: $(jq -r '.model' "$RUNNER_TEMP/eddie/hello.json")" >> "$log"
+            echo "Eddie said: $(jq -r '.reply' "$RUNNER_TEMP/eddie/hello.json" | head -c 400)" >> "$log"
+          else
+            echo "Eddie did not answer: $(head -c 800 "$RUNNER_TEMP/eddie/hello.json" 2>/dev/null)" >> "$log"; exit 1
+          fi
+
+      - name: Report on the commit
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ job.status }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/eddie"; log="$RUNNER_TEMP/eddie/report.txt"
+          [ -f "$log" ] || echo "The run stopped before it could write anything." > "$log"
+          head="Eddie brain test: $([ "$RESULT" = success ] && echo PASSED || echo FAILED)"
+          jq -n --arg h "$head" --rawfile b "$log" '{body: ("<!-- eddie-brain -->\n**" + $h + "**\n\n```\n" + $b + "```")}' > "$RUNNER_TEMP/eddie/comment.json"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --input "$RUNNER_TEMP/eddie/comment.json" >/dev/null

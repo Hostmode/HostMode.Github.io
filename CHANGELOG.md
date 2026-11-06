@@ -2,6 +2,7 @@
 
 One line per change, newest first: date · who · what changed. Every Claude session adds a line when it finishes.
 
+- 2026-11-06 · Roy (with Claude) · Eddie's brain, test version: a Cloudflare Worker (workers/eddie-brain) on Workers AI's free plan, installed by the new Eddie brain workflow with the Cloudflare secrets Roy added. It only answers a /hello test page (one answer cached per 10 minutes so the free daily amount can't be used up); the result is posted on the commit.
 - 2026-11-06 · Roy (with Claude) · Eddie's Marketing tab description now calls him Host Mode's super assistant (the fix was pushed after PR #61 merged, so it's applied to main here). CLAUDE.md lesson: check whether a pull request is merged or has conflicts before pushing more to its branch.
 - 2026-11-06 · Roy (with Claude) · Eddie the mascot (Host Mode's super assistant) in the Marketing tab of the admin console: his cartoon picture (img/eddie-reference.png) and a download of his model sheet (img/eddie-model-sheet.png). Eddie stays a 2D animated cartoon (Roy's decision: no 3D model). His animated clip is still being finished and will join it later.
 - 2026-11-06 · Claude · Landing pages wear the new bright warm look (index, hosts, planners, demo): Cormorant Garamond display headings, navy buttons, gold accents, flatter lighter cards, dotted hero pattern removed; style only, no copy, links or behaviour changed.
