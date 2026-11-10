@@ -26,10 +26,13 @@ PRIVATE_FILES = ["CLAUDE.md", "CHANGELOG.md", ".gitlab-ci.yml", ".gitignore", ".
                  "workers/hostmode-backup/src/index.js", "workers/eddie-brain/src/index.js", "database.rules.json",
                  ".git/config", ".git/HEAD", "plans/", "3d/PROJECT-RECORD.md"]
 PRIVATE_DB = ["", "partygames", "partygames/tickets", "partygames/ticketNotes", "partygames/staff", "partygames/admins",
-              "partygames/owner", "partygames/sinvites", "partygames/sales", "partygames/salesLog", "partygames/team",
+              "partygames/sinvites", "partygames/sales", "partygames/salesLog", "partygames/team",
               "partygames/onboard", "partygames/agentRuns", "partygames/resources", "planners"]
-# The Firebase web key is public by design (it only names the project; the database rules protect the data).
+# Public by design, never reported: the Firebase web key (it only names the project; the database rules protect the
+# data) and the App Check reCAPTCHA site key in appcheck.js (a site key is meant to sit in the page). partygames/owner
+# is readable on purpose (pages check whether the signed-in account is the owner), so it isn't in PRIVATE_DB.
 IGNORE_RULES = {"gcp-api-key"}
+IGNORE_FILES = {"appcheck.js"}
 
 
 def fetch(url, method="GET", timeout=20):
@@ -115,7 +118,7 @@ def check_secrets(token, workdir, run=subprocess.run):
     except Exception:
         leaks = []
     for L in leaks or []:
-        if L.get("RuleID") in IGNORE_RULES:
+        if L.get("RuleID") in IGNORE_RULES or L.get("File") in IGNORE_FILES:
             continue
         f, line, rule = L.get("File", "?"), L.get("StartLine", "?"), L.get("RuleID", "?")
         out.append(finding(f"secret-{rule}-{f}", "high", f"Possible key or password in the code: {f}",
