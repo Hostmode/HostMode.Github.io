@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: "27 9 * * *"   # about 4:27 AM in Charlotte, after the GitLab nightly agents
   workflow_dispatch: {}
+  push:                    # also runs when the watch itself changes, so a change is checked right away
+    branches: [main]
+    paths: ["agents/security_watch.py", ".github/workflows/security-watch.yml"]
 permissions:
   contents: read
 concurrency: security-watch
