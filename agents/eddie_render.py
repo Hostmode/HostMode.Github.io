@@ -113,6 +113,7 @@ def gather(a):
                             "stream=nb_read_frames,r_frame_rate,width,height", "-of", "json", mp4], capture_output=True, text=True)
     st = json.loads(probe.stdout)["streams"][0]
     assert int(st["nb_read_frames"]) == n - 1 and st["r_frame_rate"] == "24/1", st
+    os.makedirs(os.path.join(rf, "review"), exist_ok=True)
     run([os.environ.get("COMPOSE_PY", sys.executable), "check_frames.py", fd], rf)
     sheet = os.path.join(rf, "review", f"contact-{fd}.png")
     frames = os.path.join(WORK, f"eddie-{a.clip}-frames.tar.gz")
