@@ -14,7 +14,7 @@ on:
         default: "12"
       rig:
         description: "Rig package version on GitLab (eddie-rig)"
-        default: "2026.11.10.2"
+        default: "2026.11.10.3"
       samples:
         description: "Render samples (12 is normal)"
         default: "12"
