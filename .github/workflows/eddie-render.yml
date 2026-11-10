@@ -1,0 +1,73 @@
+name: Eddie render farm
+# Renders an Eddie clip on several machines at once and puts the video on GitLab (private).
+# Nothing of Eddie is kept on GitHub: the rig comes from GitLab and every frame goes back there. See agents/eddie_render.py.
+on:
+  workflow_dispatch:
+    inputs:
+      clip:
+        description: "Which clip"
+        type: choice
+        options: [thinking, greeting, idle2]
+        default: thinking
+      machines:
+        description: "How many machines (1 to 20)"
+        default: "12"
+      rig:
+        description: "Rig package version on GitLab (eddie-rig)"
+        default: "2026.11.10"
+      samples:
+        description: "Render samples (12 is normal)"
+        default: "12"
+permissions:
+  contents: read
+concurrency: eddie-render
+env:
+  RUN_ID: ${{ inputs.clip }}-${{ github.run_number }}
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.p.outputs.shards }}
+    steps:
+      - id: p
+        run: |
+          n=$(( ${{ inputs.machines }} )); [ "$n" -ge 1 ] || n=1; [ "$n" -le 20 ] || n=20
+          echo "shards=$(python3 -c "import json;print(json.dumps(list(range($n))))")" >> "$GITHUB_OUTPUT"
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Blender (bpy) and tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libgl1 >/dev/null
+          pip install --quiet bpy==4.2.23 numpy==2.4.6 pillow==13.0.0 scipy==1.17.1 opencv-python-headless
+      - name: Render my share of the frames
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: python agents/eddie_render.py shard --clip "${{ inputs.clip }}" --index ${{ matrix.shard }} --of ${{ strategy.job-total }} --run "$RUN_ID" --rig "${{ inputs.rig }}" --samples "${{ inputs.samples }}"
+  gather:
+    needs: [plan, render]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          pip install --quiet numpy==2.4.6 pillow==13.0.0 scipy==1.17.1 opencv-python-headless
+      - name: Join the frames into the video, check them, and upload to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: python agents/eddie_render.py gather --clip "${{ inputs.clip }}" --of $(python3 -c "import json;print(len(json.loads('${{ needs.plan.outputs.shards }}')))") --run "$RUN_ID" --rig "${{ inputs.rig }}"
