@@ -74,13 +74,31 @@ def check_headers(get=fetch):
     return out
 
 
+CHALLENGED = []  # private paths Cloudflare's bot protection wouldn't let this check see, from the last check_files run
+
+
+def file_verdict(st, h):
+    """served, challenged or gone. Every private file is markdown, YAML, JSON, JS, Python or git data, never a web page;
+    Cloudflare Pages answers a missing path with the front page (HTML, with a random bot-protection code in it), and the
+    bot protection may show datacenter visitors like this runner a challenge instead. So only a 200 that isn't HTML counts."""
+    ctype = (h.get("content-type") or "").lower()
+    if (h.get("cf-mitigated") or "").lower() == "challenge":
+        return "challenged"
+    # a plain 403 page is the WAF rule "Block private files" on hostmode.app (Nov 17, 2026): the file isn't served
+    if st == 200 and "text/html" not in ctype:
+        return "served"
+    return "gone"
+
+
 def check_files(get=fetch):
-    _, _, home = get(SITE + "/")
     out = []
+    CHALLENGED.clear()
     for p in PRIVATE_FILES:
         st, h, body = get(SITE + "/" + p)
-        # Cloudflare Pages answers unknown paths with the front page, which is fine.
-        if st == 200 and body and body != home and body[:200] != home[:200]:
+        v = file_verdict(st, h)
+        if v == "challenged":
+            CHALLENGED.append(p)
+        elif v == "served":
             out.append(finding("file-" + p, "medium", f"The live site serves a private file: {p}",
                                f"`{SITE}/{p}` returns the file ({len(body)} bytes, {h.get('content-type', '?')}). "
                                "It isn't secret, but it shows how Host Mode is built. Leave it out of the deploy "
@@ -172,7 +190,7 @@ def main():
     found, ran = [], []
     for name, fn in [("headers", check_headers), ("files", check_files), ("database", check_database)]:
         try:
-            r = fn(); found += r; ran.append(f"{name}: {len(r)}")
+            r = fn(); found += r; ran.append(f"{name}: {len(r)}" + (f" ({len(CHALLENGED)} couldn't be checked: bot challenge)" if name == "files" and CHALLENGED else ""))
         except Exception as e:
             ran.append(f"{name}: couldn't run ({type(e).__name__})")
     if token:
@@ -199,10 +217,16 @@ def main():
 
 def self_test():
     home = b"<html>front page</html>"
+    import random
     def site(url, *a, **k):
         if url.endswith("/CLAUDE.md"):
             return 200, {"content-type": "text/markdown"}, b"# notes"
-        return 200, {"content-type": "text/html"}, home
+        if url.endswith("/.gitignore"):  # the bot protection challenges this runner: not a finding
+            return 403, {"content-type": "text/html", "cf-mitigated": "challenge"}, b"<html>Just a moment...</html>"
+        if url.endswith("/database.rules.json"):  # blocked by the WAF rule: gone, not a finding and not a challenge
+            return 403, {"content-type": "text/html; charset=UTF-8"}, b"<html>Sorry, you have been blocked</html>"
+        # the front page, with the bot protection's random code: different on every answer, still not a private file
+        return 200, {"content-type": "text/html; charset=utf-8"}, home + str(random.random()).encode()
     def db(url, *a, **k):
         return (200, {}, b'{"t1":true}') if "/partygames/tickets.json" in url else (401, {}, b'{"error":"Permission denied"}')
     def run(cmd, **k):
@@ -215,13 +239,14 @@ def self_test():
     assert {f["key"] for f in h} >= {"header-strict-transport-security", "header-framing"}, h
     fl = check_files(site)
     assert [f["key"] for f in fl] == ["file-CLAUDE.md"], fl
+    assert CHALLENGED == [".gitignore"], CHALLENGED
     d = check_database(db)
     assert [f["key"] for f in d] == ["db-partygames/tickets"], d
     with tempfile.TemporaryDirectory() as wd:
         s = check_secrets("t", wd, run)
     assert len(s) == 1 and "anthropic" in s[0]["key"], s
     good = lambda url, *a, **k: (200, {"strict-transport-security": "x", "x-content-type-options": "nosniff",
-                                       "x-frame-options": "DENY", "referrer-policy": "x"}, home)
+                                       "x-frame-options": "DENY", "referrer-policy": "x", "content-type": "text/html"}, home)
     assert check_headers(good) == [] and check_files(good) == []
     print("Self-test passed: every check caught its planted problem and passed the clean case.")
     return 0
