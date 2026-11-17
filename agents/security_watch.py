@@ -82,8 +82,9 @@ def file_verdict(st, h):
     Cloudflare Pages answers a missing path with the front page (HTML, with a random bot-protection code in it), and the
     bot protection may show datacenter visitors like this runner a challenge instead. So only a 200 that isn't HTML counts."""
     ctype = (h.get("content-type") or "").lower()
-    if (h.get("cf-mitigated") or "").lower() == "challenge" or (st in (403, 503) and "text/html" in ctype):
+    if (h.get("cf-mitigated") or "").lower() == "challenge":
         return "challenged"
+    # a plain 403 page is the WAF rule "Block private files" on hostmode.app (Nov 17, 2026): the file isn't served
     if st == 200 and "text/html" not in ctype:
         return "served"
     return "gone"
@@ -222,6 +223,8 @@ def self_test():
             return 200, {"content-type": "text/markdown"}, b"# notes"
         if url.endswith("/.gitignore"):  # the bot protection challenges this runner: not a finding
             return 403, {"content-type": "text/html", "cf-mitigated": "challenge"}, b"<html>Just a moment...</html>"
+        if url.endswith("/database.rules.json"):  # blocked by the WAF rule: gone, not a finding and not a challenge
+            return 403, {"content-type": "text/html; charset=UTF-8"}, b"<html>Sorry, you have been blocked</html>"
         # the front page, with the bot protection's random code: different on every answer, still not a private file
         return 200, {"content-type": "text/html; charset=utf-8"}, home + str(random.random()).encode()
     def db(url, *a, **k):
